@@ -4,8 +4,13 @@ from pathlib import Path
 
 from tools.codex_runner.runner import (
     build_initial_state,
+    build_codex_command,
     parse_task_file,
+    render_result,
     resolve_task_reference,
+    run_dir_for,
+    stderr_path_for,
+    stdout_path_for,
 )
 
 
@@ -87,3 +92,37 @@ class CodexRunnerParsingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CodexRunnerCommandTests(unittest.TestCase):
+    def test_build_codex_command_includes_profile_sandbox_and_target_project(self):
+        root, task_path = CodexRunnerParsingTests().make_project()
+        task = parse_task_file(task_path)
+
+        command, prompt = build_codex_command(task, codex_bin="codex")
+
+        self.assertEqual(command[:3], ["codex", "-a", "never"])
+        self.assertIn("exec", command)
+        self.assertIn("-p", command)
+        self.assertIn("kimi", command)
+        self.assertIn("-C", command)
+        self.assertIn(str(root), command)
+        self.assertIn("-s", command)
+        self.assertIn("workspace-write", command)
+        self.assertIn("--skip-git-repo-check", command)
+        self.assertIn("--ephemeral", command)
+        self.assertIn("<execution_contract>", prompt)
+        self.assertIn("docs/tasks/2026-06-28-example/task.md", prompt)
+
+    def test_result_falls_back_to_logs_when_report_is_missing(self):
+        _root, task_path = CodexRunnerParsingTests().make_project()
+        task = parse_task_file(task_path)
+        run_dir_for(task).mkdir(parents=True)
+        stdout_path_for(task).write_text("stdout summary\n", encoding="utf-8")
+        stderr_path_for(task).write_text("stderr detail\n", encoding="utf-8")
+
+        rendered = render_result(task)
+
+        self.assertIn("Report not found", rendered)
+        self.assertIn("stdout summary", rendered)
+        self.assertIn("stderr detail", rendered)

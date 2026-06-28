@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
+import subprocess
+import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -132,3 +135,178 @@ def read_state_by_task(task_path: str | Path) -> tuple[dict[str, str], dict[str,
     if not state_path.exists():
         raise FileNotFoundError(f"Run state not found: {state_path}")
     return task, json.loads(state_path.read_text(encoding="utf-8"))
+
+
+def relative_to_project(path: str, target_project: str) -> str:
+    try:
+        return str(Path(path).resolve().relative_to(Path(target_project).resolve()))
+    except ValueError:
+        return str(path)
+
+
+def build_prompt(task: dict[str, str]) -> str:
+    task_rel = relative_to_project(task["task_path"], task["target_project"])
+    report_rel = relative_to_project(task["report_path"], task["target_project"])
+    return textwrap.dedent(
+        f"""
+        <task>
+        Execute {task_rel} in {task['target_project']}.
+        </task>
+
+        <execution_contract>
+        Follow the Codex task contract included in the task file context. The task file is authoritative.
+        Use sandbox {task['sandbox']}. Do not stage or commit unless the task explicitly allows it.
+        </execution_contract>
+
+        <output_contract>
+        Write {report_rel}, then exit.
+        </output_contract>
+
+        <action_safety>
+        Keep changes tightly scoped. Preserve unrelated user work. Put temporary files under .codex-runs/{task['task_id']}/.
+        </action_safety>
+        """
+    ).strip()
+
+
+def build_codex_command(task: dict[str, str], codex_bin: str = "codex") -> tuple[list[str], str]:
+    prompt = build_prompt(task)
+    command = [
+        codex_bin,
+        "-a",
+        "never",
+        "exec",
+        "-C",
+        task["target_project"],
+        "-s",
+        task.get("sandbox", "workspace-write"),
+        "--skip-git-repo-check",
+        "--ephemeral",
+    ]
+    provider = task.get("provider", "").strip()
+    if provider:
+        command.extend(["-p", provider])
+    command.append(prompt)
+    return command, prompt
+
+
+def prepare_run_files(task: dict[str, str]) -> dict[str, Any]:
+    run_dir_for(task).mkdir(parents=True, exist_ok=True)
+    state = build_initial_state(task)
+    existing_path = state_path_for(task)
+    if existing_path.exists():
+        existing = json.loads(existing_path.read_text(encoding="utf-8"))
+        state["worker_pid"] = existing.get("worker_pid")
+    write_state(task, state)
+    return state
+
+
+def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int:
+    task = parse_task_file(task_path)
+    state = prepare_run_files(task)
+    command, _prompt = build_codex_command(task, codex_bin=codex_bin)
+    state.update(
+        {
+            "status": STATUS_RUNNING,
+            "started_at": utc_now(),
+            "command": command,
+        }
+    )
+    write_state(task, state)
+    with stdout_path_for(task).open("w", encoding="utf-8") as stdout, stderr_path_for(task).open("w", encoding="utf-8") as stderr:
+        process = subprocess.Popen(
+            command,
+            cwd=task["target_project"],
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            start_new_session=True,
+            text=True,
+        )
+        state["codex_pid"] = process.pid
+        try:
+            state["codex_pgid"] = os.getpgid(process.pid)
+        except ProcessLookupError:
+            state["codex_pgid"] = None
+        write_state(task, state)
+        exit_code = process.wait()
+    state["exit_code"] = exit_code
+    state["finished_at"] = utc_now()
+    state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
+    write_state(task, state)
+    return exit_code
+
+
+def pid_alive(pid: int | None) -> bool:
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def refresh_status(task_path: str | Path) -> dict[str, Any]:
+    task, state = read_state_by_task(task_path)
+    if state.get("status") == STATUS_RUNNING and not pid_alive(state.get("worker_pid")) and not pid_alive(state.get("codex_pid")):
+        state["status"] = STATUS_UNKNOWN
+        state["finished_at"] = state.get("finished_at") or utc_now()
+        write_state(task, state)
+    return state
+
+
+def tail_text(path: Path, limit: int = 4000) -> str:
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text[-limit:]
+
+
+def render_result(task: dict[str, str]) -> str:
+    report_path = Path(task["report_path"])
+    if report_path.exists():
+        return report_path.read_text(encoding="utf-8")
+    stdout = tail_text(stdout_path_for(task))
+    stderr = tail_text(stderr_path_for(task))
+    return "\n".join(
+        [
+            f"# Codex Result: {task['task_id']}",
+            "",
+            f"Report not found: {report_path}",
+            "",
+            "## stdout",
+            "",
+            "```text",
+            stdout,
+            "```",
+            "",
+            "## stderr",
+            "",
+            "```text",
+            stderr,
+            "```",
+        ]
+    )
+
+
+def cancel_task(task_path: str | Path) -> dict[str, Any]:
+    task, state = read_state_by_task(task_path)
+    pgid = state.get("codex_pgid")
+    worker_pid = state.get("worker_pid")
+    if pgid:
+        try:
+            os.killpg(int(pgid), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    if worker_pid and pid_alive(int(worker_pid)):
+        try:
+            os.kill(int(worker_pid), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    state["status"] = STATUS_CANCELLED
+    state["finished_at"] = utc_now()
+    write_state(task, state)
+    return state
