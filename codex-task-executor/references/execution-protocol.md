@@ -138,6 +138,8 @@ Write the report to:
 docs/tasks/<task-id>/codex-report.md
 ```
 
+If the sandbox is `read-only`, do not attempt to write the report file. Instead, print the full structured report to **stdout** as your final message, then exit.
+
 Use `references/report-template.md`.
 
 Always write a report, including failed and partial runs.

@@ -19,7 +19,7 @@ Codex must:
 5. Put temporary smoke checks and logs under `.codex-runs/<task-id>/`.
 6. Promote only valuable regression tests into the project's normal test directories.
 7. Run the requested verification commands when possible.
-8. Write `docs/tasks/<task-id>/codex-report.md` even on failure.
+8. Write `docs/tasks/<task-id>/codex-report.md` (or print the report to stdout if the sandbox is read-only) even on failure.
 9. Exit after reporting.
 
 ## Shared Contract

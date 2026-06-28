@@ -1,4 +1,4 @@
 .worktree/
 __pycache__/
-tests/
+*.pyc
 .codex-runs/
