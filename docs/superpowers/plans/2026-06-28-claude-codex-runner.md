@@ -311,7 +311,7 @@ The report must include:
 Run:
 
 ```bash
-rg "semi-auto|auto|keep-report-only|docs/tasks/<task-id>/task.md|docs/tasks/<task-id>/codex-report.md|.codex-runs/<task-id>|must not run `git add`|must not run `git commit`" shared/codex-task-contract.md
+rg 'semi-auto|auto|keep-report-only|docs/tasks/<task-id>/task.md|docs/tasks/<task-id>/codex-report.md|.codex-runs/<task-id>|must not run `git add`|must not run `git commit`' shared/codex-task-contract.md
 ```
 
 Expected: `rg` prints matches for every listed default and Git boundary.
@@ -610,7 +610,7 @@ Run:
 test -f claude-codex-runner/SKILL.md
 test -f claude-codex-runner/references/task-template.md
 test -f claude-codex-runner/references/runner-workflow.md
-rg "codex exec|docs/tasks/<task-id>/task.md|.codex-runs/<task-id>|semi-auto|keep-report-only|Do not run `git commit`" claude-codex-runner
+rg 'codex exec|docs/tasks/<task-id>/task.md|.codex-runs/<task-id>|semi-auto|keep-report-only|Do not run `git commit`' claude-codex-runner
 ```
 
 Expected: all `test` commands exit with code 0, and `rg` prints matches from the three created files.
@@ -975,7 +975,7 @@ Expected: matches appear in the shared contract and in both skill directories.
 Run:
 
 ```bash
-rg "Do not run `git add`|Do not run `git commit`|Do not run git add|Do not run git commit|must not run `git add`|must not run `git commit`" shared/codex-task-contract.md claude-codex-runner codex-task-executor
+rg 'Do not run `git add`|Do not run `git commit`|Do not run git add|Do not run git commit|must not run `git add`|must not run `git commit`' shared/codex-task-contract.md claude-codex-runner codex-task-executor
 ```
 
 Expected: matches appear in the shared contract and in both skill directories.
