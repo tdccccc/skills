@@ -1,2 +1,3 @@
 .worktree/
 __pycache__/
+tests/
