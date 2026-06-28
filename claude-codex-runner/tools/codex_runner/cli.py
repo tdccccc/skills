@@ -16,6 +16,7 @@ from .runner import (
     render_result,
     resolve_task_reference,
     run_codex_foreground,
+    synthesize_task_file,
     write_state,
 )
 
@@ -28,15 +29,22 @@ def start_background(task_path: Path, codex_bin: str) -> int:
     command = [
         sys.executable,
         "-m",
-        "tools.codex_runner.cli",
+        "codex_runner.cli",
         "worker",
         str(task_path),
         "--codex-bin",
         codex_bin,
     ]
+    # The package root is the tools/ dir that holds codex_runner/. Inject it via
+    # PYTHONPATH so the worker imports without depending on its working directory.
+    pkg_root = Path(__file__).resolve().parents[1]
+    env = dict(os.environ)
+    existing = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"{pkg_root}{os.pathsep}{existing}" if existing else str(pkg_root)
     worker = subprocess.Popen(
         command,
-        cwd=Path(__file__).resolve().parents[2],
+        cwd=task["target_project"],
+        env=env,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -50,7 +58,24 @@ def start_background(task_path: Path, codex_bin: str) -> int:
 
 
 def command_start(args: argparse.Namespace) -> int:
-    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    if args.prompt is not None:
+        if args.task is not None:
+            print("error: provide either a task reference or --prompt, not both", file=sys.stderr)
+            return 2
+        task_path = synthesize_task_file(
+            args.prompt,
+            project=args.project,
+            cwd=args.cwd,
+            sandbox=args.sandbox,
+            provider=args.provider,
+        )
+        print(f"Synthesized task file: {task_path}", file=sys.stderr)
+    elif args.task is not None:
+        task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    else:
+        print("error: start requires a task reference or --prompt", file=sys.stderr)
+        return 2
+
     if args.background:
         return start_background(task_path, args.codex_bin)
     return run_codex_foreground(task_path, codex_bin=args.codex_bin)
@@ -98,7 +123,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     start = sub.add_parser("start")
-    start.add_argument("task")
+    start.add_argument("task", nargs="?", default=None)
+    start.add_argument("--prompt", default=None, help="one-line task; synthesizes a task file instead of reading one")
+    start.add_argument("--project", default=None, help="target project dir for --prompt (default: --cwd)")
+    start.add_argument("--sandbox", default="workspace-write", help="Codex sandbox for --prompt (default: workspace-write)")
+    start.add_argument("--provider", default="", help="Codex provider profile for --prompt")
     start.add_argument("--background", action="store_true")
     start.add_argument("--codex-bin", default="codex")
     start.set_defaults(func=command_start)

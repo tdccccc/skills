@@ -25,11 +25,22 @@ Default to task-file mode:
 docs/tasks/<task-id>/task.md
 ```
 
-Use prompt mode only when all of these are true:
+For a small one-off task, prefer runner `--prompt` mode instead of hand-writing
+a task file. The runner synthesizes a minimal, contract-compliant task file from
+the prompt under the target project's `docs/tasks/<auto-id>/`, then runs it like
+any other task, so `status`, `result`, `cancel`, and `resume` all work:
 
-- the task is small
-- the user does not need a saved task file
-- the prompt still includes the same fields as the task template
+```bash
+claude-codex-runner/tools/codex-runner/codex-runner start \
+  --prompt "<one-line task>" --background
+```
+
+The synthesized task runs in the current working directory by default. Pass
+`--project <abs-path>` to target a different project, `--sandbox read-only` for
+analysis-only tasks, or `--provider <profile>` to select a Codex profile.
+
+Use direct `codex exec` (section 10) only when the runner is unavailable or the
+user explicitly asks for it.
 
 ## 3. Create Task ID
 
@@ -44,6 +55,9 @@ Example:
 ```text
 2026-06-28-add-login-validation
 ```
+
+For `--prompt` mode the runner derives this id automatically from the prompt
+text, appending a numeric suffix when the same slug already exists that day.
 
 ## 4. Prepare Directories
 

@@ -86,6 +86,108 @@ def resolve_task_reference(reference: str | Path, cwd: str | Path | None = None)
     raise FileNotFoundError(f"Cannot resolve task reference: {reference}")
 
 
+def slugify(text: str, max_words: int = 6) -> str:
+    words = re.findall(r"[A-Za-z0-9]+", text.lower())
+    slug = "-".join(words[:max_words])
+    return slug or "task"
+
+
+def next_prompt_id(target_project: str, slug: str) -> str:
+    date_part = utc_now()[:10]
+    base = f"{date_part}-{slug}"
+    tasks_dir = Path(target_project) / "docs" / "tasks"
+    if not (tasks_dir / base).exists():
+        return base
+    index = 2
+    while (tasks_dir / f"{base}-{index}").exists():
+        index += 1
+    return f"{base}-{index}"
+
+
+def synthesize_task_file(
+    prompt: str,
+    project: str | Path | None = None,
+    cwd: str | Path | None = None,
+    task_kind: str = "implementation",
+    mode: str = "semi-auto",
+    sandbox: str = "workspace-write",
+    provider: str = "",
+    artifact_policy: str = "keep-report-only",
+) -> Path:
+    """Write a minimal but contract-compliant task file from a one-line prompt.
+
+    The synthesized file lives under <project>/docs/tasks/<auto-id>/task.md so the
+    rest of the runner (status/result/cancel/resume) works exactly as it does for
+    hand-written task files.
+    """
+    goal = prompt.strip()
+    if not goal:
+        raise ValueError("prompt must not be empty")
+
+    target_project = Path(project or cwd or os.getcwd()).resolve()
+    task_id = next_prompt_id(str(target_project), slugify(goal))
+    task_path = target_project / "docs" / "tasks" / task_id / "task.md"
+    report_rel = f"docs/tasks/{task_id}/codex-report.md"
+    text = "\n".join(
+        [
+            f"# Codex Task: {task_id}",
+            "",
+            f"task_id: {task_id}",
+            f"target_project: {target_project}",
+            f"task_kind: {task_kind}",
+            f"mode: {mode}",
+            f"sandbox: {sandbox}",
+            f"provider: {provider}",
+            f"artifact_policy: {artifact_policy}",
+            "source: claude-code-prompt",
+            "",
+            "## Goal",
+            "",
+            goal,
+            "",
+            "## Scope",
+            "",
+            "Allowed:",
+            "",
+            "- Make the focused changes needed to satisfy the goal.",
+            "",
+            "Out of scope:",
+            "",
+            "- Unrelated refactors.",
+            "- `git add`.",
+            "- `git commit`.",
+            "",
+            "## Constraints",
+            "",
+            "- Do not run `git add`.",
+            "- Do not run `git commit`.",
+            f"- Do not write temporary files outside `.codex-runs/{task_id}/`.",
+            "- Preserve unrelated user changes.",
+            "",
+            "## Verification",
+            "",
+            "Commands:",
+            "",
+            "- Run the project's existing tests or build when applicable.",
+            "",
+            "Expected result:",
+            "",
+            "- The goal is complete and the final report explains verification.",
+            "",
+            "## Report",
+            "",
+            "Write report to:",
+            "",
+            "```text",
+            report_rel,
+            "```",
+            "",
+        ]
+    )
+    write_text(task_path, text)
+    return task_path.resolve()
+
+
 def run_dir_for(task: dict[str, str]) -> Path:
     return Path(task["target_project"]) / ".codex-runs" / task["task_id"]
 
