@@ -32,11 +32,14 @@ Use `references/task-template.md` when writing `docs/tasks/<task-id>/task.md`.
 ## Defaults
 
 - Task mode: task file
+- Task kind: `implementation`
 - Permission mode: `semi-auto`
+- Codex sandbox: `workspace-write` for task-file runs; `read-only` only for stdout-only analysis or planning
 - Artifact policy: `keep-report-only`
 - Report path: `docs/tasks/<task-id>/codex-report.md`
 - Temporary artifacts: `.codex-runs/<task-id>/`
 - Git behavior: Codex must not stage or commit by default
+- Provider profile: optional `provider` value passed to `codex exec -p`
 
 ## When Not To Use
 

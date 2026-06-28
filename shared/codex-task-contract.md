@@ -43,7 +43,10 @@ The task file must include:
 
 - task id
 - target project absolute path
+- task kind
 - permission mode
+- Codex sandbox
+- Codex provider profile when needed
 - artifact policy
 - goal
 - context
@@ -62,6 +65,44 @@ docs/tasks/<task-id>/codex-report.md
 ```
 
 Codex must write this report even when the task fails.
+
+## Task Kinds And Codex Sandbox
+
+Default:
+
+```yaml
+task_kind: implementation
+sandbox: workspace-write
+```
+
+Supported task kinds:
+
+- `implementation`: Codex may edit files within the declared scope. Use `sandbox: workspace-write`.
+- `analysis`: Codex should inspect and report without editing source files. Use `sandbox: read-only` only for stdout-only analysis; use `workspace-write` when Codex must write `codex-report.md`.
+- `planning`: Codex should read the project and produce a plan without editing source files. Use `sandbox: read-only` only for stdout-only planning; use `workspace-write` when Codex must write plan or report files.
+
+Sandbox mapping:
+
+- `semi-auto` implementation tasks use `workspace-write`.
+- analysis and planning tasks use `read-only` for stdout-only runs.
+- task-file runs that require writing `docs/tasks/<task-id>/codex-report.md` use `workspace-write`, even for analysis or planning, but source edits remain forbidden unless the task kind is `implementation`.
+- `auto` tasks use `workspace-write` by default. Use `danger-full-access` only when the user explicitly permits broad access.
+
+## Codex Provider Profile
+
+Optional:
+
+```yaml
+provider: <profile-name>
+```
+
+When set, Claude Code should pass it to Codex as:
+
+```bash
+codex exec -p <profile-name> ...
+```
+
+`-p` is the Codex CLI profile flag. Use it for provider/profile selection without adding model or reasoning-effort fields to the task contract.
 
 ## Permission Modes
 

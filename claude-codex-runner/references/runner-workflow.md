@@ -86,24 +86,87 @@ Use `references/task-template.md`.
 The task must include:
 
 - absolute target project path
+- task kind
 - permission mode
+- Codex sandbox
+- optional provider profile
 - artifact policy
 - allowed scope
 - out-of-scope items
 - verification commands
 - report path
 
-## 7. Invoke Codex
+## 7. Select Codex Invocation Options
+
+Use these defaults:
+
+```yaml
+task_kind: implementation
+mode: semi-auto
+sandbox: workspace-write
+```
+
+Use `sandbox: read-only` for analysis or planning tasks that should not modify source files.
+
+Use `workspace-write` instead when the run must write `docs/tasks/<task-id>/codex-report.md`, a plan file, or other explicitly allowed documentation output. In that case, keep `task_kind: analysis` or `task_kind: planning` and state that source edits are forbidden.
+
+If the user specifies a provider/profile, preserve it as:
+
+```yaml
+provider: <profile-name>
+```
+
+and pass it to Codex with `-p <profile-name>`.
+
+Do not ask for model or reasoning effort unless the user explicitly asks; use the user's Codex config defaults.
+
+## 8. Invoke Codex
 
 Use a one-shot invocation:
 
 ```bash
-codex exec "Read shared/codex-task-contract.md semantics from the prompt below. Execute the task at docs/tasks/<task-id>/task.md in <target-project>. Follow the Codex task executor protocol. Write the report to docs/tasks/<task-id>/codex-report.md and exit."
+codex -a never exec \
+  -C "<target-project>" \
+  -s "<sandbox>" \
+  --skip-git-repo-check \
+  --ephemeral \
+  "prompt" </dev/null 2>/dev/null
+```
+
+If `provider` is set, add it before the prompt:
+
+```bash
+-p "<provider>"
+```
+
+Always redirect stdin with `</dev/null`; `codex exec` reads stdin and can hang if the harness leaves it open.
+
+Suppress stderr with `2>/dev/null` by default to keep Codex thinking/progress output out of Claude Code's context. If the command fails, rerun or inspect stderr only as needed for debugging.
+
+Use a compact XML-shaped prompt wrapper:
+
+```xml
+<task>
+Execute docs/tasks/<task-id>/task.md in <target-project>.
+</task>
+
+<execution_contract>
+Follow the Codex task contract included below. The task file is authoritative.
+Use sandbox <sandbox>. Do not stage or commit unless the task explicitly allows it.
+</execution_contract>
+
+<output_contract>
+Write docs/tasks/<task-id>/codex-report.md, then exit.
+</output_contract>
+
+<action_safety>
+Keep changes tightly scoped. Preserve unrelated user work. Put temporary files under .codex-runs/<task-id>/.
+</action_safety>
 ```
 
 Include the relevant shared contract text or a concise copy of its rules in the invocation prompt, because Codex may not have this skills repository in its working directory.
 
-## 8. Read Report
+## 9. Read Report
 
 Read:
 
@@ -113,7 +176,7 @@ docs/tasks/<task-id>/codex-report.md
 
 If the report is missing, summarize Codex stdout and stderr and tell the user that Codex did not complete the reporting protocol.
 
-## 9. Summarize For User
+## 10. Summarize For User
 
 Report:
 

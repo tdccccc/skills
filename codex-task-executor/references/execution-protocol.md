@@ -14,7 +14,10 @@ Extract:
 
 - `task_id`
 - `target_project`
+- `task_kind`
 - `mode`
+- `sandbox`
+- `provider`
 - `artifact_policy`
 - goal
 - context
@@ -26,6 +29,8 @@ Extract:
 
 If the task is provided directly in the prompt, treat the prompt as the task file.
 
+If the invocation prompt includes XML blocks such as `<task>`, `<execution_contract>`, `<output_contract>`, or `<action_safety>`, treat them as routing and safety instructions. The task file remains authoritative for scope, verification, and report path.
+
 ## 2. Confirm Working Directory
 
 Work inside `target_project`.
@@ -33,6 +38,8 @@ Work inside `target_project`.
 If the current working directory is not the target project, change to the target project before reading or writing project files.
 
 Do not write outside `target_project` unless the task explicitly allows it and the user has approved that capability.
+
+If `sandbox` is `read-only`, do not modify source files and do not assume report-file writes are possible. For `analysis` or `planning` tasks running with `workspace-write`, write only the explicitly allowed plan/report paths and do not edit source files.
 
 ## 3. Prepare Run Directories
 

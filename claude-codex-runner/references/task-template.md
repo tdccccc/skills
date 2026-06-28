@@ -2,7 +2,10 @@
 
 task_id: {{task_id}}
 target_project: {{absolute_target_project_path}}
+task_kind: implementation
 mode: semi-auto
+sandbox: workspace-write
+provider: {{optional_codex_profile_name_or_blank}}
 artifact_policy: keep-report-only
 source: claude-code
 

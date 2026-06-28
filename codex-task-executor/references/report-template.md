@@ -3,6 +3,8 @@
 task_id: {{task_id}}
 status: {{success_or_partial_or_failed}}
 mode: {{semi_auto_or_auto}}
+sandbox: {{read_only_or_workspace_write_or_danger_full_access}}
+provider: {{provider_profile_or_blank}}
 artifact_policy: {{keep_report_only_or_keep_run_artifacts_or_promote_useful_tests}}
 
 ## Summary
