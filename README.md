@@ -70,6 +70,7 @@ The install target for each skill is shown in parentheses.
 - `article-summary/` (both) summarizes astronomy and academic papers into structured Chinese notes.
 - `claude-codex-runner/` (claude) lets Claude Code package a task and invoke Codex CLI for one-shot execution.
 - `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
+- `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
 - `security-audit/` (both) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
 
 ## Shared Protocols
@@ -120,6 +121,8 @@ skills/
     SKILL.md
     references/
       summary-template.md
+  grill-me/
+    SKILL.md
   security-audit/
     SKILL.md
     scripts/
