@@ -11,8 +11,8 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 ```
 
 This downloads `bootstrap.sh`, clones or updates this repository under
-`${CODEX_HOME:-$HOME/.codex}/skill-repos/personal-skills`, then runs
-`install.sh` from that cached repository.
+`${XDG_CACHE_HOME:-$HOME/.cache}/tdccccc-skills`, then runs `install.sh`
+from that cached repository. By default, skills are installed for Claude Code.
 
 Clone this repository and run the installer:
 
@@ -23,8 +23,16 @@ cd personal-skills
 ```
 
 The installer copies every root-level directory containing `SKILL.md` into
-`${CODEX_HOME:-$HOME/.codex}/skills`. It also installs shared support
-directories used by the skills, currently `shared/` and `tools/`.
+the selected tool's skills directory. It also installs shared support directories
+used by the skills, currently `shared/` and `tools/`.
+
+Targets:
+
+```bash
+./install.sh --target claude   # Default: ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills
+./install.sh --target codex    # ${CODEX_HOME:-$HOME/.codex}/skills
+./install.sh --target both
+```
 
 For local development, install with symlinks instead of copies:
 
@@ -44,9 +52,10 @@ With the one-line installer, pass installer options after `bash -s --`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --force
+curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --target both
 ```
 
-Restart Codex after installing or updating skills.
+Restart Claude Code and/or Codex after installing or updating skills.
 
 ## Skills
 

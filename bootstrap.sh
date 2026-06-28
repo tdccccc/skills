@@ -3,11 +3,11 @@ set -euo pipefail
 
 DEFAULT_REPO_URL="https://github.com/tdccccc/skills.git"
 DEFAULT_REPO_REF="main"
-DEFAULT_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+DEFAULT_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
 
 REPO_URL="${SKILLS_REPO_URL:-$DEFAULT_REPO_URL}"
 REPO_REF="${SKILLS_REPO_REF:-$DEFAULT_REPO_REF}"
-REPO_DIR="${SKILLS_REPO_DIR:-$DEFAULT_CODEX_HOME/skill-repos/personal-skills}"
+REPO_DIR="${SKILLS_REPO_DIR:-$DEFAULT_CACHE_HOME/tdccccc-skills}"
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -27,6 +27,9 @@ Bootstrap options are configured with environment variables:
   SKILLS_REPO_DIR   Local repository cache directory
 
 Arguments passed to this script are forwarded to install.sh:
+  curl -fsSL .../bootstrap.sh | bash -s -- --target claude
+  curl -fsSL .../bootstrap.sh | bash -s -- --target codex
+  curl -fsSL .../bootstrap.sh | bash -s -- --target both
   curl -fsSL .../bootstrap.sh | bash -s -- --force
   curl -fsSL .../bootstrap.sh | bash -s -- --link
 USAGE
