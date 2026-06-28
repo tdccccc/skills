@@ -6,82 +6,65 @@ install-targets: claude
 
 # Claude Codex Runner
 
-Use this skill when the user wants Claude Code to delegate a bounded task to Codex CLI.
+Delegate an already-scoped coding or analysis task to Codex CLI, then summarize
+what Codex reports back.
 
-## Responsibilities
+## Quick start — the default path
 
-Claude Code must:
-
-1. Confirm the task is scoped enough for Codex.
-2. For a detailed task, write `docs/tasks/<task-id>/task.md` in the target project.
-3. For a small one-off task, use runner `--prompt` mode, which synthesizes a task file automatically.
-4. Invoke Codex through the local runner by default.
-5. Use runner `status`, `result`, `cancel`, or `resume` when needed.
-6. Read `docs/tasks/<task-id>/codex-report.md` or runner `result`.
-7. Summarize Codex's result for the user.
-
-The runner adds `.codex-runs/` to the target project's `.gitignore` automatically
-on each run (semi-auto mode permits this), so no manual `.gitignore` step is needed.
-
-## Runner Cheatsheet
-
-`R=claude-codex-runner/tools/codex-runner/codex-runner` (use the absolute installed path).
+For a request like "run codex -p <profile> to <task>", **this file is all you
+need**. Do NOT read the reference files, do NOT open `runner.py`, do NOT run
+`--help`. Build one command and run it:
 
 ```bash
-# One-off task (synthesizes the task file). read-only returns the report on stdout.
-"$R" start --prompt "<one-line task>" --project <dir> --provider <profile> [--sandbox read-only] --background
-
-# Detailed task from a written task file.
-"$R" start docs/tasks/<task-id>/task.md --background
-
-# Follow the run, then read the result (report file, or stdout/stderr fallback).
-"$R" status <task-id>
-"$R" result <task-id>
-"$R" cancel <task-id>
-"$R" resume <task-id> --goal "<follow-up goal>" [--start --background]
+R=~/.claude/skills/claude-codex-runner/tools/codex-runner/codex-runner
+"$R" start --prompt "<task, one or two lines>" \
+  --project <target-project-dir> \
+  --provider <profile> \
+  [--sandbox read-only] \
+  --background
 ```
 
-Background runs detach: poll `status` (or read `.codex-runs/<task-id>/run.json`)
-until `status` is `success`/`failed`/`cancelled`, then read `result`.
+- `--sandbox read-only` for pure analysis/review — Codex prints its report to
+  stdout. Omit it for implementation (default `workspace-write`, Codex writes
+  `docs/tasks/<task-id>/codex-report.md`).
+- That `start` call is the only step that needs the user's confirmation.
 
-`start` flags: `--prompt`, `--project` (default `--cwd`), `--sandbox` (default
-`workspace-write`), `--provider`, `--background`, `--codex-bin`. Pass either a
-task path or `--prompt`, not both.
+Then follow the run and report back:
 
-Sandbox choice: `workspace-write` for implementation and for any run that should
-write `codex-report.md`; `read-only` for pure analysis/planning — in read-only the
-runner tells Codex to print its full report to stdout, and `result` surfaces it.
+```bash
+"$R" status <task-id>   # repeat until success / failed / cancelled
+"$R" result <task-id>   # prints the report file, or the stdout/stderr fallback
+```
 
-## Shared Contract
+Summarize the result for the user. The runner auto-adds `.codex-runs/` to the
+target project's `.gitignore`, so there is no manual git step.
 
-Follow `references/codex-task-contract.md`.
+## Other commands
 
-## Detailed Workflow
+```bash
+"$R" start docs/tasks/<task-id>/task.md --background        # run a hand-written task file
+"$R" cancel <task-id>
+"$R" resume <task-id> --goal "<follow-up>" [--start --background]
+```
 
-Read `references/runner-workflow.md` before invoking Codex.
+`start` flags: `--prompt`, `--project` (default cwd), `--sandbox` (default
+`workspace-write`), `--provider`, `--background`, `--codex-bin`. Pass a task
+path or `--prompt`, not both. The runner defaults each synthesized task to
+`task_kind: implementation`, `mode: semi-auto`, `artifact_policy: keep-report-only`,
+and forbids `git add` / `git commit`.
 
-Use `references/task-template.md` when writing `docs/tasks/<task-id>/task.md`.
+## Read a reference only when you need it
 
-## Defaults
+The quick-start path needs none of these. Open one only for the matching case:
 
-- Task mode: task file
-- Task kind: `implementation`
-- Permission mode: `semi-auto`
-- Codex sandbox: `workspace-write` for task-file runs; `read-only` only for stdout-only analysis or planning
-- Artifact policy: `keep-report-only`
-- Report path: `docs/tasks/<task-id>/codex-report.md`
-- Temporary artifacts: `.codex-runs/<task-id>/`
-- Git behavior: Codex must not stage or commit by default
-- Provider profile: optional `provider` value passed to `codex exec -p`
-- Invocation: `claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background`
-- One-off shortcut: `claude-codex-runner/tools/codex-runner/codex-runner start --prompt "<one-line task>" --background` (synthesizes the task file in the current project)
-- State and logs: `.codex-runs/<task-id>/run.json`, `stdout.log`, and `stderr.log`
-- Resume: audited follow-up task via `claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"`
+- `references/task-template.md` + `references/codex-task-contract.md` — when
+  hand-writing a detailed `docs/tasks/<id>/task.md` and you need the exact
+  scope / permission-mode / artifact / report rules.
+- `references/runner-workflow.md` — for unusual flows (resume chains, foreground
+  debugging, a stuck or `unknown` run).
 
-## When Not To Use
+## When not to use
 
-Do not use this skill when:
-
-- the task is still exploratory and has no implementation boundary
+- the task is still exploratory with no implementation boundary
 - the user only wants discussion or planning
-- the user has asked Claude Code to implement the task directly
+- the user asked Claude Code to implement it directly
