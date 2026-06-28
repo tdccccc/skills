@@ -63,6 +63,29 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 Restart Claude Code and/or Codex after installing or updating skills.
 
+## Uninstall
+
+Remove this repository's skills from the cloned checkout:
+
+```bash
+./uninstall.sh                 # Ask which target; Enter selects Claude Code
+./uninstall.sh --target claude
+./uninstall.sh --target codex
+./uninstall.sh --target both
+```
+
+Only directories this repository installs are removed, looked up by name: the
+current skills plus legacy names from older layouts (`shared`, `tools`). Skills
+from other sources in the same directory are never touched.
+
+Preview before deleting, or skip the confirmation prompt:
+
+```bash
+./uninstall.sh --target both --dry-run
+./uninstall.sh --target both --yes
+./uninstall.sh --dest /path/to/skills
+```
+
 ## Skills
 
 The install target for each skill is shown in parentheses.
