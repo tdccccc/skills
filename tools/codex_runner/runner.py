@@ -35,10 +35,10 @@ def write_text(path: Path, text: str) -> None:
 def parse_metadata(text: str) -> dict[str, str]:
     metadata: dict[str, str] = {}
     for line in text.splitlines():
-        if line.startswith("#"):
-            continue
         if line.startswith("## "):
             break
+        if line.startswith("#"):
+            continue
         match = re.match(r"^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$", line)
         if match:
             metadata[match.group(1)] = match.group(2).strip()
@@ -310,3 +310,109 @@ def cancel_task(task_path: str | Path) -> dict[str, Any]:
     state["finished_at"] = utc_now()
     write_state(task, state)
     return state
+
+
+def next_followup_id(old_task_id: str, target_project: str) -> str:
+    date_part = utc_now()[:10]
+    slug = old_task_id
+    if re.match(r"^\d{4}-\d{2}-\d{2}-", slug):
+        slug = slug[11:]
+    base = f"{date_part}-{slug}-followup"
+    tasks_dir = Path(target_project) / "docs" / "tasks"
+    index = 1
+    while (tasks_dir / f"{base}-{index}").exists():
+        index += 1
+    return f"{base}-{index}"
+
+
+def create_audited_resume_task(task_path: str | Path, goal: str, start: bool = False) -> dict[str, str]:
+    del start
+    previous = parse_task_file(task_path)
+    previous_task_text = read_text(Path(previous["task_path"]))
+    report_path = Path(previous["report_path"])
+    if report_path.exists():
+        previous_report_text = report_path.read_text(encoding="utf-8")
+    else:
+        previous_report_text = "Previous Codex report was not found."
+    new_task_id = next_followup_id(previous["task_id"], previous["target_project"])
+    new_dir = Path(previous["target_project"]) / "docs" / "tasks" / new_task_id
+    new_task_path = new_dir / "task.md"
+    report_rel = f"docs/tasks/{new_task_id}/codex-report.md"
+    text = "\n".join(
+        [
+            f"# Codex Task: Follow up {previous['task_id']}",
+            "",
+            f"task_id: {new_task_id}",
+            f"target_project: {previous['target_project']}",
+            f"task_kind: {previous.get('task_kind', 'implementation')}",
+            f"mode: {previous.get('mode', 'semi-auto')}",
+            f"sandbox: {previous.get('sandbox', 'workspace-write')}",
+            f"provider: {previous.get('provider', '')}",
+            f"artifact_policy: {previous.get('artifact_policy', 'keep-report-only')}",
+            "source: claude-code",
+            "",
+            "## Goal",
+            "",
+            goal,
+            "",
+            "## Context",
+            "",
+            f"Previous task: {previous['task_id']}",
+            f"Previous task file: docs/tasks/{previous['task_id']}/task.md",
+            f"Previous report file: docs/tasks/{previous['task_id']}/codex-report.md",
+            "",
+            "## Previous Report",
+            "",
+            "```markdown",
+            previous_report_text.strip(),
+            "```",
+            "",
+            "## Previous Task",
+            "",
+            "```markdown",
+            previous_task_text.strip(),
+            "```",
+            "",
+            "## Scope",
+            "",
+            "Allowed:",
+            "",
+            "- Continue only from the previous task and report.",
+            "- Keep changes within the previous task's declared scope unless this follow-up goal narrows it further.",
+            "",
+            "Out of scope:",
+            "",
+            "- Native `codex resume`.",
+            "- Unrelated refactors.",
+            "- `git add`.",
+            "- `git commit`.",
+            "",
+            "## Constraints",
+            "",
+            "- Do not run `git add`.",
+            "- Do not run `git commit`.",
+            f"- Do not write temporary files outside `.codex-runs/{new_task_id}/`.",
+            "- Preserve unrelated user changes.",
+            "",
+            "## Verification",
+            "",
+            "Commands:",
+            "",
+            "- Use the previous task's verification commands unless this follow-up goal provides a narrower command.",
+            "",
+            "Expected result:",
+            "",
+            "- The follow-up goal is complete and the final report explains verification.",
+            "",
+            "## Report",
+            "",
+            "Write report to:",
+            "",
+            "```text",
+            report_rel,
+            "```",
+            "",
+        ]
+    )
+    write_text(new_task_path, text)
+    return parse_task_file(new_task_path)

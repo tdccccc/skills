@@ -10,6 +10,7 @@ from pathlib import Path
 from .runner import (
     build_initial_state,
     cancel_task,
+    create_audited_resume_task,
     parse_task_file,
     refresh_status,
     render_result,
@@ -80,6 +81,17 @@ def command_cancel(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_resume(args: argparse.Namespace) -> int:
+    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    followup = create_audited_resume_task(task_path, goal=args.goal, start=False)
+    print(json.dumps(followup, indent=2, sort_keys=True))
+    if args.start:
+        if args.background:
+            return start_background(Path(followup["task_path"]), args.codex_bin)
+        return run_codex_foreground(followup["task_path"], codex_bin=args.codex_bin)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-runner")
     parser.add_argument("--cwd", default=os.getcwd())
@@ -107,6 +119,14 @@ def build_parser() -> argparse.ArgumentParser:
     cancel = sub.add_parser("cancel")
     cancel.add_argument("task")
     cancel.set_defaults(func=command_cancel)
+
+    resume = sub.add_parser("resume")
+    resume.add_argument("task")
+    resume.add_argument("--goal", required=True)
+    resume.add_argument("--start", action="store_true")
+    resume.add_argument("--background", action="store_true")
+    resume.add_argument("--codex-bin", default="codex")
+    resume.set_defaults(func=command_resume)
     return parser
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from tools.codex_runner.runner import (
     build_initial_state,
     build_codex_command,
+    create_audited_resume_task,
     parse_task_file,
     render_result,
     resolve_task_reference,
@@ -126,3 +127,28 @@ class CodexRunnerCommandTests(unittest.TestCase):
         self.assertIn("Report not found", rendered)
         self.assertIn("stdout summary", rendered)
         self.assertIn("stderr detail", rendered)
+
+
+class CodexRunnerResumeTests(unittest.TestCase):
+    def test_create_audited_resume_task_writes_followup_task(self):
+        root, task_path = CodexRunnerParsingTests().make_project()
+        report_path = root / "docs" / "tasks" / "2026-06-28-example" / "codex-report.md"
+        report_path.write_text(
+            "# Codex Report: Example\n\n## Risks / Follow-ups\n\n- Add final verification.\n",
+            encoding="utf-8",
+        )
+
+        followup = create_audited_resume_task(
+            task_path,
+            goal="Run the final verification and fix any scoped failure.",
+            start=False,
+        )
+
+        followup_path = Path(followup["task_path"])
+        self.assertTrue(followup_path.exists())
+        self.assertNotEqual(followup["task_id"], "2026-06-28-example")
+        text = followup_path.read_text(encoding="utf-8")
+        self.assertIn("Previous task", text)
+        self.assertIn("2026-06-28-example", text)
+        self.assertIn("Run the final verification", text)
+        self.assertIn("Add final verification", text)
