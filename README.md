@@ -10,11 +10,11 @@ Quick install:
 curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash
 ```
 
-This downloads `bootstrap.sh`, clones or updates this repository under
-`${XDG_CACHE_HOME:-$HOME/.cache}/tdccccc-skills`, then runs `install.sh`
-from that cached repository. By default, the installer asks whether to install
-for both Claude Code and Codex. Answer `y` to install both; press Enter or
-answer `n` to install Claude Code only.
+This downloads `bootstrap.sh`, then asks which tool(s) to install for —
+Claude Code, Codex, or both — *before* cloning anything, so choosing Cancel
+costs nothing. After you choose, it clones or updates this repository under
+`${XDG_CACHE_HOME:-$HOME/.cache}/tdccccc-skills` and runs `install.sh` from
+that cached repository.
 
 Clone this repository and run the installer:
 
@@ -24,14 +24,17 @@ cd personal-skills
 ./install.sh
 ```
 
-The installer copies every root-level directory containing `SKILL.md` into
-the selected tool's skills directory. It also installs shared support directories
-used by the skills, currently `shared/` and `tools/`.
+The `--target` you choose selects which tools to install into. Each skill can
+declare an `install-targets:` field in its `SKILL.md` frontmatter (`claude`,
+`codex`, or `both`); the installer copies a skill into the chosen target only
+when that skill's `install-targets` includes it. A skill without the field
+defaults to `both`. Shared support directories used by the installed skills,
+currently `shared/` and `tools/`, are installed alongside them.
 
 Targets:
 
 ```bash
-./install.sh                   # Ask whether to install both; No installs Claude Code
+./install.sh                   # Ask which tool(s) to install for; default Claude Code
 ./install.sh --target claude   # ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills
 ./install.sh --target codex    # ${CODEX_HOME:-$HOME/.codex}/skills
 ./install.sh --target both
@@ -62,10 +65,12 @@ Restart Claude Code and/or Codex after installing or updating skills.
 
 ## Skills
 
-- `article-summary/` summarizes astronomy and academic papers into structured Chinese notes.
-- `claude-codex-runner/` lets Claude Code package a task and invoke Codex CLI for one-shot execution.
-- `codex-task-executor/` tells Codex how to execute Claude-generated task packages and write structured reports.
-- `security-audit/` audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
+The install target for each skill is shown in parentheses.
+
+- `article-summary/` (both) summarizes astronomy and academic papers into structured Chinese notes.
+- `claude-codex-runner/` (claude) lets Claude Code package a task and invoke Codex CLI for one-shot execution.
+- `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
+- `security-audit/` (both) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
 
 ## Shared Protocols
 
@@ -126,6 +131,7 @@ skills/
 ## Conventions
 
 - Each skill directory contains one `SKILL.md`.
+- A skill's `SKILL.md` frontmatter may set `install-targets:` to `claude`, `codex`, or `both` to control where it installs; omitting it defaults to `both`.
 - Supporting instructions and templates live in `references/`.
 - Bundled executables for a skill live in that skill's `scripts/`.
 - Imported third-party skills may keep their upstream `LICENSE` and `README.md`.

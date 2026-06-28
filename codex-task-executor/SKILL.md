@@ -1,6 +1,7 @@
 ---
 name: codex-task-executor
 description: Use in Codex when executing a Claude-generated task package, especially a task file under docs/tasks/<task-id>/task.md. Follow the shared task contract, modify only scoped files, verify the work, write docs/tasks/<task-id>/codex-report.md, and exit. 适用于 Codex 接收 Claude 生成的任务包并执行后汇报。
+install-targets: codex
 ---
 
 # Codex Task Executor

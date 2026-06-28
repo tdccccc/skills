@@ -1,6 +1,7 @@
 ---
 name: article-summary
 description: 总结天文/学术论文为中文结构化笔记。当用户提供 arXiv 链接或 ID、论文 PDF、LaTeX/文本文件、DOI 或期刊/ADS 链接，并希望得到结构化中文总结（TL;DR、方法、结果、公式与图表解读、局限）时使用。Summarize astronomy/academic papers into structured Chinese notes.
+install-targets: both
 ---
 
 # 天文/学术论文总结

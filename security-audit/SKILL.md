@@ -1,6 +1,7 @@
 ---
 name: security-audit
 description: Audit Claude Code configuration for malicious hooks, MCP servers, and suspicious commands. Use this skill whenever the user clones a new project, installs a skill/plugin, configures MCP servers, or asks to check security. Also trigger when the user mentions "audit", "security check", "malicious", "hooks", or "is this safe".
+install-targets: both
 ---
 
 # Security Audit

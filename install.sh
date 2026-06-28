@@ -15,13 +15,17 @@ usage() {
   cat <<'USAGE'
 Usage: install.sh [options]
 
-Install every root-level skill in this repository into Claude Code and/or Codex.
-Supporting repository directories used by the skills, such as shared/ and tools/,
-are installed alongside the skills.
+Install root-level skills from this repository into Claude Code and/or Codex.
+Each skill may declare an `install-targets:` field in its SKILL.md frontmatter
+(claude, codex, or both); skills that exclude the chosen target are skipped.
+A skill without the field defaults to both. Supporting repository directories
+used by the skills, such as shared/ and tools/, are installed alongside them.
 
 Options:
   --target TARGET  Install target: claude, codex, or both
                    Default: ask whether to install both; No installs claude
+                   This selects which tools to install into; each skill's
+                   install-targets then decides whether it lands there.
   --dest DIR       Install into DIR instead of the selected target's skills dir
                    May not be used with --target both
   --link           Symlink directories instead of copying them
@@ -115,6 +119,55 @@ run() {
   fi
 }
 
+# Read the `install-targets` field from a skill's SKILL.md frontmatter.
+# Accepts a comma/space separated list of: claude, codex, both.
+# Missing field defaults to "both" so existing skills keep installing everywhere.
+skill_targets() {
+  local skill_dir="$1"
+  local skill_file="$skill_dir/SKILL.md"
+  local line=""
+
+  if [[ -f "$skill_file" ]]; then
+    # Only scan the frontmatter block (between the first two `---` lines).
+    line="$(awk '
+      NR==1 && $0=="---" { in_fm=1; next }
+      in_fm && $0=="---" { exit }
+      in_fm && tolower($0) ~ /^install-targets[[:space:]]*:/ {
+        sub(/^[^:]*:[[:space:]]*/, "")
+        print
+        exit
+      }
+    ' "$skill_file")"
+  fi
+
+  if [[ -z "$line" ]]; then
+    echo "both"
+    return 0
+  fi
+
+  # Normalize separators and lowercase.
+  echo "$line" | tr ',' ' ' | tr '[:upper:]' '[:lower:]'
+}
+
+# Return success if the skill should be installed for the given target.
+skill_wants_target() {
+  local skill_dir="$1"
+  local target_name="$2"
+  local token
+
+  for token in $(skill_targets "$skill_dir"); do
+    case "$token" in
+      both)
+        return 0
+        ;;
+      "$target_name")
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
 install_dir() {
   local dest_dir="$1"
   local src="$2"
@@ -148,18 +201,30 @@ install_collection() {
   local target_name="$1"
   local dest_dir="$2"
   local src
+  local installed=0
 
   echo "Target: $target_name"
   echo "Destination: $dest_dir"
   run mkdir -p "$dest_dir"
 
   for src in "${skill_dirs[@]}"; do
-    install_dir "$dest_dir" "$src" "$target_name"
+    if skill_wants_target "$src" "$target_name"; then
+      install_dir "$dest_dir" "$src" "$target_name"
+      installed=1
+    else
+      echo "Skipping $target_name:$(basename "$src"): install-targets excludes $target_name"
+    fi
   done
 
-  for src in "${support_dirs[@]}"; do
-    install_dir "$dest_dir" "$src" "$target_name"
-  done
+  # Supporting dirs (shared/, tools/) are dependencies of the skills, so only
+  # install them when at least one skill landed in this target.
+  if [[ "$installed" -eq 1 ]]; then
+    for src in "${support_dirs[@]}"; do
+      install_dir "$dest_dir" "$src" "$target_name"
+    done
+  else
+    echo "No skills selected for $target_name; skipping supporting directories."
+  fi
 }
 
 skill_dirs=()

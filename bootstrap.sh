@@ -9,6 +9,8 @@ REPO_URL="${SKILLS_REPO_URL:-$DEFAULT_REPO_URL}"
 REPO_REF="${SKILLS_REPO_REF:-$DEFAULT_REPO_REF}"
 REPO_DIR="${SKILLS_REPO_DIR:-$DEFAULT_CACHE_HOME/tdccccc-skills}"
 
+TARGET_CHOSEN=""
+
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "error: required command not found: $1" >&2
@@ -28,7 +30,8 @@ Bootstrap options are configured with environment variables:
 
 Arguments passed to this script are forwarded to install.sh:
   curl -fsSL .../bootstrap.sh | bash
-      Ask whether to install both; No installs Claude Code only.
+      Ask which tool(s) to install before downloading; Cancel aborts without
+      cloning anything.
   curl -fsSL .../bootstrap.sh | bash -s -- --target claude
   curl -fsSL .../bootstrap.sh | bash -s -- --target codex
   curl -fsSL .../bootstrap.sh | bash -s -- --target both
@@ -37,12 +40,76 @@ Arguments passed to this script are forwarded to install.sh:
 USAGE
 }
 
+has_target_arg() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --target|--target=*)
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
+prompt_target() {
+  # Skip when the caller already passed --target explicitly.
+  if has_target_arg "$@"; then
+    return 0
+  fi
+
+  # Skip when there is no terminal to prompt on; install.sh applies its default.
+  if ! { exec 3<>/dev/tty; } 2>/dev/null; then
+    return 0
+  fi
+
+  printf '\n' >&3
+  printf 'Install skills for which tool?\n' >&3
+  printf '  1) Claude Code (default)\n' >&3
+  printf '  2) Codex\n' >&3
+  printf '  3) Both\n' >&3
+  printf '  q) Cancel\n' >&3
+  printf 'Choose [1/2/3/q]: ' >&3
+
+  local answer=""
+  IFS= read -r answer <&3 || answer=""
+  exec 3>&-
+
+  case "$answer" in
+    ""|1|claude|Claude)
+      TARGET_CHOSEN="claude"
+      ;;
+    2|codex|Codex)
+      TARGET_CHOSEN="codex"
+      ;;
+    3|both|Both)
+      TARGET_CHOSEN="both"
+      ;;
+    q|Q|quit|cancel|Cancel)
+      echo "Aborted. Nothing was cloned or installed."
+      exit 0
+      ;;
+    *)
+      echo "error: invalid choice: $answer" >&2
+      exit 2
+      ;;
+  esac
+}
+
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
 fi
 
 need_cmd git
+
+# Ask the install target before any download so Cancel costs nothing. The
+# choice is forwarded as --target, which suppresses install.sh's own prompt.
+forward_args=("$@")
+prompt_target "$@"
+if [[ -n "$TARGET_CHOSEN" ]]; then
+  forward_args=(--target "$TARGET_CHOSEN" "$@")
+fi
 
 echo "Repository: $REPO_URL"
 echo "Reference: $REPO_REF"
@@ -79,4 +146,4 @@ if [[ ! -f "$REPO_DIR/install.sh" ]]; then
 fi
 
 cd "$REPO_DIR"
-bash ./install.sh "$@"
+bash ./install.sh ${forward_args[@]+"${forward_args[@]}"}
