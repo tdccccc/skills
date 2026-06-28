@@ -23,7 +23,7 @@ Claude Code must:
 
 ## Shared Contract
 
-Follow `../shared/codex-task-contract.md`.
+Follow `references/codex-task-contract.md`.
 
 ## Detailed Workflow
 
@@ -42,9 +42,9 @@ Use `references/task-template.md` when writing `docs/tasks/<task-id>/task.md`.
 - Temporary artifacts: `.codex-runs/<task-id>/`
 - Git behavior: Codex must not stage or commit by default
 - Provider profile: optional `provider` value passed to `codex exec -p`
-- Invocation: `tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background`
+- Invocation: `claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background`
 - State and logs: `.codex-runs/<task-id>/run.json`, `stdout.log`, and `stderr.log`
-- Resume: audited follow-up task via `tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"`
+- Resume: audited follow-up task via `claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"`
 
 ## When Not To Use
 

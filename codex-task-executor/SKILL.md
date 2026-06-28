@@ -24,7 +24,7 @@ Codex must:
 
 ## Shared Contract
 
-Follow `../shared/codex-task-contract.md` when it is available. If it is not available in the working directory, follow the contract included in the invocation prompt.
+Follow the Codex task contract included in the invocation prompt. Claude Code injects the contract text when it invokes you, because this skill does not bundle a copy. If a contract file is present in the working directory, you may follow that instead.
 
 ## Detailed Protocol
 

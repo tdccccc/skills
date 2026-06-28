@@ -67,29 +67,29 @@ Restart Claude Code and/or Codex after installing or updating skills.
 
 The install target for each skill is shown in parentheses.
 
-- `article-summary/` (both) summarizes astronomy and academic papers into structured Chinese notes.
+- `article-summary/` (claude) summarizes astronomy and academic papers into structured Chinese notes.
 - `claude-codex-runner/` (claude) lets Claude Code package a task and invoke Codex CLI for one-shot execution.
 - `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
-- `security-audit/` (both) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
+- `security-audit/` (claude) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
 
 ## Shared Protocols
 
-- `shared/codex-task-contract.md` defines the task and report contract used by `claude-codex-runner` and `codex-task-executor`.
+- `claude-codex-runner/references/codex-task-contract.md` defines the task and report contract. `claude-codex-runner` reads it directly; when invoking Codex, Claude injects the contract text into the prompt so `codex-task-executor` can follow it without bundling its own copy.
 
 ## Tools
 
-- `tools/codex-runner/codex-runner` starts, polls, reads, cancels, and resumes Codex task runs.
+- `claude-codex-runner/tools/codex-runner/codex-runner` starts, polls, reads, cancels, and resumes Codex task runs.
 - `security-audit/scripts/scan.py` runs the standalone Claude Code security scan.
 
 Common commands:
 
 ```bash
-tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
-tools/codex-runner/codex-runner status <task-id>
-tools/codex-runner/codex-runner result <task-id>
-tools/codex-runner/codex-runner cancel <task-id>
-tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+claude-codex-runner/tools/codex-runner/codex-runner status <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner result <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner cancel <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
 ```
 
 ## Layout
@@ -99,19 +99,18 @@ skills/
   README.md
   bootstrap.sh
   install.sh
-  shared/
-    codex-task-contract.md
-  tools/
-    codex-runner/
-      codex-runner
-    codex_runner/
-      cli.py
-      runner.py
   claude-codex-runner/
     SKILL.md
     references/
       task-template.md
       runner-workflow.md
+      codex-task-contract.md
+    tools/
+      codex-runner/
+        codex-runner
+      codex_runner/
+        cli.py
+        runner.py
   codex-task-executor/
     SKILL.md
     references/
@@ -138,6 +137,6 @@ skills/
 - Supporting instructions and templates live in `references/`.
 - Bundled executables for a skill live in that skill's `scripts/`.
 - Imported third-party skills may keep their upstream `LICENSE` and `README.md`.
-- Shared contracts used by multiple skills live in `shared/`.
+- Each skill is self-contained: any helper scripts, tools, and reference docs it needs live inside its own directory so it installs as a single unit.
 - Task records generated in target projects use `docs/tasks/<task-id>/`.
 - Temporary Codex execution artifacts in target projects use `.codex-runs/<task-id>/` and should be ignored by Git.

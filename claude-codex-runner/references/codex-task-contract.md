@@ -214,16 +214,16 @@ The runner captures stdout and stderr into the log files. Codex must still write
 Preferred background invocation:
 
 ```bash
-tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
 ```
 
 Follow-up commands:
 
 ```bash
-tools/codex-runner/codex-runner status <task-id>
-tools/codex-runner/codex-runner result <task-id>
-tools/codex-runner/codex-runner cancel <task-id>
-tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+claude-codex-runner/tools/codex-runner/codex-runner status <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner result <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner cancel <task-id>
+claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
 ```
 
 `resume` means `resume-audited`: read the previous `task.md` and `codex-report.md`, create a new `docs/tasks/<follow-up-task-id>/task.md`, and optionally start it. It does not use native `codex resume`.

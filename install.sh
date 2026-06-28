@@ -18,8 +18,9 @@ Usage: install.sh [options]
 Install root-level skills from this repository into Claude Code and/or Codex.
 Each skill may declare an `install-targets:` field in its SKILL.md frontmatter
 (claude, codex, or both); skills that exclude the chosen target are skipped.
-A skill without the field defaults to both. Supporting repository directories
-used by the skills, such as shared/ and tools/, are installed alongside them.
+A skill without the field defaults to both. Each skill is self-contained: any
+helper scripts or reference docs it needs live inside its own directory and are
+copied along with it.
 
 Options:
   --target TARGET  Install target: claude, codex, or both
@@ -201,7 +202,6 @@ install_collection() {
   local target_name="$1"
   local dest_dir="$2"
   local src
-  local installed=0
 
   echo "Target: $target_name"
   echo "Destination: $dest_dir"
@@ -210,21 +210,10 @@ install_collection() {
   for src in "${skill_dirs[@]}"; do
     if skill_wants_target "$src" "$target_name"; then
       install_dir "$dest_dir" "$src" "$target_name"
-      installed=1
     else
       echo "Skipping $target_name:$(basename "$src"): install-targets excludes $target_name"
     fi
   done
-
-  # Supporting dirs (shared/, tools/) are dependencies of the skills, so only
-  # install them when at least one skill landed in this target.
-  if [[ "$installed" -eq 1 ]]; then
-    for src in "${support_dirs[@]}"; do
-      install_dir "$dest_dir" "$src" "$target_name"
-    done
-  else
-    echo "No skills selected for $target_name; skipping supporting directories."
-  fi
 }
 
 skill_dirs=()
@@ -237,13 +226,6 @@ if [[ "${#skill_dirs[@]}" -eq 0 ]]; then
   echo "error: no root-level skills found under $ROOT_DIR" >&2
   exit 1
 fi
-
-support_dirs=()
-for support_name in shared tools; do
-  if [[ -d "$ROOT_DIR/$support_name" ]]; then
-    support_dirs+=("$ROOT_DIR/$support_name")
-  fi
-done
 
 echo "Installing skills from $ROOT_DIR"
 

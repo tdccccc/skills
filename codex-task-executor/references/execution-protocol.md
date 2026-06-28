@@ -31,7 +31,7 @@ If the task is provided directly in the prompt, treat the prompt as the task fil
 
 If the invocation prompt includes XML blocks such as `<task>`, `<execution_contract>`, `<output_contract>`, or `<action_safety>`, treat them as routing and safety instructions. The task file remains authoritative for scope, verification, and report path.
 
-If Claude Code invoked you through `tools/codex-runner/codex-runner`, treat the runner as process management only. The runner owns `run.json`, `stdout.log`, `stderr.log`, cancellation, and audited follow-up task creation. Your job is still a single task execution: read the task, work within scope, write the report, and exit.
+If Claude Code invoked you through its local Codex runner, treat the runner as process management only. The runner owns `run.json`, `stdout.log`, `stderr.log`, cancellation, and audited follow-up task creation. Your job is still a single task execution: read the task, work within scope, write the report, and exit.
 
 ## 2. Confirm Working Directory
 
