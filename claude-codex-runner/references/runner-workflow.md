@@ -120,7 +120,69 @@ and pass it to Codex with `-p <profile-name>`.
 
 Do not ask for model or reasoning effort unless the user explicitly asks; use the user's Codex config defaults.
 
-## 8. Invoke Codex
+## 8. Invoke Codex Through The Runner
+
+Use the local runner by default:
+
+```bash
+tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+```
+
+Run this from the skills repository, or use the executable by absolute path.
+
+The runner:
+
+- parses the task file
+- builds the Codex command
+- passes `provider` as `codex exec -p <profile-name>` when set
+- starts Codex with `stdin` disconnected
+- captures stdout and stderr
+- writes `.codex-runs/<task-id>/run.json`
+- lets Claude Code keep the main conversation active while Codex runs
+
+If foreground execution is preferred for a short task, omit `--background`:
+
+```bash
+tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md
+```
+
+## 9. Manage Background Runs
+
+Check status:
+
+```bash
+tools/codex-runner/codex-runner status <task-id>
+```
+
+Read the report or fallback logs:
+
+```bash
+tools/codex-runner/codex-runner result <task-id>
+```
+
+Cancel a run:
+
+```bash
+tools/codex-runner/codex-runner cancel <task-id>
+```
+
+Create an audited follow-up task:
+
+```bash
+tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+```
+
+Create and start the follow-up task:
+
+```bash
+tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>" --start --background
+```
+
+`resume` means `resume-audited`: the runner reads the previous `task.md` and `codex-report.md`, writes a new follow-up task directory, and optionally starts that task. It does not use native `codex resume`.
+
+## 10. Direct Codex Fallback
+
+Use direct `codex exec` only when the local runner is unavailable or the user explicitly asks for direct execution.
 
 Use a one-shot invocation:
 
@@ -166,7 +228,7 @@ Keep changes tightly scoped. Preserve unrelated user work. Put temporary files u
 
 Include the relevant shared contract text or a concise copy of its rules in the invocation prompt, because Codex may not have this skills repository in its working directory.
 
-## 9. Read Report
+## 11. Read Report
 
 Read:
 
@@ -174,9 +236,15 @@ Read:
 docs/tasks/<task-id>/codex-report.md
 ```
 
+If using the runner, prefer:
+
+```bash
+tools/codex-runner/codex-runner result <task-id>
+```
+
 If the report is missing, summarize Codex stdout and stderr and tell the user that Codex did not complete the reporting protocol.
 
-## 10. Summarize For User
+## 12. Summarize For User
 
 Report:
 

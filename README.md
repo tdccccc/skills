@@ -12,6 +12,20 @@ This repository is a personal skills package for Claude Code and Codex workflows
 
 - `shared/codex-task-contract.md` defines the task and report contract used by `claude-codex-runner` and `codex-task-executor`.
 
+## Tools
+
+- `tools/codex-runner/codex-runner` starts, polls, reads, cancels, and resumes Codex task runs.
+
+Common commands:
+
+```bash
+tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+tools/codex-runner/codex-runner status <task-id>
+tools/codex-runner/codex-runner result <task-id>
+tools/codex-runner/codex-runner cancel <task-id>
+tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+```
+
 ## Layout
 
 ```text
@@ -19,6 +33,12 @@ skills/
   README.md
   shared/
     codex-task-contract.md
+  tools/
+    codex-runner/
+      codex-runner
+    codex_runner/
+      cli.py
+      runner.py
   claude-codex-runner/
     SKILL.md
     references/

@@ -15,9 +15,10 @@ Claude Code must:
 2. Prefer task-file mode and create `docs/tasks/<task-id>/task.md` in the target project.
 3. Use prompt mode only for small one-off tasks where the user does not need a saved task file.
 4. Ensure `.codex-runs/` is ignored by the target project's `.gitignore`.
-5. Invoke Codex as a one-shot process with `codex exec`.
-6. Read `docs/tasks/<task-id>/codex-report.md`.
-7. Summarize Codex's result for the user.
+5. Invoke Codex through the local runner by default.
+6. Use runner `status`, `result`, `cancel`, or `resume` when needed.
+7. Read `docs/tasks/<task-id>/codex-report.md` or runner `result`.
+8. Summarize Codex's result for the user.
 
 ## Shared Contract
 
@@ -40,6 +41,9 @@ Use `references/task-template.md` when writing `docs/tasks/<task-id>/task.md`.
 - Temporary artifacts: `.codex-runs/<task-id>/`
 - Git behavior: Codex must not stage or commit by default
 - Provider profile: optional `provider` value passed to `codex exec -p`
+- Invocation: `tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background`
+- State and logs: `.codex-runs/<task-id>/run.json`, `stdout.log`, and `stderr.log`
+- Resume: audited follow-up task via `tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"`
 
 ## When Not To Use
 
@@ -47,5 +51,4 @@ Do not use this skill when:
 
 - the task is still exploratory and has no implementation boundary
 - the user only wants discussion or planning
-- the work requires long-running background service management
 - the user has asked Claude Code to implement the task directly

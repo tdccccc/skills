@@ -172,6 +172,62 @@ Use these subdirectories:
 
 Codex must not leave files such as `test.js`, `smoke.py`, or `tmp-output.json` in the target project root.
 
+## Background Runner State
+
+When Claude Code uses the local runner, the runner owns these files:
+
+```text
+.codex-runs/<task-id>/run.json
+.codex-runs/<task-id>/stdout.log
+.codex-runs/<task-id>/stderr.log
+```
+
+`run.json` records:
+
+- task id
+- absolute task path
+- absolute target project path
+- run directory
+- report path
+- status
+- worker pid
+- Codex pid and process group id
+- started and finished timestamps
+- exit code
+- provider profile
+- sandbox
+- final Codex command array
+
+Statuses:
+
+- `queued`: background worker has been created but Codex has not started.
+- `running`: Codex has started.
+- `success`: Codex exited 0.
+- `failed`: Codex exited non-zero or the worker failed.
+- `cancelled`: Claude Code or the user cancelled the run.
+- `unknown`: state says running, but no worker or Codex process is alive and no final status was written.
+
+The runner captures stdout and stderr into the log files. Codex must still write the normal report to `docs/tasks/<task-id>/codex-report.md`.
+
+## Runner Commands
+
+Preferred background invocation:
+
+```bash
+tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+```
+
+Follow-up commands:
+
+```bash
+tools/codex-runner/codex-runner status <task-id>
+tools/codex-runner/codex-runner result <task-id>
+tools/codex-runner/codex-runner cancel <task-id>
+tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+```
+
+`resume` means `resume-audited`: read the previous `task.md` and `codex-report.md`, create a new `docs/tasks/<follow-up-task-id>/task.md`, and optionally start it. It does not use native `codex resume`.
+
 ## Tests
 
 Temporary verification checks belong in:
