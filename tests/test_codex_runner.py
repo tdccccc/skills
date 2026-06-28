@@ -147,6 +147,10 @@ class CodexRunnerResumeTests(unittest.TestCase):
         followup_path = Path(followup["task_path"])
         self.assertTrue(followup_path.exists())
         self.assertNotEqual(followup["task_id"], "2026-06-28-example")
+        self.assertEqual(
+            followup["report_path"],
+            str(root / "docs" / "tasks" / followup["task_id"] / "codex-report.md"),
+        )
         text = followup_path.read_text(encoding="utf-8")
         self.assertIn("Previous task", text)
         self.assertIn("2026-06-28-example", text)

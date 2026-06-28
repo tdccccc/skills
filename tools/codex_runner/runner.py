@@ -46,9 +46,9 @@ def parse_metadata(text: str) -> dict[str, str]:
 
 
 def extract_report_path(text: str) -> str:
-    match = re.search(r"Write report to:\s*\n\s*```text\s*\n([^`]+?)\n```", text, re.S)
-    if match:
-        return match.group(1).strip()
+    matches = re.findall(r"Write report to:\s*\n\s*```text\s*\n([^`]+?)\n```", text, re.S)
+    if matches:
+        return matches[-1].strip()
     return ""
 
 
