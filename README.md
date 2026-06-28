@@ -28,8 +28,9 @@ The `--target` you choose selects which tools to install into. Each skill can
 declare an `install-targets:` field in its `SKILL.md` frontmatter (`claude`,
 `codex`, or `both`); the installer copies a skill into the chosen target only
 when that skill's `install-targets` includes it. A skill without the field
-defaults to `both`. Shared support directories used by the installed skills,
-currently `shared/` and `tools/`, are installed alongside them.
+defaults to `both`. Each skill is self-contained: any helper scripts, tools,
+and reference docs it needs live inside its own directory and are copied along
+with it, so there are no top-level shared directories.
 
 Targets:
 
@@ -122,6 +123,7 @@ skills/
   README.md
   bootstrap.sh
   install.sh
+  uninstall.sh
   claude-codex-runner/
     SKILL.md
     references/

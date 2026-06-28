@@ -1,3 +1,4 @@
 .worktree/
 __pycache__/
 tests/
+.codex-runs/

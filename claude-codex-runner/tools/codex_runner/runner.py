@@ -192,6 +192,31 @@ def run_dir_for(task: dict[str, str]) -> Path:
     return Path(task["target_project"]) / ".codex-runs" / task["task_id"]
 
 
+def ensure_codex_runs_ignored(target_project: str | Path) -> bool:
+    """Ensure `.codex-runs/` is git-ignored in the target project.
+
+    semi-auto mode permits the runner to maintain this entry so callers do not
+    have to inspect or edit `.gitignore` by hand on every run. Returns True if
+    the file was created or appended to. No-op when the entry already exists, or
+    when the project is not a git repo (so we never leave a stray `.gitignore`).
+    """
+    project = Path(target_project)
+    gitignore = project / ".gitignore"
+    entry = ".codex-runs/"
+    if gitignore.exists():
+        text = gitignore.read_text(encoding="utf-8")
+        present = {line.strip().rstrip("/") for line in text.splitlines()}
+        if ".codex-runs" in present:
+            return False
+        separator = "" if text == "" or text.endswith("\n") else "\n"
+        gitignore.write_text(f"{text}{separator}{entry}\n", encoding="utf-8")
+        return True
+    if (project / ".git").exists():
+        gitignore.write_text(f"{entry}\n", encoding="utf-8")
+        return True
+    return False
+
+
 def state_path_for(task: dict[str, str]) -> Path:
     return run_dir_for(task) / "run.json"
 
@@ -249,6 +274,17 @@ def relative_to_project(path: str, target_project: str) -> str:
 def build_prompt(task: dict[str, str]) -> str:
     task_rel = relative_to_project(task["task_path"], task["target_project"])
     report_rel = relative_to_project(task["report_path"], task["target_project"])
+    sandbox = task.get("sandbox", "workspace-write")
+    if sandbox == "read-only":
+        # A read-only sandbox cannot create the report file, so ask Codex to
+        # return the full structured report on stdout instead. The runner
+        # captures stdout and `result` surfaces it when no report file exists.
+        output_contract = (
+            "Do not write any files; the sandbox is read-only.\n"
+            "Print your full structured report to stdout as your final message, then exit."
+        )
+    else:
+        output_contract = f"Write {report_rel}, then exit."
     return textwrap.dedent(
         f"""
         <task>
@@ -257,11 +293,11 @@ def build_prompt(task: dict[str, str]) -> str:
 
         <execution_contract>
         Follow the Codex task contract included in the task file context. The task file is authoritative.
-        Use sandbox {task['sandbox']}. Do not stage or commit unless the task explicitly allows it.
+        Use sandbox {sandbox}. Do not stage or commit unless the task explicitly allows it.
         </execution_contract>
 
         <output_contract>
-        Write {report_rel}, then exit.
+        {output_contract}
         </output_contract>
 
         <action_safety>
@@ -294,6 +330,9 @@ def build_codex_command(task: dict[str, str], codex_bin: str = "codex") -> tuple
 
 def prepare_run_files(task: dict[str, str]) -> dict[str, Any]:
     run_dir_for(task).mkdir(parents=True, exist_ok=True)
+    # Keep `.codex-runs/` out of git automatically; semi-auto mode allows it and
+    # it spares the caller from inspecting `.gitignore` on every run.
+    ensure_codex_runs_ignored(task["target_project"])
     state = build_initial_state(task)
     existing_path = state_path_for(task)
     if existing_path.exists():
