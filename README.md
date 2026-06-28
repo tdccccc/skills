@@ -12,7 +12,9 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 This downloads `bootstrap.sh`, clones or updates this repository under
 `${XDG_CACHE_HOME:-$HOME/.cache}/tdccccc-skills`, then runs `install.sh`
-from that cached repository. By default, skills are installed for Claude Code.
+from that cached repository. By default, the installer asks whether to install
+for both Claude Code and Codex. Answer `y` to install both; press Enter or
+answer `n` to install Claude Code only.
 
 Clone this repository and run the installer:
 
@@ -29,7 +31,8 @@ used by the skills, currently `shared/` and `tools/`.
 Targets:
 
 ```bash
-./install.sh --target claude   # Default: ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills
+./install.sh                   # Ask whether to install both; No installs Claude Code
+./install.sh --target claude   # ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills
 ./install.sh --target codex    # ${CODEX_HOME:-$HOME/.codex}/skills
 ./install.sh --target both
 ```

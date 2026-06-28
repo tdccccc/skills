@@ -27,6 +27,8 @@ Bootstrap options are configured with environment variables:
   SKILLS_REPO_DIR   Local repository cache directory
 
 Arguments passed to this script are forwarded to install.sh:
+  curl -fsSL .../bootstrap.sh | bash
+      Ask whether to install both; No installs Claude Code only.
   curl -fsSL .../bootstrap.sh | bash -s -- --target claude
   curl -fsSL .../bootstrap.sh | bash -s -- --target codex
   curl -fsSL .../bootstrap.sh | bash -s -- --target both

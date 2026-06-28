@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 DEFAULT_CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 TARGET="claude"
+TARGET_EXPLICIT=0
 DEST_OVERRIDE=""
 LINK_MODE=0
 FORCE=0
@@ -19,7 +20,8 @@ Supporting repository directories used by the skills, such as shared/ and tools/
 are installed alongside the skills.
 
 Options:
-  --target TARGET  Install target: claude, codex, or both. Default: claude
+  --target TARGET  Install target: claude, codex, or both
+                   Default: ask whether to install both; No installs claude
   --dest DIR       Install into DIR instead of the selected target's skills dir
                    May not be used with --target both
   --link           Symlink directories instead of copying them
@@ -37,6 +39,7 @@ while [[ $# -gt 0 ]]; do
         exit 2
       fi
       TARGET="$2"
+      TARGET_EXPLICIT=1
       shift 2
       ;;
     --dest)
@@ -79,6 +82,23 @@ case "$TARGET" in
     exit 2
     ;;
 esac
+
+if [[ "$TARGET_EXPLICIT" -eq 0 && -z "$DEST_OVERRIDE" ]] && { exec 3<> /dev/tty; } 2>/dev/null; then
+  printf 'This installer can install skills for both Claude Code and Codex.\n' >&3
+  printf 'Install to both Claude Code and Codex? [y/N] ' >&3
+  answer=""
+  if IFS= read -r answer <&3; then
+    case "$answer" in
+      y|Y|yes|YES|Yes)
+        TARGET="both"
+        ;;
+      *)
+        TARGET="claude"
+        ;;
+    esac
+  fi
+  exec 3>&-
+fi
 
 if [[ "$TARGET" == "both" && -n "$DEST_OVERRIDE" ]]; then
   echo "error: --dest may not be used with --target both" >&2
