@@ -105,6 +105,7 @@ need_cmd git
 
 # Ask the install target before any download so Cancel costs nothing. The
 # choice is forwarded as --target, which suppresses install.sh's own prompt.
+# install.sh replaces existing skills by default, so bootstrap always updates.
 forward_args=("$@")
 prompt_target "$@"
 if [[ -n "$TARGET_CHOSEN" ]]; then

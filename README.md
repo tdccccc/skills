@@ -50,7 +50,7 @@ For local development, install with symlinks instead of copies:
 Useful options:
 
 ```bash
-./install.sh --force           # Replace existing installed directories
+./install.sh --no-force        # Skip skills that already exist (default replaces them)
 ./install.sh --dest /path/to/skills
 ./install.sh --dry-run
 ```
@@ -58,7 +58,7 @@ Useful options:
 With the one-line installer, pass installer options after `bash -s --`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --force
+curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --no-force
 curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --target both
 ```
 

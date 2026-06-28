@@ -8,7 +8,7 @@ TARGET="claude"
 TARGET_EXPLICIT=0
 DEST_OVERRIDE=""
 LINK_MODE=0
-FORCE=0
+FORCE=1
 DRY_RUN=0
 
 usage() {
@@ -30,7 +30,8 @@ Options:
   --dest DIR       Install into DIR instead of the selected target's skills dir
                    May not be used with --target both
   --link           Symlink directories instead of copying them
-  --force          Replace existing installed directories
+  --no-force       Skip skills that already exist instead of replacing them
+  --force          Replace existing installed directories (default)
   --dry-run        Print actions without changing files
   -h, --help       Show this help
 USAGE
@@ -61,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --force)
       FORCE=1
+      shift
+      ;;
+    --no-force)
+      FORCE=0
       shift
       ;;
     --dry-run)
@@ -184,7 +189,7 @@ install_dir() {
       echo "Replacing $target_name:$name at $dest"
       run rm -rf "$dest"
     else
-      echo "Skipping $target_name:$name: $dest already exists (use --force to replace)"
+      echo "Skipping $target_name:$name: $dest already exists (omit --no-force to replace)"
       return 0
     fi
   fi
