@@ -78,8 +78,15 @@ def parse_task_file(task_path: str | Path) -> dict[str, str]:
 def resolve_task_reference(reference: str | Path, cwd: str | Path | None = None) -> Path:
     ref = Path(reference)
     base = Path(cwd or os.getcwd()).resolve()
-    if ref.exists():
-        return ref.resolve()
+    if ref.is_absolute():
+        if ref.exists():
+            return ref.resolve()
+        raise FileNotFoundError(f"Abolute task reference not found: {reference}")
+    else:
+        # Resolve relative paths against the --cwd parameter, not the process cwd.
+        ref_resolved = (base / ref).resolve()
+        if ref_resolved.exists():
+            return ref_resolved
     candidate = base / "docs" / "tasks" / str(reference) / "task.md"
     if candidate.exists():
         return candidate.resolve()
@@ -123,6 +130,11 @@ def synthesize_task_file(
     goal = prompt.strip()
     if not goal:
         raise ValueError("prompt must not be empty")
+
+    # Read-only sandbox implies analysis, not implementation — fix mismatched
+    # defaults that would contradict the sandbox mode in the task contract.
+    if sandbox == "read-only" and task_kind == "implementation":
+        task_kind = "analysis"
 
     target_project = Path(project or cwd or os.getcwd()).resolve()
     task_id = next_prompt_id(str(target_project), slugify(goal))
@@ -396,6 +408,11 @@ def refresh_status(task_path: str | Path) -> dict[str, Any]:
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
         write_state(task, state)
+    elif state.get("status") == STATUS_QUEUED and state.get("worker_pid") and not pid_alive(state.get("worker_pid")):
+        # Worker died before entering running — don't leave the state stuck in queued.
+        state["status"] = STATUS_UNKNOWN
+        state["finished_at"] = state.get("finished_at") or utc_now()
+        write_state(task, state)
     return state
 
 
@@ -406,11 +423,19 @@ def tail_text(path: Path, limit: int = 4000) -> str:
     return text[-limit:]
 
 
+def full_text(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def render_result(task: dict[str, str]) -> str:
     report_path = Path(task["report_path"])
     if report_path.exists():
         return report_path.read_text(encoding="utf-8")
-    stdout = tail_text(stdout_path_for(task))
+    # Read-only tasks print the report to stdout — read the full content
+    # (no tail truncation) so the report is never cut off.
+    stdout = full_text(stdout_path_for(task))
     stderr = tail_text(stderr_path_for(task))
     return "\n".join(
         [

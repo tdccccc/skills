@@ -66,32 +66,26 @@ Restart Claude Code and/or Codex after installing or updating skills.
 
 ## Uninstall
 
-Remove this repository's skills from the cloned checkout:
+To remove this repository's skills, manually delete the skill directories from
+Claude Code's skills directory and/or Codex's skills directory:
 
 ```bash
-./uninstall.sh                 # Ask which target; Enter selects Claude Code
-./uninstall.sh --target claude
-./uninstall.sh --target codex
-./uninstall.sh --target both
+# List installed skills from this repo
+ls -d ~/.claude/skills/*/
+ls -d ~/.codex/skills/*/
+
+# Delete the ones belonging to this repository
+rm -rf ~/.claude/skills/claude-codex-runner ~/.claude/skills/codex-task-executor \
+       ~/.claude/skills/grill-me ~/.claude/skills/security-audit
+# Repeat for ~/.codex/skills/ as needed
 ```
 
-Only directories this repository installs are removed, looked up by name: the
-current skills plus legacy names from older layouts (`shared`, `tools`). Skills
-from other sources in the same directory are never touched.
-
-Preview before deleting, or skip the confirmation prompt:
-
-```bash
-./uninstall.sh --target both --dry-run
-./uninstall.sh --target both --yes
-./uninstall.sh --dest /path/to/skills
-```
+Restart Claude Code and/or Codex to drop the removed skills.
 
 ## Skills
 
 The install target for each skill is shown in parentheses.
 
-- `article-summary/` (claude) summarizes astronomy and academic papers into structured Chinese notes.
 - `claude-codex-runner/` (claude) lets Claude Code package a task and invoke Codex CLI for one-shot execution.
 - `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
@@ -123,7 +117,6 @@ skills/
   README.md
   bootstrap.sh
   install.sh
-  uninstall.sh
   claude-codex-runner/
     SKILL.md
     references/
@@ -141,10 +134,6 @@ skills/
     references/
       execution-protocol.md
       report-template.md
-  article-summary/
-    SKILL.md
-    references/
-      summary-template.md
   grill-me/
     SKILL.md
   security-audit/

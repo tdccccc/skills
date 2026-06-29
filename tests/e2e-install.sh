@@ -57,7 +57,6 @@ fi
 echo
 
 echo "${B}== Verify Claude side ==${Z}"
-have   "$CS/article-summary"     "article-summary installed"
 have   "$CS/claude-codex-runner" "claude-codex-runner installed"
 have   "$CS/grill-me"            "grill-me installed"
 have   "$CS/security-audit"      "security-audit installed"
@@ -76,7 +75,6 @@ echo
 
 echo "${B}== Verify Codex side ==${Z}"
 have   "$XS/codex-task-executor" "codex-task-executor installed"
-absent "$XS/article-summary"     "article-summary excluded from codex"
 absent "$XS/claude-codex-runner" "claude-codex-runner excluded from codex"
 absent "$XS/grill-me"            "grill-me excluded from codex"
 absent "$XS/security-audit"      "security-audit excluded from codex"
@@ -84,16 +82,12 @@ absent "$XS/shared"              "no stray shared/ at codex top level"
 absent "$XS/tools"               "no stray tools/ at codex top level"
 echo
 
-echo "${B}== Uninstall (--target both --yes) ==${Z}"
-if [ ! -f "$SKILLS_REPO_DIR/uninstall.sh" ]; then
-  bad "uninstall.sh not found in cloned repo"
-else
-  bash "$SKILLS_REPO_DIR/uninstall.sh" --target both --yes
-fi
+echo "${B}== Clean up ==${Z}"
+rm -rf "$CS/claude-codex-runner" "$CS/grill-me" "$CS/security-audit" \
+       "$XS/codex-task-executor"
 echo
 
 echo "${B}== Verify removal ==${Z}"
-absent "$CS/article-summary"     "claude article-summary removed"
 absent "$CS/claude-codex-runner" "claude claude-codex-runner removed"
 absent "$CS/grill-me"            "claude grill-me removed"
 absent "$CS/security-audit"      "claude security-audit removed"

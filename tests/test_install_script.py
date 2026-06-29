@@ -35,7 +35,6 @@ class InstallScriptTests(unittest.TestCase):
     def assert_claude_collection(self, skills_dir):
         # Skills whose install-targets include claude.
         for skill_name in [
-            "article-summary",
             "claude-codex-runner",
             "grill-me",
             "security-audit",
@@ -60,7 +59,6 @@ class InstallScriptTests(unittest.TestCase):
         # Only the codex-targeted skill installs here.
         self.assertTrue((skills_dir / "codex-task-executor" / "SKILL.md").is_file())
         for skill_name in [
-            "article-summary",
             "claude-codex-runner",
             "grill-me",
             "security-audit",
