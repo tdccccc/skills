@@ -32,7 +32,7 @@ any other task, so `status`, `result`, `cancel`, and `resume` all work:
 
 ```bash
 claude-codex-runner/tools/codex-runner/codex-runner start \
-  --prompt "<one-line task>" --background
+  --prompt "<one-line task>"
 ```
 
 The synthesized task runs in the current working directory by default. Pass
@@ -139,7 +139,7 @@ Do not ask for model or reasoning effort unless the user explicitly asks; use th
 Use the local runner by default:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md
 ```
 
 Run this from the installed skill directory, or use the executable by absolute path.
@@ -149,15 +149,15 @@ The runner:
 - parses the task file
 - builds the Codex command
 - passes `provider` as `codex exec -p <profile-name>` when set
-- starts Codex with `stdin` disconnected
+- starts Codex in the background with `stdin` disconnected
 - captures stdout and stderr
 - writes `.codex-runs/<task-id>/run.json`
 - lets Claude Code keep the main conversation active while Codex runs
 
-If foreground execution is preferred for a short task, omit `--background`:
+If foreground execution is preferred (streaming output to terminal), use `start-fg`:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md
+claude-codex-runner/tools/codex-runner/codex-runner start-fg docs/tasks/<task-id>/task.md
 ```
 
 ## 9. Manage Background Runs
@@ -189,7 +189,7 @@ claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<fo
 Create and start the follow-up task:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>" --start --background
+claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>" --start
 ```
 
 `resume` means `resume-audited`: the runner reads the previous `task.md` and `codex-report.md`, writes a new follow-up task directory, and optionally starts that task. It does not use native `codex resume`.

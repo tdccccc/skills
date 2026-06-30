@@ -211,10 +211,16 @@ The runner captures stdout and stderr into the log files. Codex must still write
 
 ## Runner Commands
 
-Preferred background invocation:
+Default background invocation:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md --background
+claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md
+```
+
+Foreground (streaming) invocation:
+
+```bash
+claude-codex-runner/tools/codex-runner/codex-runner start-fg docs/tasks/<task-id>/task.md
 ```
 
 Follow-up commands:

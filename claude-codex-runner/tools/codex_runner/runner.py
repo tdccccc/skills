@@ -381,7 +381,58 @@ def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int
             state["codex_pgid"] = os.getpgid(process.pid)
         except ProcessLookupError:
             state["codex_pgid"] = None
+        write_state(task, state)  # codex_pid & codex_pgid
+        exit_code = process.wait()
+    state["exit_code"] = exit_code
+    state["finished_at"] = utc_now()
+    state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
+    write_state(task, state)
+    return exit_code
+
+
+def run_codex_foreground_stream(task_path: str | Path, codex_bin: str = "codex") -> int:
+    """Run Codex in foreground, streaming stdout to the terminal in real-time.
+
+    Same as run_codex_foreground but tee stdout so the caller sees progress.
+    """
+    task = parse_task_file(task_path)
+    state = prepare_run_files(task)
+    command, _prompt = build_codex_command(task, codex_bin=codex_bin)
+    state.update(
+        {
+            "status": STATUS_RUNNING,
+            "started_at": utc_now(),
+            "command": command,
+        }
+    )
+    write_state(task, state)
+    with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f, stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
+        process = subprocess.Popen(
+            command,
+            cwd=task["target_project"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+            text=True,
+        )
+        state["codex_pid"] = process.pid
+        try:
+            state["codex_pgid"] = os.getpgid(process.pid)
+        except ProcessLookupError:
+            state["codex_pgid"] = None
         write_state(task, state)
+
+        # Stream stdout to terminal and tee to log file simultaneously.
+        for line in process.stdout:
+            print(line, end="", flush=True)
+            stdout_f.write(line)
+        stdout_f.flush()
+
+        # Capture remaining stderr after stdout is exhausted.
+        remaining_stderr = process.stderr.read()
+        stderr_f.write(remaining_stderr)
+
         exit_code = process.wait()
     state["exit_code"] = exit_code
     state["finished_at"] = utc_now()
@@ -404,16 +455,65 @@ def pid_alive(pid: int | None) -> bool:
 
 def refresh_status(task_path: str | Path) -> dict[str, Any]:
     task, state = read_state_by_task(task_path)
+    updated = False
     if state.get("status") == STATUS_RUNNING and not pid_alive(state.get("worker_pid")) and not pid_alive(state.get("codex_pid")):
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
-        write_state(task, state)
+        updated = True
     elif state.get("status") == STATUS_QUEUED and state.get("worker_pid") and not pid_alive(state.get("worker_pid")):
         # Worker died before entering running — don't leave the state stuck in queued.
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
+        updated = True
+
+    # Always attach recent log output so status checks are informative.
+    state["recent_log"] = tail_text(stdout_path_for(task), limit=2000)
+
+    if updated:
         write_state(task, state)
     return state
+
+
+def list_tasks(project_dir: str | Path) -> list[dict[str, Any]]:
+    """Scan a project for all known tasks (created but not yet completed, plus finished ones).
+
+    Returns a list of state dicts sorted by creation time (most recent first).
+    """
+    project = Path(project_dir).resolve()
+    tasks_dir = project / "docs" / "tasks"
+    results: list[dict[str, Any]] = []
+    if not tasks_dir.is_dir():
+        return results
+
+    for task_dir in sorted(tasks_dir.iterdir()):
+        if not task_dir.is_dir():
+            continue
+        task_file = task_dir / "task.md"
+        if not task_file.is_file():
+            continue
+        try:
+            task = parse_task_file(task_file)
+        except Exception:
+            continue
+        state_path = state_path_for(task)
+        if state_path.exists():
+            try:
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+            except Exception:
+                state = {"status": "unknown"}
+        else:
+            state = {"status": "never_run"}
+        state["task_id"] = task["task_id"]
+        state["task_path"] = str(task_file)
+        state["report_path"] = task.get("report_path", "")
+        results.append(state)
+
+    # Sort by started_at descending, then finished_at descending, then task_id.
+    def sort_key(s: dict) -> str:
+        return s.get("started_at") or s.get("finished_at") or s.get("task_id", "")
+
+    results.sort(key=sort_key, reverse=True)
+    return results
 
 
 def tail_text(path: Path, limit: int = 4000) -> str:
