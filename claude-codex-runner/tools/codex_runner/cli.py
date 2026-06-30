@@ -27,7 +27,7 @@ from .runner import (
 )
 
 
-def wait_for_startup_gate(path: str | None, timeout_seconds: float = 30.0) -> None:
+def wait_for_startup_gate(path: str | None, timeout_seconds: float = 5.0) -> None:
     if not path:
         return
     gate = Path(path)
