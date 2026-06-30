@@ -17,7 +17,6 @@ from .runner import (
     render_result,
     resolve_task_reference,
     run_codex_foreground,
-    run_codex_foreground_stream,
     stderr_path_for,
     synthesize_task_file,
     write_state,
@@ -80,27 +79,6 @@ def command_start(args: argparse.Namespace) -> int:
     return start_background(task_path, args.codex_bin)
 
 
-def command_start_fg(args: argparse.Namespace) -> int:
-    if args.prompt is not None:
-        if args.task is not None:
-            print("error: provide either a task reference or --prompt, not both", file=sys.stderr)
-            return 2
-        task_path = synthesize_task_file(
-            args.prompt,
-            project=args.project,
-            sandbox=args.sandbox,
-            provider=args.provider,
-        )
-        print(f"Synthesized task file: {task_path}", file=sys.stderr)
-    elif args.task is not None:
-        task_path = resolve_task_reference(args.task)
-    else:
-        print("error: start-fg requires a task reference or --prompt", file=sys.stderr)
-        return 2
-
-    return run_codex_foreground_stream(task_path, codex_bin=args.codex_bin)
-
-
 def command_worker(args: argparse.Namespace) -> int:
     return run_codex_foreground(args.task, codex_bin=args.codex_bin)
 
@@ -141,8 +119,6 @@ def command_resume(args: argparse.Namespace) -> int:
     followup = create_audited_resume_task(task_path, goal=args.goal, start=False)
     print(json.dumps(followup, indent=2, sort_keys=True))
     if args.start:
-        if args.foreground:
-            return run_codex_foreground_stream(followup["task_path"], codex_bin=args.codex_bin)
         return start_background(Path(followup["task_path"]), args.codex_bin)
     return 0
 
@@ -159,15 +135,6 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--provider", default="", help="Codex provider profile for --prompt")
     start.add_argument("--codex-bin", default="codex")
     start.set_defaults(func=command_start)
-
-    start_fg = sub.add_parser("start-fg", help="Start a Codex task in foreground (streaming output)")
-    start_fg.add_argument("task", nargs="?", default=None)
-    start_fg.add_argument("--prompt", default=None, help="one-line task; synthesizes a task file instead of reading one")
-    start_fg.add_argument("--project", default=None, help="target project dir for --prompt (default: current directory)")
-    start_fg.add_argument("--sandbox", default="workspace-write", help="Codex sandbox for --prompt (default: workspace-write)")
-    start_fg.add_argument("--provider", default="", help="Codex provider profile for --prompt")
-    start_fg.add_argument("--codex-bin", default="codex")
-    start_fg.set_defaults(func=command_start_fg)
 
     worker = sub.add_parser("worker")
     worker.add_argument("task")
@@ -190,11 +157,10 @@ def build_parser() -> argparse.ArgumentParser:
     cancel.add_argument("task")
     cancel.set_defaults(func=command_cancel)
 
-    resume = sub.add_parser("resume", help="Create a follow-up task (--start to run it)")
+    resume = sub.add_parser("resume", help="Create a follow-up task (--start to run it in background)")
     resume.add_argument("task")
     resume.add_argument("--goal", required=True)
-    resume.add_argument("--start", action="store_true", help="start the follow-up immediately (default: background)")
-    resume.add_argument("--foreground", action="store_true", help="with --start, run in foreground instead of background")
+    resume.add_argument("--start", action="store_true", help="start the follow-up immediately in background")
     resume.add_argument("--codex-bin", default="codex")
     resume.set_defaults(func=command_resume)
     return parser

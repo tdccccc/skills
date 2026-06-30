@@ -462,62 +462,6 @@ def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int
         raise
 
 
-def run_codex_foreground_stream(task_path: str | Path, codex_bin: str = "codex") -> int:
-    """Run Codex in foreground, streaming stdout to the terminal in real-time.
-
-    Same as run_codex_foreground but tee stdout so the caller sees progress.
-    """
-    task = parse_task_file(task_path)
-    state = prepare_run_files(task)
-    command, _prompt = build_codex_command(task, codex_bin=codex_bin)
-    state.update(
-        {
-            "status": STATUS_RUNNING,
-            "started_at": utc_now(),
-            "command": command,
-        }
-    )
-    write_state(task, state)
-    try:
-        with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f:
-            process = subprocess.Popen(
-                command,
-                cwd=task["target_project"],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-                text=True,
-            )
-            state["codex_pid"] = process.pid
-            try:
-                state["codex_pgid"] = os.getpgid(process.pid)
-            except ProcessLookupError:
-                state["codex_pgid"] = None
-            write_state(task, state)
-
-            # Stream stdout to terminal and tee to log file simultaneously.
-            for line in process.stdout:
-                print(line, end="", flush=True)
-                stdout_f.write(line)
-            stdout_f.flush()
-
-            exit_code = process.wait()
-        state["exit_code"] = exit_code
-        state["finished_at"] = utc_now()
-        state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
-        write_state(task, state)
-        release_run_lock(task)
-        return exit_code
-    except Exception:
-        state["exit_code"] = 1
-        state["finished_at"] = utc_now()
-        state["status"] = STATUS_FAILED
-        write_state(task, state)
-        release_run_lock(task)
-        raise
-
-
 def pid_alive(pid: int | None) -> bool:
     if not pid:
         return False
