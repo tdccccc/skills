@@ -5,29 +5,46 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from .runner import (
-    build_initial_state,
     cancel_task,
     create_audited_resume_task,
     list_tasks,
     parse_task_file,
+    prepare_run_files,
     refresh_status,
     render_result,
+    release_run_lock,
     resolve_task_reference,
+    run_dir_for,
     run_codex_foreground,
     stderr_path_for,
     synthesize_task_file,
+    write_run_lock,
     write_state,
 )
 
 
+def wait_for_startup_gate(path: str | None, timeout_seconds: float = 30.0) -> None:
+    if not path:
+        return
+    gate = Path(path)
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if gate.exists():
+            gate.unlink(missing_ok=True)
+            return
+        time.sleep(0.05)
+    raise TimeoutError(f"Timed out waiting for worker startup gate: {gate}")
+
+
 def start_background(task_path: Path, codex_bin: str) -> int:
     task = parse_task_file(task_path)
-    state = build_initial_state(task)
-    state["worker_pid"] = None
-    write_state(task, state)
+    state = prepare_run_files(task)
+    startup_gate = run_dir_for(task) / ".worker-start"
+    startup_gate.unlink(missing_ok=True)
     command = [
         sys.executable,
         "-m",
@@ -36,24 +53,31 @@ def start_background(task_path: Path, codex_bin: str) -> int:
         str(task_path),
         "--codex-bin",
         codex_bin,
+        "--startup-gate",
+        str(startup_gate),
     ]
     pkg_root = Path(__file__).resolve().parents[1]
     env = dict(os.environ)
-    existing = env.get("PYTHONPATH", "")
-    env["PYTHONPATH"] = f"{pkg_root}{os.pathsep}{existing}" if existing else str(pkg_root)
-    with stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
-        worker = subprocess.Popen(
-            command,
-            cwd=task["target_project"],
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=stderr_f,
-            start_new_session=True,
-            text=True,
-        )
-    state["worker_pid"] = worker.pid
-    write_state(task, state)
+    env["PYTHONPATH"] = str(pkg_root)
+    try:
+        with stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
+            worker = subprocess.Popen(
+                command,
+                cwd=task["target_project"],
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=stderr_f,
+                start_new_session=True,
+                text=True,
+            )
+        state["worker_pid"] = worker.pid
+        write_state(task, state)
+        write_run_lock(task, worker.pid)
+        startup_gate.write_text("ready\n", encoding="utf-8")
+    except Exception:
+        release_run_lock(task)
+        raise
     print(json.dumps(state, indent=2, sort_keys=True))
     return 0
 
@@ -80,6 +104,7 @@ def command_start(args: argparse.Namespace) -> int:
 
 
 def command_worker(args: argparse.Namespace) -> int:
+    wait_for_startup_gate(args.startup_gate)
     return run_codex_foreground(args.task, codex_bin=args.codex_bin)
 
 
@@ -116,7 +141,7 @@ def command_cancel(args: argparse.Namespace) -> int:
 
 def command_resume(args: argparse.Namespace) -> int:
     task_path = resolve_task_reference(args.task)
-    followup = create_audited_resume_task(task_path, goal=args.goal, start=False)
+    followup = create_audited_resume_task(task_path, goal=args.goal)
     print(json.dumps(followup, indent=2, sort_keys=True))
     if args.start:
         return start_background(Path(followup["task_path"]), args.codex_bin)
@@ -139,6 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     worker = sub.add_parser("worker")
     worker.add_argument("task")
     worker.add_argument("--codex-bin", default="codex")
+    worker.add_argument("--startup-gate", default=None)
     worker.set_defaults(func=command_worker)
 
     status = sub.add_parser("status", help="Check task status (includes recent log output)")

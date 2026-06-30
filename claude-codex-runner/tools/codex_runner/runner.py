@@ -64,6 +64,8 @@ def parse_task_file(task_path: str | Path) -> dict[str, str]:
             "All task files must declare an absolute target_project path."
         )
     target_project = Path(target_project_raw).resolve()
+    if not target_project.is_dir():
+        raise ValueError(f"target_project does not exist or is not a directory: {target_project}")
     report_value = extract_report_path(text)
     if report_value:
         report_path = Path(report_value)
@@ -241,6 +243,8 @@ def acquire_run_lock(task: dict[str, str], force: bool = False) -> bool:
         try:
             lock_data = json.loads(lock_file.read_text(encoding="utf-8"))
             lock_pid = lock_data.get("pid")
+            if lock_pid == os.getpid():
+                return True
             if lock_pid and pid_alive(lock_pid):
                 return False  # another run is alive, refuse
         except (json.JSONDecodeError, OSError):
@@ -250,6 +254,15 @@ def acquire_run_lock(task: dict[str, str], force: bool = False) -> bool:
         encoding="utf-8",
     )
     return True
+
+
+def write_run_lock(task: dict[str, str], pid: int) -> None:
+    lock_file = lock_path_for(task)
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_file.write_text(
+        json.dumps({"pid": pid, "started_at": utc_now()}, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def release_run_lock(task: dict[str, str]) -> None:
@@ -281,6 +294,8 @@ def ensure_codex_runs_ignored(target_project: str | Path) -> bool:
         return False  # already ignored
     except subprocess.CalledProcessError:
         pass  # not ignored yet, proceed
+    except FileNotFoundError:
+        return False  # git not available, skip
     gitignore = project / ".gitignore"
     entry = ".codex-runs/"
     current = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
@@ -407,29 +422,34 @@ def prepare_run_files(task: dict[str, str], force: bool = False) -> dict[str, An
             f"Task {task['task_id']} is already running (lock held). "
             "Use --force to override."
         )
-    ensure_codex_runs_ignored(task["target_project"])
-    state = build_initial_state(task)
-    existing_path = state_path_for(task)
-    if existing_path.exists():
-        existing = json.loads(existing_path.read_text(encoding="utf-8"))
-        state["worker_pid"] = existing.get("worker_pid")
-    write_state(task, state)
-    return state
+    try:
+        ensure_codex_runs_ignored(task["target_project"])
+        state = build_initial_state(task)
+        existing_path = state_path_for(task)
+        if existing_path.exists():
+            existing = json.loads(existing_path.read_text(encoding="utf-8"))
+            state["worker_pid"] = existing.get("worker_pid")
+        write_state(task, state)
+        return state
+    except Exception:
+        release_run_lock(task)
+        raise
 
 
 def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int:
     task = parse_task_file(task_path)
-    state = prepare_run_files(task)
-    command, _prompt = build_codex_command(task, codex_bin=codex_bin)
-    state.update(
-        {
-            "status": STATUS_RUNNING,
-            "started_at": utc_now(),
-            "command": command,
-        }
-    )
-    write_state(task, state)
+    state: dict[str, Any] | None = None
     try:
+        state = prepare_run_files(task)
+        command, _prompt = build_codex_command(task, codex_bin=codex_bin)
+        state.update(
+            {
+                "status": STATUS_RUNNING,
+                "started_at": utc_now(),
+                "command": command,
+            }
+        )
+        write_state(task, state)
         with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f, stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
             process = subprocess.Popen(
                 command,
@@ -451,15 +471,20 @@ def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int
         state["finished_at"] = utc_now()
         state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
         write_state(task, state)
-        release_run_lock(task)
         return exit_code
     except Exception:
-        state["exit_code"] = 1
-        state["finished_at"] = utc_now()
-        state["status"] = STATUS_FAILED
-        write_state(task, state)
-        release_run_lock(task)
+        if state is not None:
+            state["exit_code"] = 1
+            state["finished_at"] = utc_now()
+            state["status"] = STATUS_FAILED
+            try:
+                write_state(task, state)
+            except Exception:
+                pass
         raise
+    finally:
+        if state is not None:
+            release_run_lock(task)
 
 
 def pid_alive(pid: int | None) -> bool:
@@ -474,11 +499,24 @@ def pid_alive(pid: int | None) -> bool:
         return True
 
 
+def process_group_alive(pgid: int | None) -> bool:
+    if not pgid:
+        return False
+    try:
+        os.killpg(pgid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
 def pid_start_time(pid: int) -> float | None:
     """Get the start time of a process (Unix timestamp).
 
     Returns None if the process doesn't exist or can't be read.
     """
+    boot_time = None
     try:
         # Linux /proc is fast and precise.
         with open(f"/proc/{pid}/stat", "r") as f:
@@ -491,10 +529,32 @@ def pid_start_time(pid: int) -> float | None:
                 if line.startswith("btime "):
                     boot_time = int(line.split()[1])
                     break
+        if boot_time is None:
+            return None
         clock_ticks = os.sysconf(os.sysconf_names["SC_CLK_TCK"])
         return boot_time + (start_jiffies / clock_ticks)
     except (OSError, IndexError, ValueError, KeyError):
         return None
+
+
+def parse_pid_value(value: Any, field: str, errors: list[str] | None = None) -> int | None:
+    if value in (None, "") or isinstance(value, bool):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        if errors is not None:
+            errors.append(f"{field} is not an integer: {value!r}")
+        return None
+    try:
+        pid = int(value)
+    except (TypeError, ValueError):
+        if errors is not None:
+            errors.append(f"{field} is not an integer: {value!r}")
+        return None
+    if pid <= 0:
+        if errors is not None:
+            errors.append(f"{field} is not a positive PID: {value!r}")
+        return None
+    return pid
 
 
 def validate_pid(pid: int, since_stamp: str | None) -> bool:
@@ -522,8 +582,16 @@ def validate_pid(pid: int, since_stamp: str | None) -> bool:
 def refresh_status(task_path: str | Path) -> dict[str, Any]:
     task, state = read_state_by_task(task_path)
     updated = False
-    running_worker = state.get("worker_pid") and validate_pid(int(state["worker_pid"]), state.get("started_at"))
-    running_codex = state.get("codex_pid") and validate_pid(int(state["codex_pid"]), state.get("started_at"))
+    pid_errors: list[str] = []
+    worker_pid = parse_pid_value(state.get("worker_pid"), "worker_pid", pid_errors)
+    codex_pid = parse_pid_value(state.get("codex_pid"), "codex_pid", pid_errors)
+    running_worker = bool(worker_pid and validate_pid(worker_pid, state.get("started_at")))
+    running_codex = bool(codex_pid and validate_pid(codex_pid, state.get("started_at")))
+    if pid_errors:
+        state["pid_errors"] = pid_errors
+        updated = True
+    elif state.pop("pid_errors", None) is not None:
+        updated = True
     if state.get("status") == STATUS_RUNNING and not running_worker and not running_codex:
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
@@ -584,10 +652,18 @@ def list_tasks(project_dir: str | Path) -> list[dict[str, Any]]:
 
 
 def tail_text(path: Path, limit: int = 4000) -> str:
-    if not path.exists():
+    if not path.exists() or limit <= 0:
         return ""
-    text = path.read_text(encoding="utf-8", errors="replace")
-    return text[-limit:]
+    with path.open("rb") as f:
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        # Seek back limit+max-UFT8-overhead bytes, then find valid char boundary.
+        start = max(0, size - limit - 4)
+        f.seek(start)
+        data = f.read()
+    # Decode and drop the partial first char if seek landed mid-character.
+    text = data.decode("utf-8", errors="replace")
+    return text[-(limit):] if len(text) > limit else text
 
 
 def full_text(path: Path) -> str:
@@ -626,47 +702,103 @@ def render_result(task: dict[str, str]) -> str:
 
 
 def cancel_task(task_path: str | Path) -> dict[str, Any]:
-    task, state = read_state_by_task(task_path)
-    pgid = state.get("codex_pgid")
-    worker_pid = state.get("worker_pid")
+    state = refresh_status(task_path)
+    task = parse_task_file(task_path)
+    pid_errors: list[str] = []
+    pgid = parse_pid_value(state.get("codex_pgid"), "codex_pgid", pid_errors)
+    worker_pid = parse_pid_value(state.get("worker_pid"), "worker_pid", pid_errors)
+    codex_pid = parse_pid_value(state.get("codex_pid"), "codex_pid", pid_errors)
+    started_at = state.get("started_at")
     all_pids: list[int] = []
+    signaled = False
 
-    if pgid:
-        try:
-            os.killpg(int(pgid), signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-    if worker_pid and pid_alive(int(worker_pid)):
-        try:
-            os.kill(int(worker_pid), signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        all_pids.append(int(worker_pid))
+    codex_running = bool(codex_pid and validate_pid(codex_pid, started_at))
+    worker_running = bool(worker_pid and validate_pid(worker_pid, started_at))
+    if codex_running and codex_pid is not None:
+        all_pids.append(codex_pid)
+    if worker_running and worker_pid is not None:
+        all_pids.append(worker_pid)
+    has_live_targets = bool(all_pids)
 
-    # Wait up to 5 seconds for graceful exit, then escalate to SIGKILL.
-    if all_pids:
-        import time
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            alive = [p for p in all_pids if pid_alive(p)]
-            if not alive:
-                break
-            time.sleep(0.5)
+    codex_group_signaled = False
+    if pgid and codex_pid and pgid != codex_pid:
+        pid_errors.append(f"codex_pgid does not match codex_pid: {pgid!r}")
+        pgid = None
+    if pgid and codex_running:
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+            signaled = True
+            codex_group_signaled = True
+        except (ProcessLookupError, PermissionError):
+            pass
+    if codex_running and codex_pid is not None and not codex_group_signaled:
+        try:
+            os.kill(codex_pid, signal.SIGTERM)
+            signaled = True
+        except (ProcessLookupError, PermissionError):
+            pass
+    if worker_running and worker_pid is not None:
+        try:
+            os.kill(worker_pid, signal.SIGTERM)
+            signaled = True
+        except (ProcessLookupError, PermissionError):
+            pass
+
+    if pid_errors:
+        state["pid_errors"] = pid_errors
+
+    if not signaled:
+        if state.get("status") in {STATUS_QUEUED, STATUS_RUNNING}:
+            state["status"] = STATUS_UNKNOWN
+            state["finished_at"] = state.get("finished_at") or utc_now()
+        state["cancelled"] = False
+        if has_live_targets:
+            state["cancel_reason"] = "tracked process could not be signaled"
         else:
-            # Escalate: processes still alive after timeout.
-            if pgid:
-                try:
-                    os.killpg(int(pgid), signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            for p in all_pids:
-                try:
-                    os.kill(p, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+            state["cancel_reason"] = "no live tracked process was found"
+        write_state(task, state)
+        if not has_live_targets:
+            release_run_lock(task)
+        return state
+
+    def live_targets() -> tuple[list[int], bool]:
+        alive_pids = [p for p in all_pids if pid_alive(p)]
+        alive_group = bool(codex_group_signaled and process_group_alive(pgid))
+        return alive_pids, alive_group
+
+    import time
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        alive_pids, alive_group = live_targets()
+        if not alive_pids and not alive_group:
+            break
+        time.sleep(0.5)
+    else:
+        # Escalate: processes still alive after timeout.
+        if codex_group_signaled and pgid:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+        for p in all_pids:
+            try:
+                os.kill(p, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+
+    alive_pids, alive_group = live_targets()
+    if alive_pids or alive_group:
+        state["status"] = STATUS_UNKNOWN
+        state["finished_at"] = state.get("finished_at") or utc_now()
+        state["cancelled"] = False
+        state["cancel_reason"] = "tracked process is still alive after cancellation"
+        write_state(task, state)
+        return state
 
     state["status"] = STATUS_CANCELLED
     state["finished_at"] = utc_now()
+    state["cancelled"] = True
+    state.pop("cancel_reason", None)
     write_state(task, state)
     release_run_lock(task)
     return state
@@ -685,8 +817,7 @@ def next_followup_id(old_task_id: str, target_project: str) -> str:
     return f"{base}-{index}"
 
 
-def create_audited_resume_task(task_path: str | Path, goal: str, start: bool = False) -> dict[str, str]:
-    del start
+def create_audited_resume_task(task_path: str | Path, goal: str) -> dict[str, str]:
     previous = parse_task_file(task_path)
     new_task_id = next_followup_id(previous["task_id"], previous["target_project"])
     new_dir = Path(previous["target_project"]) / "docs" / "tasks" / new_task_id
