@@ -19,23 +19,20 @@ need**. Do NOT read the reference files, do NOT open `runner.py`, do NOT run
 R=~/.claude/skills/claude-codex-runner/tools/codex-runner/codex-runner
 "$R" start --prompt "<task, one or two lines>" \
   --project <target-project-dir> \
-  --provider <profile> \
-  [--sandbox read-only]
+  --provider <profile>
 ```
 
 - `start` runs Codex **in the background** — it returns a task-id immediately.
-- `--sandbox read-only` for pure analysis/review (Codex prints report to stdout).
-  Omit for implementation (default `workspace-write`, Codex writes
-  `docs/tasks/<task-id>/codex-report.md`).
+- Sandbox defaults to `workspace-write` so Codex can write the report and any
+  necessary files. The runner passes `-a never` (never ask for approval) so
+  Codex auto-approves all tool calls — sandbox isolation is the safety boundary.
 - That `start` call is the only step that needs the user's confirmation.
-- The runner passes `-a never` (never ask for approval) so Codex auto-approves
-  all tool calls without waiting for interactive confirmation. Sandbox isolation
-  is the safety boundary.
 
-### Configuring MCP tools for Codex
+### Configuring MCP tools for Codex (optional)
 
-If you want Codex to have web search, diagram generation, or other MCP-powered
-capabilities, configure them in **Codex directly** (not in this runner):
+Codex can browse the web and draw diagrams out of the box. If you need
+additional capabilities (database access, external API tools, etc.), configure
+MCP servers in Codex directly:
 
 ```bash
 codex mcp add <name> -- <command>
@@ -44,9 +41,9 @@ codex mcp add <name> --url <url>
 ```
 
 MCP servers added via `codex mcp add` are automatically available in both
-interactive and `exec` mode, so the runner does not need any changes to use
-them. For image understanding tasks, just pass the image path in the prompt
-(e.g. `--prompt "分析这张图 /path/to/fig.png"`); Codex will read it directly.
+interactive and `exec` mode, so the runner does not need any changes. For image
+understanding, just pass the image path in the prompt (e.g.
+`--prompt "分析这张图 /path/to/fig.png"`); Codex will read it directly.
 
 Then poll and report back:
 
