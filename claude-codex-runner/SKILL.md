@@ -66,7 +66,7 @@ Write `docs/tasks/<task-id>/task.md` using the template in
 **Step 2: start Codex in background**
 
 ```bash
-R=~/.claude/skills/claude-codex-runner/tools/codex-runner/codex-runner
+R=~/.claude/skills/claude-codex-runner/tools/runner
 "$R" start docs/tasks/<task-id>/task.md \
   [--provider <profile>]
 ```
@@ -94,16 +94,6 @@ When done, summarize the result. If a follow-up is needed:
 "$R" resume <task-id> --goal "<follow-up>" --start
 ```
 
-### Foreground mode (streaming)
-
-Use `start-fg` when you want to **watch Codex work in real time**:
-
-```bash
-"$R" start-fg --prompt "<task>" --project <dir> --provider <profile>
-```
-
-This blocks until Codex finishes.
-
 ### Other commands
 
 ```bash
@@ -113,7 +103,7 @@ This blocks until Codex finishes.
 
 ### Runner flags
 
-`start` / `start-fg` flags: `--prompt`, `--project` (default cwd), `--sandbox`
+`start` flags: `--prompt`, `--project` (default cwd), `--sandbox`
 (default `workspace-write`), `--provider`, `--codex-bin`. Pass a task path or
 `--prompt`, not both. The runner defaults each synthesized task to
 `task_kind: implementation`, `mode: semi-auto`, `artifact_policy: keep-report-only`,

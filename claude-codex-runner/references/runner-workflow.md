@@ -31,7 +31,7 @@ the prompt under the target project's `docs/tasks/<auto-id>/`, then runs it like
 any other task, so `status`, `result`, `cancel`, and `resume` all work:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner start \
+claude-codex-runner/tools/runner start \
   --prompt "<one-line task>"
 ```
 
@@ -138,7 +138,7 @@ Do not ask for model or reasoning effort unless the user explicitly asks; use th
 Use the local runner by default:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner start docs/tasks/<task-id>/task.md
+claude-codex-runner/tools/runner start docs/tasks/<task-id>/task.md
 ```
 
 Run this from the installed skill directory, or use the executable by absolute path.
@@ -153,42 +153,36 @@ The runner:
 - writes `.codex-runs/<task-id>/run.json`
 - lets Claude Code keep the main conversation active while Codex runs
 
-If foreground execution is preferred (streaming output to terminal), use `start-fg`:
-
-```bash
-claude-codex-runner/tools/codex-runner/codex-runner start-fg docs/tasks/<task-id>/task.md
-```
-
 ## 9. Manage Background Runs
 
 Check status:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner status <task-id>
+claude-codex-runner/tools/runner status <task-id>
 ```
 
 Read the report or fallback logs:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner result <task-id>
+claude-codex-runner/tools/runner result <task-id>
 ```
 
 Cancel a run:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner cancel <task-id>
+claude-codex-runner/tools/runner cancel <task-id>
 ```
 
 Create an audited follow-up task:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>"
+claude-codex-runner/tools/runner resume <task-id> --goal "<follow-up goal>"
 ```
 
 Create and start the follow-up task:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner resume <task-id> --goal "<follow-up goal>" --start
+claude-codex-runner/tools/runner resume <task-id> --goal "<follow-up goal>" --start
 ```
 
 `resume` means `resume-audited`: the runner reads the previous `task.md` and `codex-report.md`, writes a new follow-up task directory, and optionally starts that task. It does not use native `codex resume`.
@@ -252,7 +246,7 @@ docs/tasks/<task-id>/codex-report.md
 If using the runner, prefer:
 
 ```bash
-claude-codex-runner/tools/codex-runner/codex-runner result <task-id>
+claude-codex-runner/tools/runner result <task-id>
 ```
 
 If the report is missing, summarize Codex stdout and stderr and tell the user that Codex did not complete the reporting protocol.

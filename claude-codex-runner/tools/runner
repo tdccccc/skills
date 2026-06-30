@@ -2,5 +2,5 @@
 set -euo pipefail
 # Resolve the package root (the tools/ dir that contains codex_runner/) without
 # changing the working directory, so the runner sees the user's real cwd.
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec env PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -m codex_runner.cli "$@"
