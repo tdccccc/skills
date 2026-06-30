@@ -43,6 +43,10 @@ Agent(
 - For **image understanding**: include the image path in the prompt
 - For **quick code changes**: describe the change precisely
 
+Optionally, you can write a `docs/tasks/<task-id>/task.md` and reference it
+in the Agent prompt — useful when a task needs structured constraints but
+doesn't need the full Runner lifecycle (status/result/resume).
+
 When the Agent completes, read its output and **summarize for the user**.
 If it generated files (diagrams, images, reports), confirm they exist.
 
