@@ -27,9 +27,6 @@ Bootstrap options are configured with environment variables:
   SKILLS_REPO_DIR   Local repository cache directory
 
 Arguments passed to this script are forwarded to install.sh:
-  curl -fsSL .../bootstrap.sh | bash -s -- --target claude
-  curl -fsSL .../bootstrap.sh | bash -s -- --target codex
-  curl -fsSL .../bootstrap.sh | bash -s -- --target both (default)
   curl -fsSL .../bootstrap.sh | bash -s -- --force
   curl -fsSL .../bootstrap.sh | bash -s -- --link
 USAGE
@@ -41,22 +38,6 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
 fi
 
 need_cmd git
-
-# Default to installing for both Claude Code and Codex when --target is omitted.
-has_target_flag() {
-  local arg
-  for arg in "$@"; do
-    case "$arg" in
-      --target|--target=*) return 0 ;;
-    esac
-  done
-  return 1
-}
-
-forward_args=("$@")
-if ! has_target_flag "$@"; then
-  forward_args=(--target both "$@")
-fi
 
 echo "Repository: $REPO_URL"
 echo "Reference: $REPO_REF"
@@ -93,4 +74,4 @@ if [[ ! -f "$REPO_DIR/install.sh" ]]; then
 fi
 
 cd "$REPO_DIR"
-bash ./install.sh ${forward_args[@]+"${forward_args[@]}"}
+bash ./install.sh "$@"
