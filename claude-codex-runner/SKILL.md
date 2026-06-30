@@ -28,8 +28,9 @@ R=~/.claude/skills/claude-codex-runner/tools/codex-runner/codex-runner
   Omit for implementation (default `workspace-write`, Codex writes
   `docs/tasks/<task-id>/codex-report.md`).
 - That `start` call is the only step that needs the user's confirmation.
-- The runner passes `-a always` so Codex auto-approves all tool calls without
-  waiting for interactive confirmation. Sandbox isolation is the safety boundary.
+- The runner passes `-a never` (never ask for approval) so Codex auto-approves
+  all tool calls without waiting for interactive confirmation. Sandbox isolation
+  is the safety boundary.
 
 ### Configuring MCP tools for Codex
 

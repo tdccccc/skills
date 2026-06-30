@@ -329,7 +329,7 @@ def build_codex_command(task: dict[str, str], codex_bin: str = "codex") -> tuple
     command = [
         codex_bin,
         "-a",
-        "always",
+        "never",
         "exec",
         "-C",
         task["target_project"],
