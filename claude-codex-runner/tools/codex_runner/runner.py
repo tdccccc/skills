@@ -162,6 +162,7 @@ def synthesize_task_file(
             "Allowed:",
             "",
             "- Make the focused changes needed to satisfy the goal.",
+            "- Promote valuable regression tests into the project's normal test directories.",
             "",
             "Out of scope:",
             "",
@@ -174,7 +175,8 @@ def synthesize_task_file(
             "- Do not run `git add`.",
             "- Do not run `git commit`.",
             f"- Do not write temporary files outside `.codex-runs/{task_id}/`.",
-            "- Preserve unrelated user changes.",
+            "- Inspect `git status --short` before editing; preserve existing user changes.",
+            "- If changes contain multiple independent intents, suggest splitting commits.",
             "",
             "## Verification",
             "",
@@ -193,6 +195,9 @@ def synthesize_task_file(
             "```text",
             report_rel,
             "```",
+            "",
+            "Write a report even on failure. If the sandbox is read-only, print the",
+            "full report to stdout instead of writing the report file.",
             "",
         ]
     )
@@ -324,7 +329,7 @@ def build_codex_command(task: dict[str, str], codex_bin: str = "codex") -> tuple
     command = [
         codex_bin,
         "-a",
-        "never",
+        "always",
         "exec",
         "-C",
         task["target_project"],

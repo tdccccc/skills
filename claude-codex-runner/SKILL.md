@@ -28,6 +28,24 @@ R=~/.claude/skills/claude-codex-runner/tools/codex-runner/codex-runner
   Omit for implementation (default `workspace-write`, Codex writes
   `docs/tasks/<task-id>/codex-report.md`).
 - That `start` call is the only step that needs the user's confirmation.
+- The runner passes `-a always` so Codex auto-approves all tool calls without
+  waiting for interactive confirmation. Sandbox isolation is the safety boundary.
+
+### Configuring MCP tools for Codex
+
+If you want Codex to have web search, diagram generation, or other MCP-powered
+capabilities, configure them in **Codex directly** (not in this runner):
+
+```bash
+codex mcp add <name> -- <command>
+# or
+codex mcp add <name> --url <url>
+```
+
+MCP servers added via `codex mcp add` are automatically available in both
+interactive and `exec` mode, so the runner does not need any changes to use
+them. For image understanding tasks, just pass the image path in the prompt
+(e.g. `--prompt "分析这张图 /path/to/fig.png"`); Codex will read it directly.
 
 Then poll and report back:
 
