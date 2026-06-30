@@ -61,14 +61,13 @@ text, appending a numeric suffix when the same slug already exists that day.
 
 ## 4. Prepare Directories
 
-Inside the target project, ensure:
+Inside the target project, the runner creates:
 
 ```text
 docs/tasks/<task-id>/
-.codex-runs/<task-id>/smoke/
-.codex-runs/<task-id>/logs/
-.codex-runs/<task-id>/tmp/
-.codex-runs/<task-id>/artifacts/
+.codex-runs/<task-id>/run.json
+.codex-runs/<task-id>/stdout.log
+.codex-runs/<task-id>/stderr.log
 ```
 
 ## 5. Maintain `.gitignore`

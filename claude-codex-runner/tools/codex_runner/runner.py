@@ -57,9 +57,25 @@ def parse_task_file(task_path: str | Path) -> dict[str, str]:
     text = read_text(path)
     metadata = parse_metadata(text)
     task_id = metadata.get("task_id") or path.parent.name
-    target_project = Path(metadata.get("target_project") or path.parents[3]).resolve()
+    target_project_raw = metadata.get("target_project")
+    if not target_project_raw:
+        raise ValueError(
+            f"Task file {path} is missing 'target_project' metadata. "
+            "All task files must declare an absolute target_project path."
+        )
+    target_project = Path(target_project_raw).resolve()
     report_value = extract_report_path(text)
-    report_path = Path(report_value) if report_value else Path("docs") / "tasks" / task_id / "codex-report.md"
+    if report_value:
+        report_path = Path(report_value)
+    else:
+        report_path = Path("docs") / "tasks" / task_id / "codex-report.md"
+        import warnings
+        warnings.warn(
+            f"Could not parse report path from {path}; "
+            f"falling back to {report_path}",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     if not report_path.is_absolute():
         report_path = target_project / report_path
     return {
@@ -81,7 +97,7 @@ def resolve_task_reference(reference: str | Path, cwd: str | Path | None = None)
     if ref.is_absolute():
         if ref.exists():
             return ref.resolve()
-        raise FileNotFoundError(f"Abolute task reference not found: {reference}")
+        raise FileNotFoundError(f"Absolute task reference not found: {reference}")
     else:
         # Resolve relative paths against the --cwd parameter, not the process cwd.
         ref_resolved = (base / ref).resolve()
@@ -209,29 +225,68 @@ def run_dir_for(task: dict[str, str]) -> Path:
     return Path(task["target_project"]) / ".codex-runs" / task["task_id"]
 
 
+def lock_path_for(task: dict[str, str]) -> Path:
+    return run_dir_for(task) / ".lock"
+
+
+def acquire_run_lock(task: dict[str, str], force: bool = False) -> bool:
+    """Acquire an exclusive lock for this task's run directory.
+
+    Returns True if acquired (or forced), False if another run is alive.
+    """
+    lock_file = lock_path_for(task)
+    run_dir = run_dir_for(task)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    if lock_file.exists() and not force:
+        try:
+            lock_data = json.loads(lock_file.read_text(encoding="utf-8"))
+            lock_pid = lock_data.get("pid")
+            if lock_pid and pid_alive(lock_pid):
+                return False  # another run is alive, refuse
+        except (json.JSONDecodeError, OSError):
+            pass  # stale lock, overwrite
+    lock_file.write_text(
+        json.dumps({"pid": os.getpid(), "started_at": utc_now()}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return True
+
+
+def release_run_lock(task: dict[str, str]) -> None:
+    lock_file = lock_path_for(task)
+    try:
+        lock_file.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def ensure_codex_runs_ignored(target_project: str | Path) -> bool:
     """Ensure `.codex-runs/` is git-ignored in the target project.
 
-    semi-auto mode permits the runner to maintain this entry so callers do not
-    have to inspect or edit `.gitignore` by hand on every run. Returns True if
-    the file was created or appended to. No-op when the entry already exists, or
-    when the project is not a git repo (so we never leave a stray `.gitignore`).
+    Uses `git check-ignore` to test, and uses the file only when the project
+    is a git repo. Returns True if the file was created or appended to.
+    No-op when already present or not a git repo.
     """
     project = Path(target_project)
+    if not (project / ".git").exists():
+        return False
+    # Check via git first — more reliable than parsing .gitignore manually.
+    try:
+        subprocess.run(
+            ["git", "check-ignore", "-q", ".codex-runs/"],
+            cwd=project,
+            check=True,
+            capture_output=True,
+        )
+        return False  # already ignored
+    except subprocess.CalledProcessError:
+        pass  # not ignored yet, proceed
     gitignore = project / ".gitignore"
     entry = ".codex-runs/"
-    if gitignore.exists():
-        text = gitignore.read_text(encoding="utf-8")
-        present = {line.strip().rstrip("/") for line in text.splitlines()}
-        if ".codex-runs" in present:
-            return False
-        separator = "" if text == "" or text.endswith("\n") else "\n"
-        gitignore.write_text(f"{text}{separator}{entry}\n", encoding="utf-8")
-        return True
-    if (project / ".git").exists():
-        gitignore.write_text(f"{entry}\n", encoding="utf-8")
-        return True
-    return False
+    current = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+    separator = "" if current == "" or current.endswith("\n") else "\n"
+    gitignore.write_text(f"{current}{separator}{entry}\n", encoding="utf-8")
+    return True
 
 
 def state_path_for(task: dict[str, str]) -> Path:
@@ -345,10 +400,13 @@ def build_codex_command(task: dict[str, str], codex_bin: str = "codex") -> tuple
     return command, prompt
 
 
-def prepare_run_files(task: dict[str, str]) -> dict[str, Any]:
+def prepare_run_files(task: dict[str, str], force: bool = False) -> dict[str, Any]:
     run_dir_for(task).mkdir(parents=True, exist_ok=True)
-    # Keep `.codex-runs/` out of git automatically; semi-auto mode allows it and
-    # it spares the caller from inspecting `.gitignore` on every run.
+    if not acquire_run_lock(task, force=force):
+        raise RuntimeError(
+            f"Task {task['task_id']} is already running (lock held). "
+            "Use --force to override."
+        )
     ensure_codex_runs_ignored(task["target_project"])
     state = build_initial_state(task)
     existing_path = state_path_for(task)
@@ -371,28 +429,37 @@ def run_codex_foreground(task_path: str | Path, codex_bin: str = "codex") -> int
         }
     )
     write_state(task, state)
-    with stdout_path_for(task).open("w", encoding="utf-8") as stdout, stderr_path_for(task).open("w", encoding="utf-8") as stderr:
-        process = subprocess.Popen(
-            command,
-            cwd=task["target_project"],
-            stdin=subprocess.DEVNULL,
-            stdout=stdout,
-            stderr=stderr,
-            start_new_session=True,
-            text=True,
-        )
-        state["codex_pid"] = process.pid
-        try:
-            state["codex_pgid"] = os.getpgid(process.pid)
-        except ProcessLookupError:
-            state["codex_pgid"] = None
-        write_state(task, state)  # codex_pid & codex_pgid
-        exit_code = process.wait()
-    state["exit_code"] = exit_code
-    state["finished_at"] = utc_now()
-    state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
-    write_state(task, state)
-    return exit_code
+    try:
+        with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f, stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
+            process = subprocess.Popen(
+                command,
+                cwd=task["target_project"],
+                stdin=subprocess.DEVNULL,
+                stdout=stdout_f,
+                stderr=stderr_f,
+                start_new_session=True,
+                text=True,
+            )
+            state["codex_pid"] = process.pid
+            try:
+                state["codex_pgid"] = os.getpgid(process.pid)
+            except ProcessLookupError:
+                state["codex_pgid"] = None
+            write_state(task, state)
+            exit_code = process.wait()
+        state["exit_code"] = exit_code
+        state["finished_at"] = utc_now()
+        state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
+        write_state(task, state)
+        release_run_lock(task)
+        return exit_code
+    except Exception:
+        state["exit_code"] = 1
+        state["finished_at"] = utc_now()
+        state["status"] = STATUS_FAILED
+        write_state(task, state)
+        release_run_lock(task)
+        raise
 
 
 def run_codex_foreground_stream(task_path: str | Path, codex_bin: str = "codex") -> int:
@@ -411,39 +478,44 @@ def run_codex_foreground_stream(task_path: str | Path, codex_bin: str = "codex")
         }
     )
     write_state(task, state)
-    with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f, stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
-        process = subprocess.Popen(
-            command,
-            cwd=task["target_project"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=True,
-            text=True,
-        )
-        state["codex_pid"] = process.pid
-        try:
-            state["codex_pgid"] = os.getpgid(process.pid)
-        except ProcessLookupError:
-            state["codex_pgid"] = None
+    try:
+        with stdout_path_for(task).open("w", encoding="utf-8") as stdout_f:
+            process = subprocess.Popen(
+                command,
+                cwd=task["target_project"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+                text=True,
+            )
+            state["codex_pid"] = process.pid
+            try:
+                state["codex_pgid"] = os.getpgid(process.pid)
+            except ProcessLookupError:
+                state["codex_pgid"] = None
+            write_state(task, state)
+
+            # Stream stdout to terminal and tee to log file simultaneously.
+            for line in process.stdout:
+                print(line, end="", flush=True)
+                stdout_f.write(line)
+            stdout_f.flush()
+
+            exit_code = process.wait()
+        state["exit_code"] = exit_code
+        state["finished_at"] = utc_now()
+        state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
         write_state(task, state)
-
-        # Stream stdout to terminal and tee to log file simultaneously.
-        for line in process.stdout:
-            print(line, end="", flush=True)
-            stdout_f.write(line)
-        stdout_f.flush()
-
-        # Capture remaining stderr after stdout is exhausted.
-        remaining_stderr = process.stderr.read()
-        stderr_f.write(remaining_stderr)
-
-        exit_code = process.wait()
-    state["exit_code"] = exit_code
-    state["finished_at"] = utc_now()
-    state["status"] = STATUS_SUCCESS if exit_code == 0 else STATUS_FAILED
-    write_state(task, state)
-    return exit_code
+        release_run_lock(task)
+        return exit_code
+    except Exception:
+        state["exit_code"] = 1
+        state["finished_at"] = utc_now()
+        state["status"] = STATUS_FAILED
+        write_state(task, state)
+        release_run_lock(task)
+        raise
 
 
 def pid_alive(pid: int | None) -> bool:
@@ -458,15 +530,61 @@ def pid_alive(pid: int | None) -> bool:
         return True
 
 
+def pid_start_time(pid: int) -> float | None:
+    """Get the start time of a process (Unix timestamp).
+
+    Returns None if the process doesn't exist or can't be read.
+    """
+    try:
+        # Linux /proc is fast and precise.
+        with open(f"/proc/{pid}/stat", "r") as f:
+            fields = f.read().split()
+            # Field 21 (0-indexed) is starttime in jiffies since boot.
+            start_jiffies = int(fields[21])
+        # Convert jiffies to seconds since boot, then to Unix time.
+        with open("/proc/stat", "r") as f:
+            for line in f:
+                if line.startswith("btime "):
+                    boot_time = int(line.split()[1])
+                    break
+        clock_ticks = os.sysconf(os.sysconf_names["SC_CLK_TCK"])
+        return boot_time + (start_jiffies / clock_ticks)
+    except (OSError, IndexError, ValueError, KeyError):
+        return None
+
+
+def validate_pid(pid: int, since_stamp: str | None) -> bool:
+    """Check if a PID is alive AND matches the expected start time.
+
+    This reduces the risk of acting on a recycled PID.
+    """
+    if not pid_alive(pid):
+        return False
+    if not since_stamp:
+        return True  # no timestamp to compare, fall back to basic check
+    try:
+        import datetime as dt
+        expected = dt.datetime.fromisoformat(since_stamp).timestamp()
+        actual = pid_start_time(pid)
+        if actual is None:
+            return True  # can't verify, be permissive
+        # Allow a small window (5s) before the expected time — the process
+        # may have started slightly before we recorded the timestamp.
+        return abs(actual - expected) < 5
+    except (ValueError, TypeError):
+        return True
+
+
 def refresh_status(task_path: str | Path) -> dict[str, Any]:
     task, state = read_state_by_task(task_path)
     updated = False
-    if state.get("status") == STATUS_RUNNING and not pid_alive(state.get("worker_pid")) and not pid_alive(state.get("codex_pid")):
+    running_worker = state.get("worker_pid") and validate_pid(int(state["worker_pid"]), state.get("started_at"))
+    running_codex = state.get("codex_pid") and validate_pid(int(state["codex_pid"]), state.get("started_at"))
+    if state.get("status") == STATUS_RUNNING and not running_worker and not running_codex:
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
         updated = True
-    elif state.get("status") == STATUS_QUEUED and state.get("worker_pid") and not pid_alive(state.get("worker_pid")):
-        # Worker died before entering running — don't leave the state stuck in queued.
+    elif state.get("status") == STATUS_QUEUED and state.get("worker_pid") and not running_worker:
         state["status"] = STATUS_UNKNOWN
         state["finished_at"] = state.get("finished_at") or utc_now()
         updated = True
@@ -567,6 +685,8 @@ def cancel_task(task_path: str | Path) -> dict[str, Any]:
     task, state = read_state_by_task(task_path)
     pgid = state.get("codex_pgid")
     worker_pid = state.get("worker_pid")
+    all_pids: list[int] = []
+
     if pgid:
         try:
             os.killpg(int(pgid), signal.SIGTERM)
@@ -577,9 +697,34 @@ def cancel_task(task_path: str | Path) -> dict[str, Any]:
             os.kill(int(worker_pid), signal.SIGTERM)
         except ProcessLookupError:
             pass
+        all_pids.append(int(worker_pid))
+
+    # Wait up to 5 seconds for graceful exit, then escalate to SIGKILL.
+    if all_pids:
+        import time
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            alive = [p for p in all_pids if pid_alive(p)]
+            if not alive:
+                break
+            time.sleep(0.5)
+        else:
+            # Escalate: processes still alive after timeout.
+            if pgid:
+                try:
+                    os.killpg(int(pgid), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+            for p in all_pids:
+                try:
+                    os.kill(p, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
     state["status"] = STATUS_CANCELLED
     state["finished_at"] = utc_now()
     write_state(task, state)
+    release_run_lock(task)
     return state
 
 
@@ -599,16 +744,22 @@ def next_followup_id(old_task_id: str, target_project: str) -> str:
 def create_audited_resume_task(task_path: str | Path, goal: str, start: bool = False) -> dict[str, str]:
     del start
     previous = parse_task_file(task_path)
-    previous_task_text = read_text(Path(previous["task_path"]))
-    report_path = Path(previous["report_path"])
-    if report_path.exists():
-        previous_report_text = report_path.read_text(encoding="utf-8")
-    else:
-        previous_report_text = "Previous Codex report was not found."
     new_task_id = next_followup_id(previous["task_id"], previous["target_project"])
     new_dir = Path(previous["target_project"]) / "docs" / "tasks" / new_task_id
+    new_dir.mkdir(parents=True, exist_ok=True)
     new_task_path = new_dir / "task.md"
     report_rel = f"docs/tasks/{new_task_id}/codex-report.md"
+
+    # Copy previous artifacts as separate files to avoid nested backtick issues.
+    previous_task_source = read_text(Path(previous["task_path"]))
+    write_text(new_dir / "previous-task.md", previous_task_source)
+
+    report_path = Path(previous["report_path"])
+    if report_path.exists():
+        write_text(new_dir / "previous-report.md", report_path.read_text(encoding="utf-8"))
+    else:
+        write_text(new_dir / "previous-report.md", "Previous Codex report was not found.")
+
     text = "\n".join(
         [
             f"# Codex Task: Follow up {previous['task_id']}",
@@ -629,20 +780,8 @@ def create_audited_resume_task(task_path: str | Path, goal: str, start: bool = F
             "## Context",
             "",
             f"Previous task: {previous['task_id']}",
-            f"Previous task file: docs/tasks/{previous['task_id']}/task.md",
-            f"Previous report file: docs/tasks/{previous['task_id']}/codex-report.md",
-            "",
-            "## Previous Report",
-            "",
-            "```markdown",
-            previous_report_text.strip(),
-            "```",
-            "",
-            "## Previous Task",
-            "",
-            "```markdown",
-            previous_task_text.strip(),
-            "```",
+            f"Previous task file: docs/tasks/{new_task_id}/previous-task.md",
+            f"Previous report file: docs/tasks/{new_task_id}/previous-report.md",
             "",
             "## Scope",
             "",

@@ -19,10 +19,10 @@ This contract defines how Claude Code hands work to Codex CLI and how Codex repo
         claude-summary.md
   .codex-runs/
     <task-id>/
-      smoke/
-      logs/
-      tmp/
-      artifacts/
+      run.json
+      stdout.log
+      stderr.log
+      (Codex may create additional temporary files here)
 ```
 
 ## Task ID

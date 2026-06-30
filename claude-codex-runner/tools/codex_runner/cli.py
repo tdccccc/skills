@@ -18,6 +18,7 @@ from .runner import (
     resolve_task_reference,
     run_codex_foreground,
     run_codex_foreground_stream,
+    stderr_path_for,
     synthesize_task_file,
     write_state,
 )
@@ -37,22 +38,21 @@ def start_background(task_path: Path, codex_bin: str) -> int:
         "--codex-bin",
         codex_bin,
     ]
-    # The package root is the tools/ dir that holds codex_runner/. Inject it via
-    # PYTHONPATH so the worker imports without depending on its working directory.
     pkg_root = Path(__file__).resolve().parents[1]
     env = dict(os.environ)
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = f"{pkg_root}{os.pathsep}{existing}" if existing else str(pkg_root)
-    worker = subprocess.Popen(
-        command,
-        cwd=task["target_project"],
-        env=env,
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-        text=True,
-    )
+    with stderr_path_for(task).open("w", encoding="utf-8") as stderr_f:
+        worker = subprocess.Popen(
+            command,
+            cwd=task["target_project"],
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=stderr_f,
+            start_new_session=True,
+            text=True,
+        )
     state["worker_pid"] = worker.pid
     write_state(task, state)
     print(json.dumps(state, indent=2, sort_keys=True))
@@ -60,7 +60,6 @@ def start_background(task_path: Path, codex_bin: str) -> int:
 
 
 def command_start(args: argparse.Namespace) -> int:
-    """Start a Codex task in background (default)."""
     if args.prompt is not None:
         if args.task is not None:
             print("error: provide either a task reference or --prompt, not both", file=sys.stderr)
@@ -68,13 +67,12 @@ def command_start(args: argparse.Namespace) -> int:
         task_path = synthesize_task_file(
             args.prompt,
             project=args.project,
-            cwd=args.cwd,
             sandbox=args.sandbox,
             provider=args.provider,
         )
         print(f"Synthesized task file: {task_path}", file=sys.stderr)
     elif args.task is not None:
-        task_path = resolve_task_reference(args.task, cwd=args.cwd)
+        task_path = resolve_task_reference(args.task)
     else:
         print("error: start requires a task reference or --prompt", file=sys.stderr)
         return 2
@@ -83,7 +81,6 @@ def command_start(args: argparse.Namespace) -> int:
 
 
 def command_start_fg(args: argparse.Namespace) -> int:
-    """Start a Codex task in foreground (streaming output)."""
     if args.prompt is not None:
         if args.task is not None:
             print("error: provide either a task reference or --prompt, not both", file=sys.stderr)
@@ -91,13 +88,12 @@ def command_start_fg(args: argparse.Namespace) -> int:
         task_path = synthesize_task_file(
             args.prompt,
             project=args.project,
-            cwd=args.cwd,
             sandbox=args.sandbox,
             provider=args.provider,
         )
         print(f"Synthesized task file: {task_path}", file=sys.stderr)
     elif args.task is not None:
-        task_path = resolve_task_reference(args.task, cwd=args.cwd)
+        task_path = resolve_task_reference(args.task)
     else:
         print("error: start-fg requires a task reference or --prompt", file=sys.stderr)
         return 2
@@ -110,22 +106,21 @@ def command_worker(args: argparse.Namespace) -> int:
 
 
 def command_status(args: argparse.Namespace) -> int:
-    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    task_path = resolve_task_reference(args.task)
     state = refresh_status(task_path)
     print(json.dumps(state, indent=2, sort_keys=True))
     return 0
 
 
 def command_result(args: argparse.Namespace) -> int:
-    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    task_path = resolve_task_reference(args.task)
     task = parse_task_file(task_path)
     print(render_result(task))
     return 0
 
 
 def command_list(args: argparse.Namespace) -> int:
-    """List all tasks in the project, most recent first."""
-    project = Path(args.project or args.cwd).resolve()
+    project = Path(args.project or os.getcwd()).resolve()
     tasks = list_tasks(project)
     if not tasks:
         print("No tasks found.")
@@ -135,14 +130,14 @@ def command_list(args: argparse.Namespace) -> int:
 
 
 def command_cancel(args: argparse.Namespace) -> int:
-    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    task_path = resolve_task_reference(args.task)
     state = cancel_task(task_path)
     print(json.dumps(state, indent=2, sort_keys=True))
     return 0
 
 
 def command_resume(args: argparse.Namespace) -> int:
-    task_path = resolve_task_reference(args.task, cwd=args.cwd)
+    task_path = resolve_task_reference(args.task)
     followup = create_audited_resume_task(task_path, goal=args.goal, start=False)
     print(json.dumps(followup, indent=2, sort_keys=True))
     if args.start:
@@ -154,30 +149,26 @@ def command_resume(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-runner")
-    parser.add_argument("--cwd", default=os.getcwd())
     sub = parser.add_subparsers(dest="command", required=True)
 
-    # start — default background
     start = sub.add_parser("start", help="Start a Codex task in background")
     start.add_argument("task", nargs="?", default=None)
     start.add_argument("--prompt", default=None, help="one-line task; synthesizes a task file instead of reading one")
-    start.add_argument("--project", default=None, help="target project dir for --prompt (default: --cwd)")
+    start.add_argument("--project", default=None, help="target project dir for --prompt (default: current directory)")
     start.add_argument("--sandbox", default="workspace-write", help="Codex sandbox for --prompt (default: workspace-write)")
     start.add_argument("--provider", default="", help="Codex provider profile for --prompt")
     start.add_argument("--codex-bin", default="codex")
     start.set_defaults(func=command_start)
 
-    # start-fg — foreground with streaming output
     start_fg = sub.add_parser("start-fg", help="Start a Codex task in foreground (streaming output)")
     start_fg.add_argument("task", nargs="?", default=None)
     start_fg.add_argument("--prompt", default=None, help="one-line task; synthesizes a task file instead of reading one")
-    start_fg.add_argument("--project", default=None, help="target project dir for --prompt (default: --cwd)")
+    start_fg.add_argument("--project", default=None, help="target project dir for --prompt (default: current directory)")
     start_fg.add_argument("--sandbox", default="workspace-write", help="Codex sandbox for --prompt (default: workspace-write)")
     start_fg.add_argument("--provider", default="", help="Codex provider profile for --prompt")
     start_fg.add_argument("--codex-bin", default="codex")
     start_fg.set_defaults(func=command_start_fg)
 
-    # worker — internal, used by start_background
     worker = sub.add_parser("worker")
     worker.add_argument("task")
     worker.add_argument("--codex-bin", default="codex")
@@ -192,7 +183,7 @@ def build_parser() -> argparse.ArgumentParser:
     result.set_defaults(func=command_result)
 
     list_parser = sub.add_parser("list", help="List all tasks in the project")
-    list_parser.add_argument("--project", default=None, help="project directory (default: --cwd)")
+    list_parser.add_argument("--project", default=None, help="project directory (default: current directory)")
     list_parser.set_defaults(func=command_list)
 
     cancel = sub.add_parser("cancel", help="Cancel a running task")
@@ -211,8 +202,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        args = parser.parse_args(argv)
+        return args.func(args)
+    except FileNotFoundError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except (ValueError, json.JSONDecodeError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

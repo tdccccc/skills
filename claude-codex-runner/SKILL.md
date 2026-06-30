@@ -1,6 +1,6 @@
 ---
 name: claude-codex-runner
-description: Use in Claude Code when the user wants Claude to hand an already-scoped coding task, implementation plan, or design document to Codex CLI for one-shot execution, then read Codex's report and summarize the result. Also configures MCP servers for Codex. 适用于在 Claude Code 中让 Codex 执行已明确范围的任务并回报结果。
+description: Use in Claude Code when the user wants Claude to hand an already-scoped coding task, implementation plan, or design document to Codex CLI for one-shot execution, then read Codex's report and summarize the result. 适用于在 Claude Code 中让 Codex 执行已明确范围的任务并回报结果。
 install-targets: claude
 ---
 
