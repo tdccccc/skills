@@ -89,6 +89,8 @@ The install target for each skill is shown in parentheses.
 - `claude-codex-runner/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
 - `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
+- `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
+- `domain-modeling/` (claude) builds and sharpens a project's domain model, terminology, and ADRs. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
 - `security-audit/` (claude) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
 
 ## Tools
