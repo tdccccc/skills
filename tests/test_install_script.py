@@ -48,12 +48,9 @@ class InstallScriptTests(unittest.TestCase):
         # so its support files live nested inside the skill directory.
         self.assertFalse((skills_dir / "shared").exists())
         self.assertFalse((skills_dir / "tools").exists())
-        self.assertTrue(
-            (skills_dir / "claude-codex-runner" / "references" / "codex-task-contract.md").is_file()
-        )
-        self.assertTrue(
-            (skills_dir / "claude-codex-runner" / "tools" / "codex-runner" / "codex-runner").is_file()
-        )
+        # claude-codex-runner no longer ships runner scripts or references;
+        # it generates task.md at runtime and invokes Codex via Agent.
+        self.assertTrue((skills_dir / "claude-codex-runner" / "SKILL.md").is_file())
 
     def assert_codex_collection(self, skills_dir):
         # Only the codex-targeted skill installs here.

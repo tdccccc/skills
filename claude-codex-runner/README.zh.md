@@ -12,40 +12,41 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 ## 使用
 
-### Agent 模式（默认）— 简单任务
-
-搜索、画图、看图、小改动，一句话就能干。Claude Code 自动用 Agent 工具在后台运行 Codex：
+一句话就能用：
 
 ```
 你：搜一下今天 arxiv 上 astro-ph.CO 更新了多少篇文章
-你：画一个 mermaid 时序图，展示用户登录流程
 你：把这个函数改成异步版本
+你：给登录页面加一个密码强度指示器
 ```
 
-Agent 跑完后会自动通知你。也支持先写 `docs/tasks/<task-id>/task.md` 再引用。
+Claude 会自动：
+1. 判断任务复杂度，生成合适的 task.md
+2. 通过 Agent 在后台调用 `codex exec`
+3. 完成后读取报告并总结
 
-### Runner 模式 — 复杂任务
+查看进度：在 Claude Code 界面按 **↓ 方向键**查看 Agent 实时输出。
 
-跨文件重构、需要精确约束和验证、可能要多轮迭代的任务。写 task.md 后用 runner 管理。
+## 任务复杂度判断
 
-```bash
-R=~/.claude/skills/claude-codex-runner/tools/runner
+| 简单（极简模板） | 复杂（完整模板） |
+|---|---|
+| 只读/搜索/画图 | 多文件改动 |
+| 单文件 ≤ 50 行 | 单文件 > 50 行 |
+| 不涉及测试/配置/依赖/安全 | 涉及测试/配置/依赖/安全 |
+| 一次性脚本 | 需要验证步骤 |
 
-# 启动（后台）
-"$R" start docs/tasks/<task-id>/task.md --provider <profile>
+## 任务文件结构
 
-# 查看进度
-"$R" status <task-id>
-
-# 查看报告
-"$R" result <task-id>
-
-# 继续
-"$R" resume <task-id> --goal "<后续目标>" --start
-
-# 列出任务
-"$R" list
-
-# 取消
-"$R" cancel <task-id>
+```
+<project>/
+  docs/
+    tasks/
+      YYYY-MM-DD-slug/
+        task.md
+        codex-report.md
+  .codex-runs/
+    YYYY-MM-DD-slug/
+      stdout.log
+      stderr.log
 ```

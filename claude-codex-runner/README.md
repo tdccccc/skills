@@ -1,51 +1,54 @@
 # Claude Codex Runner
 
-[中文文档](README.zh.md)
+[English](README.en.md)
 
-Delegate tasks to Codex CLI from Claude Code, then summarize the results.
+在 Claude Code 中把任务交给 Codex CLI 执行，然后总结结果。
 
-## Install
+## 安装
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash
 ```
 
-## Usage
+## 使用
 
-### Agent mode (default) — simple tasks
-
-Search, diagrams, images, quick code changes — one sentence is enough. Claude Code uses the Agent tool to run `codex exec` in the background:
+一句话就能用：
 
 ```
-You: Search arxiv astro-ph.CO for today's new articles
-You: Draw a mermaid sequence diagram of user login flow
-You: Convert this function to async
+你：搜索 arxiv astro-ph.CO 今天关于引力波的新文章
+你：把这个函数改成异步版本
+你：给登录页面加一个密码强度指示器
 ```
 
-The Agent notifies you when it finishes. You can also write a `docs/tasks/<task-id>/task.md` and reference it from the prompt.
+Claude 会自动：
+1. 判断任务复杂度，生成合适的 task.md
+2. 通过 Agent 在后台调用 `codex exec`
+3. 完成后读取报告并总结
 
-### Runner mode — complex tasks
+查看进度：在 Claude Code 界面按 **↓ 方向键**查看 Agent 实时输出。
 
-Multi-file refactors, precise scope constraints, tasks needing verification and follow-up. Write a task.md and manage with the runner:
+## 任务复杂度判断
 
-```bash
-R=~/.claude/skills/claude-codex-runner/tools/runner
+| 简单（极简模板） | 复杂（完整模板） |
+|---|---|
+| 只读/搜索/画图 | 多文件改动 |
+| 单文件 ≤ 50 行 | 单文件 > 50 行 |
+| 不涉及测试/配置/依赖/安全 | 涉及测试/配置/依赖/安全 |
+| 一次性脚本 | 需要验证步骤 |
 
-# Start (background)
-"$R" start docs/tasks/<task-id>/task.md --provider <profile>
+## 任务文件结构
 
-# Check status
-"$R" status <task-id>
-
-# Read report
-"$R" result <task-id>
-
-# Resume
-"$R" resume <task-id> --goal "<goal>" --start
-
-# List tasks
-"$R" list
-
-# Cancel
-"$R" cancel <task-id>
 ```
+<project>/
+  docs/
+    tasks/
+      YYYY-MM-DD-slug/
+        task.md
+        codex-report.md
+        stdout.log
+        stderr.log
+```
+
+## 后续改进
+
+Codex 执行完成后，可以要求 Claude 继续完善或修复——Claude 会新建一个 task.md 和 Agent 再次调用 Codex。
