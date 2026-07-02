@@ -74,14 +74,14 @@ artifact_policy: keep-report-only
 
 - Do not run `git add` or `git commit`.
 - Preserve unrelated user changes.
-- Keep all temporary files under `docs/tasks/{task_id}/`.
+- Keep all temporary files under `docs/cc-codex-task/{task_id}/`.
 
 ## Report
 
 Write report to:
 
 ```text
-docs/tasks/{task_id}/codex-report.md
+docs/cc-codex-task/{task_id}/codex-report.md
 ```
 
 Report must include: status, summary, changed files, and suggested commit message.
@@ -127,7 +127,7 @@ Out of scope:
 
 - Do not run `git add`.
 - Do not run `git commit`.
-- Do not write temporary files outside `docs/tasks/{task_id}/`.
+- Do not write temporary files outside `docs/cc-codex-task/{task_id}/`.
 - Preserve unrelated user changes.
 - Ask for approval before using network access, installing dependencies,
   writing outside the target project, running destructive commands,
@@ -150,7 +150,7 @@ Expected result:
 Write report to:
 
 ```text
-docs/tasks/{task_id}/codex-report.md
+docs/cc-codex-task/{task_id}/codex-report.md
 ```
 
 Write a report even on failure.
@@ -161,7 +161,7 @@ Write a report even on failure.
 ```text
 <target-project>/
   docs/
-    tasks/
+    cc-codex-task/
       <task-id>/
         task.md
         codex-report.md
@@ -169,7 +169,7 @@ Write a report even on failure.
         stderr.log
 ```
 
-All task artifacts live under `docs/tasks/<task-id>/`. There is no separate `.codex-runs/` directory — stdout and stderr logs are written alongside the task file and report.
+All task artifacts live under `docs/cc-codex-task/<task-id>/`. There is no separate `.codex-runs/` directory — stdout and stderr logs are written alongside the task file and report.
 
 ---
 
@@ -202,8 +202,8 @@ codex -a never exec \
   [-p <profile>] \
   [--search] \
   [-i <image-path>] \
-  '<canonical prompt>' </dev/null 2>docs/tasks/<task-id>/stderr.log \
-  | tee docs/tasks/<task-id>/stdout.log
+  '<canonical prompt>' </dev/null 2>docs/cc-codex-task/<task-id>/stderr.log \
+  | tee docs/cc-codex-task/<task-id>/stdout.log
 ```
 
 Add `--search` for web search tasks. Add `-i <image-path>` for image understanding tasks.
@@ -211,13 +211,13 @@ Add `--search` for web search tasks. Add `-i <image-path>` for image understandi
 The canonical prompt must reference the task file so Codex reads the full contract:
 
 ```
-<task>Execute docs/tasks/<task-id>/task.md in <target-project>. Follow the task contract exactly, do not stage or commit, and write the report to the specified path.</task>
+<task>Execute docs/cc-codex-task/<task-id>/task.md in <target-project>. Follow the task contract exactly, do not stage or commit, and write the report to the specified path.</task>
 ```
 
 ### Agent's responsibilities
 
 1. Change to the target project directory
-2. Create `docs/tasks/<task-id>/` directory (if not already created by task.md)
+2. Create `docs/cc-codex-task/<task-id>/` directory (if not already created by task.md)
 3. Run `codex exec` with the command above, tee-ing stdout/stderr to log files
 4. Wait for Codex to finish
 5. Read `codex-report.md` from disk. If the report is missing (Codex failed before creating it), **synthesize a failure `codex-report.md`** from `stdout.log`, `stderr.log`, and exit status, then return it as the agent's summary.
@@ -240,7 +240,7 @@ The Agent already read `codex-report.md` and returned a summary. Present that su
 
 If a previous task was partially completed or needs follow-up:
 
-1. Create a new `docs/tasks/<new-task-id>/task.md`
+1. Create a new `docs/cc-codex-task/<new-task-id>/task.md`
 2. Reference the previous task.md and codex-report.md in the new task's `## Context`
 3. Copy the previous run's output files into the new task directory (so Codex can reference them)
 4. Run with a new Agent
@@ -266,7 +266,7 @@ The following rules apply to every task.md, whether minimal or full template. Th
 
 - No `git add`
 - No `git commit`
-- All temporary files must live under `docs/tasks/<task-id>/`
+- All temporary files must live under `docs/cc-codex-task/<task-id>/`
 - Codex must report the list of changed files
 - Codex must suggest a Conventional Commit message
 
