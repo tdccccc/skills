@@ -4,6 +4,12 @@
 
 Delegate tasks to Codex CLI from Claude Code, then summarize the results.
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash
+```
+
 ## Usage
 
 Just one sentence:

@@ -1,6 +1,6 @@
 # ToCodex
 
-[English](README.md)
+[English](README.en.md)
 
 在 Claude Code 中把任务交给 Codex CLI 执行，然后总结结果。
 
