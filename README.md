@@ -67,7 +67,11 @@ Restart Claude Code and/or Codex after installing or updating skills.
 ## Uninstall
 
 To remove this repository's skills, manually delete the skill directories from
-Claude Code's skills directory and/or Codex's skills directory:
+Claude Code's skills directory and/or Codex's skills directory.
+
+If upgrading from the previous skill name, remove
+`~/.claude/skills/claude-codex-runner` after installing `tocodex` to avoid
+keeping both versions active:
 
 ```bash
 # List installed skills from this repo
@@ -75,7 +79,7 @@ ls -d ~/.claude/skills/*/
 ls -d ~/.codex/skills/*/
 
 # Delete the ones belonging to this repository
-rm -rf ~/.claude/skills/claude-codex-runner ~/.claude/skills/codex-task-executor \
+rm -rf ~/.claude/skills/tocodex ~/.claude/skills/codex-task-executor \
        ~/.claude/skills/grill-me ~/.claude/skills/security-audit
 # Repeat for ~/.codex/skills/ as needed
 ```
@@ -86,7 +90,7 @@ Restart Claude Code and/or Codex to drop the removed skills.
 
 The install target for each skill is shown in parentheses.
 
-- `claude-codex-runner/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
+- `tocodex/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
 - `codex-task-executor/` (codex) tells Codex how to execute Claude-generated task packages and write structured reports.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
 - `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
@@ -104,7 +108,7 @@ skills/
   README.md
   bootstrap.sh
   install.sh
-  claude-codex-runner/
+  tocodex/
     SKILL.md
     README.md
     README.zh.md

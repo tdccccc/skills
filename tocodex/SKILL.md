@@ -1,10 +1,10 @@
 ---
-name: claude-codex-runner
+name: tocodex
 description: 'Use when a Claude Code session should delegate a well-scoped task to Codex CLI for isolated execution, then summarize Codex report. 适用于在 Claude Code 中让 Codex 执行已明确范围的任务并回报结果。'
 install-targets: claude
 ---
 
-# Claude Codex Runner
+# ToCodex
 
 Hand a well-scoped task to Codex CLI for one-shot execution, then read Codex's report and summarize the result.
 
