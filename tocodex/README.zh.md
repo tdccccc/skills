@@ -41,7 +41,7 @@ Claude 会自动：
 ```
 <project>/
   docs/
-    tocodex-task/
+    tocodex/
       YYYY-MM-DD-slug/
         task.md
         codex-report.md

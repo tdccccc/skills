@@ -1,4 +1,4 @@
 .worktree/
 __pycache__/
 *.pyc
-docs/tocodex-task/
+docs/tocodex/

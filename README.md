@@ -133,5 +133,5 @@ skills/
 - A skill's `SKILL.md` frontmatter may set `install-targets:` to `claude`, `codex`, or `both` to control where it installs; omitting it defaults to `both`.
 - Imported third-party skills may keep their upstream `LICENSE` and `README.md`.
 - Each skill is self-contained: all files it needs live inside its own directory so it installs as a single unit.
-- Task records generated in target projects use `docs/tocodex-task/<task-id>/`.
-- Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex-task/<task-id>/`.
+- Task records generated in target projects use `docs/tocodex/<task-id>/`.
+- Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
