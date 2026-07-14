@@ -1,5 +1,4 @@
 .worktree/
 __pycache__/
 *.pyc
-.codex-runs/
-docs/tasks/
+docs/tocodex-task/

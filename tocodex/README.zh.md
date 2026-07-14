@@ -41,12 +41,10 @@ Claude 会自动：
 ```
 <project>/
   docs/
-    tasks/
+    tocodex-task/
       YYYY-MM-DD-slug/
         task.md
         codex-report.md
-  .codex-runs/
-    YYYY-MM-DD-slug/
-      stdout.log
-      stderr.log
+        stdout.log
+        stderr.log
 ```

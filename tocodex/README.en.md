@@ -35,7 +35,7 @@ Check progress: press **↓ arrow key** in Claude Code to view Agent live output
 ```
 <project>/
   docs/
-    tasks/
+    tocodex-task/
       YYYY-MM-DD-slug/
         task.md
         codex-report.md
