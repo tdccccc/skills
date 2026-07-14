@@ -38,7 +38,7 @@ Check progress: press **↓ arrow key** in Claude Code to view Agent live output
     tocodex/
       YYYY-MM-DD-slug/
         task.md
-        codex-report.md
+        report.md
         stdout.log
         stderr.log
 ```

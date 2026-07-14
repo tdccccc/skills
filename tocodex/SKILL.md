@@ -81,7 +81,7 @@ artifact_policy: keep-report-only
 Write report to:
 
 ```text
-docs/tocodex/{task_id}/codex-report.md
+docs/tocodex/{task_id}/report.md
 ```
 
 Report must include: status, summary, changed files, and suggested commit message.
@@ -150,7 +150,7 @@ Expected result:
 Write report to:
 
 ```text
-docs/tocodex/{task_id}/codex-report.md
+docs/tocodex/{task_id}/report.md
 ```
 
 Write a report even on failure.
@@ -164,7 +164,7 @@ Write a report even on failure.
     tocodex/
       <task-id>/
         task.md
-        codex-report.md
+        report.md
         stdout.log
         stderr.log
 ```
@@ -220,7 +220,7 @@ The canonical prompt must reference the task file so Codex reads the full contra
 2. Create `docs/tocodex/<task-id>/` directory (if not already created by task.md)
 3. Run `codex exec` with the command above, tee-ing stdout/stderr to log files
 4. Wait for Codex to finish
-5. Read `codex-report.md` from disk. If the report is missing (Codex failed before creating it), **synthesize a failure `codex-report.md`** from `stdout.log`, `stderr.log`, and exit status, then return it as the agent's summary.
+5. Read `report.md` from disk. If the report is missing (Codex failed before creating it), **synthesize a failure `report.md`** from `stdout.log`, `stderr.log`, and exit status, then return it as the agent's summary.
 6. Return a **distilled summary** of what Codex did: status, changed files, verification results, risks, and suggested commit message. Do NOT return Codex's raw full output.
 7. Include the report file path so the main session can read the full report if needed.
 
@@ -232,7 +232,7 @@ While the Agent runs in the background, the user can press the **↓ arrow key**
 
 ## Step 5: Present the result
 
-The Agent already read `codex-report.md` and returned a summary. Present that summary to the user. If they want more detail, read the full report file from disk.
+The Agent already read `report.md` and returned a summary. Present that summary to the user. If they want more detail, read the full report file from disk.
 
 ---
 
@@ -241,7 +241,7 @@ The Agent already read `codex-report.md` and returned a summary. Present that su
 If a previous task was partially completed or needs follow-up:
 
 1. Create a new `docs/tocodex/<new-task-id>/task.md`
-2. Reference the previous task.md and codex-report.md in the new task's `## Context`
+2. Reference the previous task.md and report.md in the new task's `## Context`
 3. Copy the previous run's output files into the new task directory (so Codex can reference them)
 4. Run with a new Agent
 
@@ -277,7 +277,7 @@ The following rules apply to every task.md, whether minimal or full template. Th
 
 ### Report
 
-- Must write `codex-report.md` even on failure
+- Must write `report.md` even on failure
 - Must include: status, summary, changed files, verification commands and results, temporary smoke checks, risks and follow-ups, suggested commit message
 
 ### Read-only analysis
@@ -285,7 +285,7 @@ The following rules apply to every task.md, whether minimal or full template. Th
 For search, browse, and analysis tasks:
 - Use `task_kind: analysis` + `sandbox: workspace-write`
 - Explicitly forbid source edits in the Scope section
-- `workspace-write` is only for writing `codex-report.md`
+- `workspace-write` is only for writing `report.md`
 
 ---
 

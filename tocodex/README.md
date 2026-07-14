@@ -44,7 +44,7 @@ Claude 会自动：
     tocodex/
       YYYY-MM-DD-slug/
         task.md
-        codex-report.md
+        report.md
         stdout.log
         stderr.log
 ```
