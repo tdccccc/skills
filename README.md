@@ -64,8 +64,10 @@ keeping both versions active:
 ls -d ~/.claude/skills/*/
 
 # Delete the ones belonging to this repository
-rm -rf ~/.claude/skills/tocodex \
-       ~/.claude/skills/grill-me ~/.claude/skills/security-audit
+rm -rf ~/.claude/skills/helm \
+       ~/.claude/skills/tocodex \
+       ~/.claude/skills/grill-me ~/.claude/skills/grill-with-docs \
+       ~/.claude/skills/domain-modeling ~/.claude/skills/security-audit
 ```
 
 Restart Claude Code to drop the removed skills.
@@ -74,6 +76,7 @@ Restart Claude Code to drop the removed skills.
 
 The install target for each skill is shown in parentheses.
 
+- `helm/` (claude) personal intent workflow: lock a goal, plan one phase at a time, execute with checkpoints, and steer when plan or goal must change.
 - `tocodex/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
 - `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
@@ -91,13 +94,21 @@ skills/
   README.md
   bootstrap.sh
   install.sh
+  helm/
+    SKILL.md
+    README.md
+    templates/
+      goal.md
+      phase.md
+      journal-entry.md
   tocodex/
     SKILL.md
     README.md
     README.en.md
-    README.zh.md
   domain-modeling/
     SKILL.md
+    CONTEXT-FORMAT.md
+    ADR-FORMAT.md
   grill-me/
     SKILL.md
   grill-with-docs/
@@ -118,3 +129,5 @@ skills/
 - Each skill is self-contained: all files it needs live inside its own directory so it installs as a single unit.
 - Task records generated in target projects use `docs/tocodex/<task-id>/`.
 - Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
+- Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`).
+- Delegated helm execution still uses `docs/tocodex/<task-id>/` when tocodex is involved.
