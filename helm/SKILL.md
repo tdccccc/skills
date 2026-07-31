@@ -10,7 +10,7 @@ Steer work from intent → path → execution, with mid-course correction as a f
 
 Metaphor: **goal is the destination, phase plan is the current heading, journal is the logbook.**
 
-Default path is **in-session execution**. tocodex is optional and only for well-scoped delegated slices.
+Default path is **in-session execution**; a well-scoped phase may be delegated to a subagent.
 
 ## Artifacts
 
@@ -104,7 +104,7 @@ Rules:
 
 Work the phase task list in this session by default.
 
-After each meaningful chunk (or each delegated report), run a **Checkpoint**. Do not wait until the whole phase ends if something smells wrong.
+After each meaningful chunk (or each delegated report), run a **Checkpoint**. A delegated report claiming “done” is not acceptance — the report must carry verification evidence, and the Checkpoint decides. Do not wait until the whole phase ends if something smells wrong.
 
 ### 4. Checkpoint
 
@@ -146,7 +146,7 @@ Silently classify, then act:
 
 **Parallel agents:**
 
-- One `owner` per initiative (a session/agent id) in goal.md. Only the owner edits goal.md / phase files.
+- One `owner` per initiative (a session/agent id) in goal.md. Only the owner changes goal.md status / owner lines. **Delegates (subagents) are never owners**: read-only on goal.md and journal.md; they may check off tasks in their assigned phase file but never change `status` — transitions belong to the owner.
 - Different phases may run in parallel under different owners; **the same phase is never double-written**.
 - Handoff = one journal entry (result + next step) + `owner` change, in the same edit turn.
 - Keep goal.md edits small and directional (a status or owner line) — never full rewrites.
@@ -190,18 +190,9 @@ Personal rule: **in-place goal + append-only journal**, not version forests (`go
 
 ---
 
-## Optional: tocodex
+## Delegation (subagents)
 
-Helm does **not** require tocodex. Use it only when a phase task is well-scoped and you deliberately delegate to Codex.
-
-1. Goal + current phase plan must exist.
-2. **Always** put execution artifacts under `docs/tocodex/<task-id>/` (task.md, report.md, logs). Do not invent a second tree under `docs/helm/.../runs/`.
-3. Codex only sees what you put in the task contract: in task.md **Context**, link the initiative `goal.md` and current phase file (repo-relative paths).
-4. Optionally note the tocodex task id in `journal.md` or the phase file for traceability.
-5. On report return, run Checkpoint before the next task.
-6. If Checkpoint says L3, revise goal **before** any new tocodex task.
-
-Helm owns intent; tocodex owns one-shot execution contracts.
+Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only — they may check off tasks in their assigned phase file only. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint).
 
 ---
 

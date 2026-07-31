@@ -132,4 +132,3 @@ skills/
 - Task records generated in target projects use `docs/tocodex/<task-id>/`.
 - Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
 - Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`). Phase status lives in the goal.md index only (`helm/REFERENCE.md` holds transition/steer mechanics).
-- Delegated helm execution still uses `docs/tocodex/<task-id>/` when tocodex is involved.

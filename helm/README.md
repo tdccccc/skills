@@ -48,7 +48,7 @@ Agent 会：
 1. 先找有没有进行中的 initiative（`docs/helm/*/goal.md` 且 `status: active`）→ 有则接着做  
 2. 没有则写薄 `goal.md`（目标 + 成功标准 + 阶段标题）  
 3. 只细写**当前** phase 的 plan  
-4. 按步骤执行（默认本会话；需要时再委托 tocodex）  
+4. 按步骤执行（默认本会话；可委托 subagent 执行某个 phase）  
 5. 不对劲时按档位改 plan 或改 goal，并记 journal  
 
 ## 产物在哪
@@ -109,13 +109,15 @@ L2/L3 时 agent 应先用一句话说明档位，再改文件。
 
 > 并行/接力：goal.md 有 `owner` 字段，一个 initiative 同时只有一个 owner。
 > 交接 = journal 记一条（结果 + 下一步）+ 改 `owner`。别和另一个 agent 同时改同一个 phase。
+> 委托出去的 subagent 不是 owner：只读 goal.md/journal，只写自己的产物；状态变更留给 owner。
 
-## 可选：和 tocodex 一起用
+## 委托 subagent
 
-默认在本会话执行。某一小块想交给 Codex 时再说「这一步用 tocodex」。
+默认在本会话执行。某一小块想交给 subagent 时，契约里写清：
 
-- 执行产物仍在 `docs/tocodex/<task-id>/`
-- task 的 Context 里应链上本次 `goal.md` 和当前 phase
+- 读什么：`goal.md`、当前 phase、最近几条 journal、有则读 `CONTEXT.md`
+- 写权限：goal/journal 只读，只允许在它负责的 phase 文件里打 ✓
+- 报告要带验收证据；「完成」由主会话 Checkpoint 判定，不是自己说了算
 - 报告回来后先对照 goal/phase，再决定是否转向
 
 ## 什么时候别用
