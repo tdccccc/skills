@@ -16,3 +16,5 @@ This means:
 Use **AskUserQuestion tool** for every question, one at a time, with 2-4 concrete multiple-choice options. If a question can be answered by exploring the codebase, explore it instead of asking.
 
 When finished, provide a concise summary of all decisions made and what documentation was created/updated.
+
+Outputs are project assets: resolved terms land in `CONTEXT.md`, hard-to-reverse decisions in `docs/adr/`. They outlive any single piece of work — `helm` consumes and maintains them during execution (language alignment on intake; event-driven updates when a steer changes term meanings or reverses decisions).

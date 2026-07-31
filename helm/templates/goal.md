@@ -2,6 +2,7 @@
 
 status: proposed
 updated: {YYYY-MM-DD}
+owner: {who drives this — session/agent id}
 
 ## Intent
 
@@ -23,14 +24,10 @@ updated: {YYYY-MM-DD}
 
 ## Phases
 
-<!-- Mirror status from phases/NN-*.md. PN ↔ filename NN. Outcomes only — no steps. -->
+<!-- Single source of truth for phase status. PN ↔ filename NN. Outcomes only — no steps. The active line is the current focus. -->
 1. P1 — {outcome only} — status: pending
 2. P2 — {outcome only} — status: pending
 3. P3 — {outcome only} — status: pending
-
-## Current focus
-
-P1
 
 ## Open questions
 

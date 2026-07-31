@@ -16,17 +16,16 @@ Default path is **in-session execution**. tocodex is optional and only for well-
 
 ```text
 docs/helm/<initiative-id>/
-  goal.md                 # Intent, success criteria, phase index (keep thin)
-  research.md             # Optional dirty notes from intake
-  journal.md              # Append-only steer / decision log (create on first entry)
+  goal.md                 # Intent, success criteria, phase index — the ONLY status holder
+  research.md             # Optional disposable intake notes (decisions belong in journal, not here)
+  journal.md              # Append-only steer / handoff / decision log (create on first entry)
   phases/
-    01-<slug>.md          # Detailed plan for one phase
-    02-<slug>.md
+    01-<slug>.md          # Detail for one phase: outcome, approach, tasks, verification
 ```
 
 `<initiative-id>`: `YYYY-MM-DD-short-english-slug` (lowercase kebab-case, no spaces).
 
-**Phase numbering:** filename `NN-<slug>.md` ↔ title `PN` ↔ goal.md phase line `PN`. Keep them aligned (e.g. `01-auth-api.md` = P1).
+**Phase numbering:** filename `NN-<slug>.md` ↔ title `PN` ↔ goal.md index line `PN`. Keep them aligned (e.g. `01-auth-api.md` = P1). A superseded slot redone under a new approach uses `01-b-<slug>.md`.
 
 Create files lazily. Do not pre-create every phase file.
 
@@ -38,7 +37,7 @@ Templates live next to this `SKILL.md`:
 - `templates/phase.md`
 - `templates/journal-entry.md`
 
-Resolve paths relative to **this skill’s install directory** (the directory containing this `SKILL.md`, e.g. `~/.claude/skills/helm/` after install). If templates are unreadable, use the field lists in this skill as fallback — do not invent a parallel scheme.
+Resolve paths relative to **this skill’s install directory** (the directory containing this `SKILL.md`). If templates are unreadable, use the field lists in this skill as fallback — do not invent a parallel scheme.
 
 ---
 
@@ -47,9 +46,11 @@ Resolve paths relative to **this skill’s install directory** (the directory co
 Before creating a new initiative:
 
 1. Scan `docs/helm/*/goal.md` for `status: active` (or a still-open `proposed` the user is clearly continuing).
-2. If one matches the user’s request, **resume it**: read `goal.md`, the current phase file, and recent `journal.md` entries.
+2. If one matches the user’s request, **resume it**: read goal.md, the current phase file (the `active` index line, if any), and recent journal.md entries (last ~5 unless hunting a specific decision).
 3. Restate **current focus** and **next concrete step**, then continue (plan / execute / steer).
 4. Only create a new `<initiative-id>` when this is genuinely new work, or the user asks for a fresh initiative.
+
+**Concurrency check:** if goal.md `owner` names a different session/agent than you, read the journal first — if the latest entry is a handoff or the work has clearly paused, take over and update `owner`; if another agent appears mid-phase, do not edit anything; tell the user.
 
 ---
 
@@ -58,12 +59,16 @@ Before creating a new initiative:
 ```
 Resume? → Intake → Frame goal.md → Plan current phase only → Execute → Checkpoint
                        ↑                                           │
-                       └──────── Steer L1 / L2 / L3 ←──────────────┘
+                       └────────── Steer L1 / L2 / L3 ←────────────┘
 ```
 
 ### 0. Intake
 
 Clarify enough to write a goal. Explore the repo when facts live in code. Optional: dump raw notes into `research.md` (disposable; promote only what belongs into goal fields).
+
+**Language alignment:** read the project's root `CONTEXT.md` (or `CONTEXT-MAP.md`) before framing — essential when starting a new project or taking over an unfamiliar one. Use its vocabulary in goal.md; on conflict, resolve the term before the goal. When intake pins a new term, write it back to CONTEXT.md (create lazily if missing; format per `domain-modeling`) — the goal inherits the project's language, it does not define it.
+
+**Design gate:** if the goal or big framework isn't settled — or the user wants the design stress-tested — run `grill-with-docs` first (design phase); its outputs (CONTEXT.md, docs/adr/) are the project assets helm consumes. Helm starts once the direction is locked. A mid-execution “grill me” means: pause, grill the current plan, land conclusions in the phase file / journal, then resume.
 
 Skip formal intake when the work is already well-scoped; go to Frame or Resume.
 
@@ -75,11 +80,10 @@ Copy from `templates/goal.md`. Keep it **thin**:
 - Success criteria (checkable)
 - Non-goals
 - Constraints (hard limits)
-- Phase index: **outcomes only**, no steps
-- Current focus (`PN`)
+- Phase index: **outcomes only**, no steps — each line carries its `status`
 - Open questions (optional; resolve by editing goal/phase and removing the item)
 
-Phases in goal.md are titles + outcomes + **mirrored** status. Detailed steps never belong here.
+Phases in goal.md are titles + outcomes + **status**. Detailed steps never belong here.
 
 After writing, briefly confirm with the user if the initiative is large or irreversible. For small personal work, writing `goal.md` and setting `status: active` is enough.
 
@@ -89,11 +93,12 @@ Create or update `phases/NN-<slug>.md` from `templates/phase.md`.
 
 Rules:
 
-- **Only detail the current focus phase.** Later phases stay as titles in goal.md until activated.
-- One phase = one checkable outcome, small enough to discard or rework without grief.
+- **Only detail the current focus phase.** Later phases stay as index lines in goal.md until activated.
+- One phase = one checkable outcome, small enough to discard or rework without grief (hours, not weeks).
 - Include **Assumptions** and **Abort / reshape triggers**.
 - Prefer ≤ 7 concrete tasks. If more, split phases.
-- When the phase becomes the working phase, run **Phase start** (below) so goal index and phase file stay in sync.
+- A bad phase: “implement the whole feature + tests + docs + refactor.”
+- When the phase becomes the working phase, mark its index line `active` (see REFERENCE.md).
 
 ### 3. Execute
 
@@ -124,7 +129,9 @@ Silently classify, then act:
 
 ---
 
-## Status lifecycle
+## Status & concurrency
+
+**Status lives in goal.md only.** The phase index line’s `status` is the single source of truth; phase files carry **no status field**. The single `active` line IS the current focus — there is no separate field to keep in sync.
 
 **goal.md `status`:**
 
@@ -135,93 +142,29 @@ Silently classify, then act:
 | `done` | Success criteria met or waived |
 | `abandoned` | Stopped on purpose |
 
-**Do not leave goal status stuck on a steer event.** L3 is recorded in `journal.md`. After revising the goal and resuming work, goal status is **`active`** again (unless closing as done/abandoned).
+**Phase `status` values (in the goal.md index only):** `pending` | `active` | `done` | `blocked` | `superseded`. Never two `active` lines. After an L3 revision the goal is `active` again (unless closing); history stays in journal.md — no `status: steered` field.
 
-Optional one-line note under Intent or in journal is enough history; no `status: steered` field.
+**Parallel agents:**
 
-**phase `status`:** `pending` | `active` | `done` | `blocked` | `superseded`
-
-**Dual status rule:** the phase file is authoritative for detail; the goal.md phase index **mirrors** the same status for that `PN`. **Whenever phase status or current focus changes, update both files in the same edit turn.**
-
-Only one phase should be `active` at a time.
-
----
-
-## Phase transitions
-
-Apply these whenever focus moves. Always sync **goal.md** (Phases list + Current focus + `updated`) **and** the phase file.
-
-### Start phase `PN`
-
-1. Ensure `phases/NN-<slug>.md` exists (create from template if needed).
-2. Set that phase file `status: active`.
-3. Set goal index line for `PN` to `active`; set **Current focus** to `PN`.
-4. Any previously `active` phase → `done` (if completed) or leave `blocked`/`pending` as appropriate — never two `active`.
-
-### Complete phase `PN`
-
-1. Phase file → `status: done`; goal index → `done`.
-2. Choose next phase (or Close if none).
-3. If next exists → **Start** it (or leave next `pending` and set Current focus only if user pauses).
-
-### Block phase `PN`
-
-1. External dependency or wait → phase + goal index `blocked`.
-2. Journal one line: what blocks it.
-3. Either switch Current focus to another phase, or pause the initiative.
-
-### Supersede phase `PN`
-
-1. Phase file → `status: superseded` (keep the file).
-2. Goal index → `superseded` (or replace that slot with a new `PN` outcome if re-cutting the roadmap).
-3. Add a new phase file when the replacement path needs its own plan (`02-…` or `01-b-…` if redoing the same slot’s intent under a new approach). Prefer **new file + superseded old** when outcome or approach failed; in-place rewrite only for small corrections that keep the same outcome (L1-scale).
+- One `owner` per initiative (a session/agent id) in goal.md. Only the owner edits goal.md / phase files.
+- Different phases may run in parallel under different owners; **the same phase is never double-written**.
+- Handoff = one journal entry (result + next step) + `owner` change, in the same edit turn.
+- Keep goal.md edits small and directional (a status or owner line) — never full rewrites.
+- `updated:` on goal.md and phase files is the staleness signal when a new session resumes.
 
 ---
 
-## Steer protocol
+## Steer
 
-When execution disappoints or priorities shift, **classify before rewriting everything**.
+When execution disappoints or priorities shift, **classify before rewriting everything**. The mechanical steps for transitions and each level live in **`REFERENCE.md`** — read it before executing them.
 
-### L1 — Adjust (local)
+**L1 — Adjust (local):** steps, APIs, file choices, or ordering are wrong; phase outcome and goal still hold. Edit the phase plan in place, keep executing.
 
-**Signal:** steps, APIs, file choices, or ordering are wrong; phase outcome and goal still hold.
+**L2 — Reshape (path):** phase outcome is wrong or the approach failed, but Intent + Success criteria still hold. Tell the user `L2 reshape — <one line why>`, stop digging, re-plan.
 
-**Do:**
+**L3 — Steer (destination):** success criteria, non-goals, or core intent no longer match reality. Tell the user `L3 steer — <one line why>`, **freeze** feature work, revise goal.md in place, re-phase, journal evidence, resume.
 
-1. Edit the current phase plan tasks / approach in place (same outcome).
-2. On first journal-worthy event, create `journal.md` if missing; append from `templates/journal-entry.md` (optional one-liner for tiny L1).
-3. Continue executing.
-
-### L2 — Reshape (path)
-
-**Signal:** phase outcome is wrong or the approach failed, but Intent + Success criteria still hold.
-
-**Do:**
-
-1. Tell the user: `L2 reshape — <one line why>`.
-2. Stop digging the same hole.
-3. Mark the failed phase **superseded** (default). In-place rewrite only if the outcome stays the same and the plan was merely messy.
-4. Update goal.md phase index outcomes/order if the roadmap changes; keep Intent/Success stable.
-5. **Start** the new current phase plan.
-6. Append journal: evidence → path change → next focus.
-7. Resume from the new current focus only.
-
-### L3 — Steer (destination)
-
-**Signal:** success criteria, non-goals, or core intent no longer match reality / user desire.
-
-**Do:**
-
-1. Tell the user: `L3 steer — <one line why>`.
-2. **Freeze** — no more feature work until goal is revised.
-3. Create `journal.md` if needed; capture evidence (what we learned; links to reports/logs).
-4. **Revise `goal.md` in place** — Intent / Success / Non-goals / Constraints / Phases. Set `status: active` (or `proposed` if user wants to re-confirm), bump `updated`.
-5. **Re-phase from reality** — keep still-valuable `done` work; supersede dead phases; set a new Current focus.
-6. **Dispose code** — journal what to keep vs discard/revert.
-7. Write/start a fresh plan for the new current phase.
-8. Resume execution.
-
-Personal rule: **in-place goal + append-only journal**, not version forests (`goal-v2.md`), unless the user asks for snapshots.
+**Asset maintenance:** steering changes only what must change. L1 never touches CONTEXT.md or ADRs; L2 touches them only if the failure exposed a terminology error or reversed a decision. L3: if the new direction changes a term's meaning or reverses a decision, update CONTEXT.md / supersede the ADR in the same edit turn (format per `domain-modeling`) and link the changes from the journal entry.
 
 ### Decision tree
 
@@ -236,25 +179,14 @@ Something feels wrong
   → L2/L3: say the classification to the user before editing files.
 ```
 
-Never “finish the wrong plan first.” Wrong goal work compounds.
+Never “finish the wrong plan first.” Wrong-goal work compounds.
+
+Personal rule: **in-place goal + append-only journal**, not version forests (`goal-v2.md`), unless the user asks for snapshots.
 
 ### Journal bootstrap
 
 - Create `journal.md` on the first L2, L3, abandonment, success-criteria waiver, or any decision you would regret losing.
 - Each entry: copy structure from `templates/journal-entry.md` and append (never rewrite old entries).
-
----
-
-## Phase sizing
-
-A good phase:
-
-- States one outcome in one sentence
-- Has verification you can actually run or inspect
-- Is cheap enough to throw away (rough guide: hours, not weeks)
-- Names abort triggers for its riskiest assumptions
-
-A bad phase: “implement the whole feature + tests + docs + refactor.”
 
 ---
 
@@ -286,23 +218,21 @@ Helm owns intent; tocodex owns one-shot execution contracts.
 
 ```text
 docs/helm/2026-07-18-billing-webhooks/
-  goal.md          # Intent: reliable Stripe webhooks; Success: retry + idempotency checks
+  goal.md          # Intent: reliable Stripe webhooks; owner: sess-abc
   phases/
-    01-verify-stubs.md   # P1 active — prove event types against current API
+    01-verify-stubs.md   # detail for P1 only — no status field
   journal.md       # (after L2) superseded pure-mock approach; next P1b contract tests
 ```
 
-goal phase line: `1. P1 — verify webhook stubs against live event types — status: active`  
-phase file: `01-verify-stubs.md` with `status: active` and matching Outcome.
+goal index line: `1. P1 — verify webhook stubs against live event types — status: active`
 
 ---
 
 ## Agent habits
 
 - Prefer editing existing helm files over inventing new doc schemes.
-- Resume active initiatives before creating new ones.
-- When changing phase status or focus, update **goal.md and phase file together**.
+- Resume active initiatives before creating new ones; check `owner` before editing.
+- Status changes touch **only** the goal.md index line — never invent parallel state fields.
 - After any L2/L3, restate **current focus** and **next concrete step** to the user.
 - Do not expand goal.md into a novel; push detail into the active phase plan.
-- Do not write detailed plans for future phases “just in case.”
 - When the user changes their mind mid-flight, classify L1/L2/L3 and update files — don’t only agree in chat.

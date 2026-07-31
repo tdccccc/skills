@@ -57,11 +57,11 @@ Agent 会：
 
 ```text
 docs/helm/<initiative-id>/
-  goal.md           # 要什么、怎样算成、阶段索引（保持薄）
-  journal.md        # 转向/弃坑时追加（可懒创建）
-  research.md       # 可选草稿笔记
+  goal.md           # 要什么、怎样算成、阶段索引与状态（保持薄，状态唯一在这）
+  journal.md        # 转向/弃坑/交接时追加（可懒创建）
+  research.md       # 可选草稿笔记（决策记 journal，不记这）
   phases/
-    01-<slug>.md    # 当前阶段怎么做
+    01-<slug>.md    # 当前阶段怎么做（不含状态）
     02-<slug>.md
 ```
 
@@ -69,11 +69,19 @@ docs/helm/<initiative-id>/
 
 | 文件 | 写什么 | 别写什么 |
 |------|--------|----------|
-| `goal.md` | Intent、成功标准、Non-goals、阶段**标题** | 逐步实现细节 |
-| `phases/NN-*.md` | 当前步骤、验收、何时该停 | 所有未来阶段的长 plan |
-| `journal.md` | 为什么改了目标/路径 | 日常流水账（可选） |
+| `goal.md` | Intent、成功标准、Non-goals、阶段标题与**状态**、owner | 逐步实现细节 |
+| `phases/NN-*.md` | 当前步骤、验收、何时该停 | 所有未来阶段的长 plan、状态字段 |
+| `journal.md` | 为什么改了目标/路径、交接记录 | 日常流水账（可选） |
 
 一次只维护**一个** active phase；后面的阶段在 goal 里留标题即可。
+
+## 开工前：对齐语言
+
+开新项目或接手已有项目时，agent 会先看项目根有没有 `CONTEXT.md`（或 `CONTEXT-MAP.md`）：
+
+- 有 → 用它的词汇写 goal，术语冲突先澄清再定目标
+- 没有 → 首个术语定型时懒创建一个
+- 新术语写回 `CONTEXT.md`，不塞进 goal.md（goal 继承项目的语言，不定义语言）
 
 ## 中途改方向
 
@@ -98,6 +106,9 @@ L2/L3 时 agent 应先用一句话说明档位，再改文件。
 ```
 
 应 **resume** 已有 initiative，而不是默认新建一个。
+
+> 并行/接力：goal.md 有 `owner` 字段，一个 initiative 同时只有一个 owner。
+> 交接 = journal 记一条（结果 + 下一步）+ 改 `owner`。别和另一个 agent 同时改同一个 phase。
 
 ## 可选：和 tocodex 一起用
 

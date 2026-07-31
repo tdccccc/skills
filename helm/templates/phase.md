@@ -1,8 +1,9 @@
 # P{N} — {slug}
 
 <!-- Filename must be NN-<slug>.md with NN = N (e.g. P1 → 01-auth.md). -->
+<!-- Status lives in goal.md's phase index, not here. -->
 goal_ref: ../goal.md
-status: pending
+updated: {YYYY-MM-DD}
 
 ## Outcome
 

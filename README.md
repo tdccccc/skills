@@ -78,7 +78,7 @@ The install target for each skill is shown in parentheses.
 
 - `helm/` (claude) personal intent workflow: lock a goal, plan one phase at a time, execute with checkpoints, and steer when plan or goal must change.
 - `tocodex/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
-- `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved.
+- `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
 - `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
 - `domain-modeling/` (claude) builds and sharpens a project's domain model, terminology, and ADRs. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
 - `security-audit/` (claude) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
@@ -96,6 +96,7 @@ skills/
   install.sh
   helm/
     SKILL.md
+    REFERENCE.md
     README.md
     templates/
       goal.md
@@ -126,8 +127,9 @@ skills/
 - Each skill directory contains one `SKILL.md`.
 - A skill's `SKILL.md` frontmatter may set `install-targets:` to `claude`, `codex`, or `both` to control where it installs; omitting it defaults to `both`.
 - Imported third-party skills may keep their upstream `LICENSE` and `README.md`.
+- Adapted third-party skills carry a `source:` frontmatter field pointing at the upstream repo.
 - Each skill is self-contained: all files it needs live inside its own directory so it installs as a single unit.
 - Task records generated in target projects use `docs/tocodex/<task-id>/`.
 - Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
-- Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`).
+- Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`). Phase status lives in the goal.md index only (`helm/REFERENCE.md` holds transition/steer mechanics).
 - Delegated helm execution still uses `docs/tocodex/<task-id>/` when tocodex is involved.
