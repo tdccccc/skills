@@ -36,6 +36,7 @@ Templates live next to this `SKILL.md`:
 - `templates/goal.md`
 - `templates/phase.md`
 - `templates/journal-entry.md`
+- `templates/intake-prompt.md` — copy-paste delegation prompt for read-only intake recon (a prompt template, not a doc template)
 
 Resolve paths relative to **this skill’s install directory** (the directory containing this `SKILL.md`). If templates are unreadable, use the field lists in this skill as fallback — do not invent a parallel scheme.
 
@@ -45,7 +46,7 @@ Resolve paths relative to **this skill’s install directory** (the directory co
 
 Before creating a new initiative:
 
-1. Scan `docs/helm/*/goal.md` for `status: active` (or a still-open `proposed` the user is clearly continuing).
+1. **Scan status lines first, not whole files**: `grep -H "^status:" docs/helm/*/goal.md` (or list the dirs and read the status line only). Full-read only candidates: `status: active`, or a still-open `proposed` the user is clearly continuing. If nothing is active/proposed, stop scanning — no need to read every goal.md to confirm.
 2. If one matches the user’s request, **resume it**: read goal.md, the current phase file (the `active` index line, if any), and recent journal.md entries (last ~5 unless hunting a specific decision).
 3. Restate **current focus** and **next concrete step**, then continue (plan / execute / steer).
 4. Only create a new `<initiative-id>` when this is genuinely new work, or the user asks for a fresh initiative.
@@ -193,6 +194,8 @@ Personal rule: **in-place goal + append-only journal**, not version forests (`go
 ## Delegation (subagents)
 
 Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only — they may check off tasks in their assigned phase file only. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint).
+
+**Intake recon (read-only research):** when intake needs heavy repo exploration, delegate it instead of reading everything in-session. Compose the contract from `templates/intake-prompt.md`. Key rules: status lines via grep before full goal.md reads; code verification scoped to what the near-term phase will plausibly touch (file:line only for a few anchor points); unknown answers are valid output; report comes back concise — the main session may dump it into `research.md` for reuse when planning.
 
 ---
 

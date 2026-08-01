@@ -120,6 +120,8 @@ L2/L3 时 agent 应先用一句话说明档位，再改文件。
 - 报告要带验收证据；「完成」由主会话 Checkpoint 判定，不是自己说了算
 - 报告回来后先对照 goal/phase，再决定是否转向
 
+> 做只读调研（intake recon）时，用模板 `templates/intake-prompt.md`（同安装目录）组织委托契约：先 grep status 行再决定读哪些 goal.md、代码核验只限近期 phase 会碰到的模块、报告控制在 ~20 行。主会话把报告要点存进 `research.md` 供写 plan 复用。
+
 ## 什么时候别用
 
 - 改一行、修个显而易见的小 bug  
