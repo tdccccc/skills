@@ -14,9 +14,13 @@ Status edits happen in the **goal.md phase index only** (single source of truth)
 
 ### Complete phase `PN`
 
-1. Index line `PN` → `done`.
-2. Choose next phase (or Close if none).
-3. If next exists → **Start** it (or leave it `pending` and pause if the user stops here).
+1. Confirm every accepted meaningful chunk in `PN` has completed its enabled technical-report handoff with `updated` or `no-impact`.
+2. If any handoff is `blocked`, surface and resolve it before transition; Helm does not edit the report or convert the result mechanically into phase `status: blocked`.
+3. Index line `PN` → `done`.
+4. Choose next phase (or Close if none).
+5. If next exists → **Start** it (or leave it `pending` and pause if the user stops here).
+
+Do not run another whole-report sweep merely because the phase is ending when no new accepted diff exists. Do not add report state to goal.md or the phase file. If a reporting blocker causes a cross-session pause, record the blocker and next step with the existing journal mechanics.
 
 ### Block phase `PN`
 
@@ -57,6 +61,21 @@ Status edits happen in the **goal.md phase index only** (single source of truth)
 6. **Dispose code** — journal what to keep vs discard/revert.
 7. Write/start a fresh plan for the new active phase.
 8. Resume execution.
+
+## Technical-report handoff mechanics
+
+Run this only after the owner has accepted an isolated meaningful implementation chunk at Checkpoint and only when technical-report maintenance is enabled.
+
+1. Assemble the accepted scope and exclusions.
+2. Isolate its diff or exact changed paths from unrelated working-tree changes.
+3. Include verification commands / checks, observed results, and skipped verification.
+4. Include the goal intent, active phase outcome, constraints, and the chunk's role; for L2/L3, include the final keep/discard/revert disposition.
+5. Invoke `technical-report` without proposing an impact verdict, target wording, or affected sections.
+6. Consume one result:
+   - `updated` or `no-impact` → handoff complete; owner may check off the chunk;
+   - `blocked` → surface the blocker and retry after resolution; leave the chunk incomplete.
+
+The input locates current implementation; it is not report content. The specialized skill owns implementation investigation, impact assessment, and report edits. It does not own Helm goal, journal, task, or status transitions.
 
 ## Handoff (parallel agents)
 

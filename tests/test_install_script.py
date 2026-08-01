@@ -32,6 +32,7 @@ class InstallScriptTests(unittest.TestCase):
         # Skills whose install-targets include claude (current repo set).
         for skill_name in [
             "helm",
+            "technical-report",
             "tocodex",
             "grill-me",
             "grill-with-docs",
@@ -50,12 +51,23 @@ class InstallScriptTests(unittest.TestCase):
         self.assertFalse((skills_dir / "shared").exists())
         self.assertFalse((skills_dir / "tools").exists())
 
-        # helm ships templates; tocodex is SKILL-only (task.md generated at runtime).
-        for template_name in ("goal.md", "phase.md", "journal-entry.md"):
+        # Self-contained supporting files install with their skills.
+        for template_name in (
+            "goal.md",
+            "phase.md",
+            "journal-entry.md",
+            "intake-prompt.md",
+        ):
             self.assertTrue(
                 (skills_dir / "helm" / "templates" / template_name).is_file(),
                 msg=f"missing helm template: {template_name}",
             )
+
+        technical_report = skills_dir / "technical-report"
+        self.assertTrue((technical_report / "REFERENCE.md").is_file())
+        self.assertTrue(
+            (technical_report / "templates" / "technical-report.md").is_file()
+        )
         self.assertTrue((skills_dir / "tocodex" / "SKILL.md").is_file())
 
     def test_installs_to_claude_code_by_default(self):

@@ -65,7 +65,7 @@ ls -d ~/.claude/skills/*/
 
 # Delete the ones belonging to this repository
 rm -rf ~/.claude/skills/helm \
-       ~/.claude/skills/tocodex \
+       ~/.claude/skills/tocodex ~/.claude/skills/technical-report \
        ~/.claude/skills/grill-me ~/.claude/skills/grill-with-docs \
        ~/.claude/skills/domain-modeling ~/.claude/skills/security-audit
 ```
@@ -77,6 +77,7 @@ Restart Claude Code to drop the removed skills.
 The install target for each skill is shown in parentheses.
 
 - `helm/` (claude) personal intent workflow: lock a goal, plan one phase at a time, execute with checkpoints, and steer when plan or goal must change.
+- `technical-report/` (claude) creates, updates, and audits a code-evidenced report of a repository's current technical implementation.
 - `tocodex/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
 - `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
 - `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
@@ -102,6 +103,12 @@ skills/
       goal.md
       phase.md
       journal-entry.md
+      intake-prompt.md
+  technical-report/
+    SKILL.md
+    REFERENCE.md
+    templates/
+      technical-report.md
   tocodex/
     SKILL.md
     README.md
@@ -132,3 +139,4 @@ skills/
 - Task records generated in target projects use `docs/tocodex/<task-id>/`.
 - Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
 - Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`). Phase status lives in the goal.md index only (`helm/REFERENCE.md` holds transition/steer mechanics).
+- Technical reports default to `docs/technical-report.md` in target projects. They describe verified current implementation and are reconciled in place; change history, rationale, prompts, plans, and execution logs belong elsewhere.
