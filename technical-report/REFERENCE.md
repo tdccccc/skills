@@ -14,6 +14,20 @@ Do not call repository state “deployed” or “production” unless deploymen
 
 ## Evidence hierarchy
 
+### Capability proof levels
+
+Classify each material capability privately before choosing report wording. These levels express increasing claim strength, but `Configurable` is an optional affordance rather than a prerequisite: hard-coded composition can select and invoke an implementation without exposing a configuration choice.
+
+1. **Declared** — a dependency, symbol, interface, helper, schema, flag, or provider exists. This proves availability only.
+2. **Configurable** — a manifest, configuration key, environment resolver, command option, or API shape can express the capability. This proves configurability only.
+3. **Selected** — the chosen baseline's executable configuration or composition root registers or directly constructs that implementation.
+4. **Invoked** — a real production entry reaches the selected concrete caller and callee with the actual arguments, producing state, output, or an external effect. This is the minimum level for claiming current active behavior.
+5. **Externally active** — deployment or environment evidence establishes that the selected behavior is enabled in the named external environment.
+
+A report claim cannot exceed its proved level. Tests may support a level but cannot by themselves promote `Declared` to `Invoked`. Repository code that reaches `Invoked` does not prove `Externally active`; describe repository-configured behavior unless deployment evidence establishes more.
+
+Do not print proof-level labels in the report. Use them to calibrate natural current-state wording. Omit ordinary `Declared` / `Configurable` alternatives that the selected path does not use. Mention one in operation evidence only when it directly supports a correction, scoped `no-impact`, or blocker; otherwise omit it there too. Include non-use in the report only when it materially defines current behavior, such as a caller selecting an incompatible or rejected contract.
+
 ### 1. Production source and runtime wiring
 
 Prefer the concrete implementation that executes:
@@ -25,7 +39,18 @@ Prefer the concrete implementation that executes:
 - persistence, state management, caching, messaging, and external clients;
 - authentication, authorization, validation, error handling, retries, and recovery.
 
-Trace behavior through wiring to the concrete implementation. A type, interface, unused module, or dependency declaration alone does not prove that behavior is active.
+Trace behavior through the full active production loop:
+
+```text
+executable entry
+→ registration / composition
+→ selected configuration or provider
+→ concrete caller with actual arguments
+→ concrete callee / host adapter
+→ state, output, or external effect
+```
+
+A type, interface, unused module, helper, request flag, environment-variable resolver, provider, test, or dependency declaration alone does not prove that behavior is active. Registration without a reachable production entry proves `Selected`, not `Invoked`.
 
 ### 2. Executable configuration
 
@@ -57,14 +82,18 @@ User prompts, plans, change summaries, diffs, and execution reports are scope si
 
 For `init` and `audit`, inspect enough of the repository to identify:
 
-1. languages, runtimes, workspaces, and package boundaries;
-2. executable entry points and exposed interfaces;
-3. module/service boundaries and dependency direction;
-4. primary runtime flows;
-5. data ownership, persistence, state, and migrations;
-6. external integrations and executable configuration;
-7. cross-cutting mechanisms important to correctness, security, reliability, performance, or operations;
-8. build, test, packaging, deployment, and observability surfaces actually present.
+1. languages, runtimes, workspaces, independent packages, and package boundaries;
+2. deployable units, startup commands, executable entries, and composition roots;
+3. module/service boundaries, dependency direction, and exposed interfaces;
+4. process, thread, worker, host, replica, and service boundaries where applicable;
+5. object/module lifetimes and process-local, host-local, or shared state;
+6. primary synchronous, asynchronous, queued, batched, buffered, and external runtime flows;
+7. data ownership, persistence, state, and migrations;
+8. external integrations and executable configuration;
+9. cross-cutting mechanisms important to correctness, security, reliability, performance, or operations;
+10. build, test, packaging, deployment, and observability surfaces actually present.
+
+Do not infer the whole repository from its root manifest, primary workspace, or dominant language. Discover independent services, extensions, workers, plugins, compatibility shims, and separately built packages. A sample deployment definition proves repository-supported configuration, not the topology of an external environment unless the selected baseline establishes it. A worker-count, concurrency, mode, or provider environment variable proves configuration intent only until a startup/composition path reads it and constructs the corresponding runtime behavior; do not multiply replicas by an unconsumed worker-count variable and call the result a process topology.
 
 Do not turn a dependency inventory into the report. Record important technology only when its project responsibility is verified.
 
@@ -72,18 +101,55 @@ Do not turn a dependency inventory into the report. Record important technology 
 
 For `update`, use the accepted change scope and diff to start, then inspect the current implementation beyond the changed lines:
 
-1. find the entry or registration point;
-2. follow configuration and provider selection;
-3. identify the concrete implementation;
-4. follow important callers, downstream effects, and data/state changes;
-5. inspect related schema, migration, deployment, and test surfaces;
-6. identify report statements elsewhere whose meaning now depends on this area.
+1. find the real executable entry, not a test-only caller;
+2. follow registration / composition and baseline-selected configuration or provider;
+3. follow the concrete caller with its actual arguments into the concrete callee or host adapter;
+4. verify the resulting output, state transition, persistence, or external effect;
+5. inspect alternate entries/providers, disabled flags, rejection branches, fallback, bypass, and degraded paths;
+6. for cross-component behavior, verify the exact contract produced and accepted on both sides;
+7. inspect related schema, migration, deployment, and test surfaces;
+8. identify report statements elsewhere whose meaning now depends on this area.
 
-The final text describes this resulting system, not the steps above and not the delta from the previous system.
+The final text describes this resulting system, not the steps above and not the delta from the previous system. A directly tested helper is still only `Declared` unless a production entry reaches it.
+
+### Verify both sides of cross-component contracts
+
+For integrations between separately parsed, versioned, deployed, or persisted components, inspect both producer/caller and consumer/callee:
+
+- CLI command, argument order, flags, defaults, exit codes, stdout, and stderr versus the invoked parser;
+- client method, path, headers, query, payload, defaults, and status/error mapping versus the server route and schema;
+- producer serialization, framing, key shape, and version versus consumer deserialization and compatibility handling;
+- file writer versus reader; cache-key producer versus lookup; plugin/extension bridge versus host entry;
+- timeout, retry, cancellation, and fallback behavior on both sides.
+
+The caller's intent does not prove the callee accepts the exact command, flags, payload, schema, or key it emits. The callee's capability does not prove the caller selects or invokes it. Describe a current incompatibility or rejected path neutrally when it materially affects how the system works; do not narrate how it became incompatible.
+
+### Apply semantic proof gates and seek counter-evidence
+
+Strong semantics require `Invoked` wiring plus evidence for the guarantee itself. Before writing them, inspect both supportive and narrowing evidence:
+
+- **Streaming / incremental processing:** verify producer and consumer behavior, framing, buffering, batching, materialization, backpressure, and whether timers cover network reads or only post-buffer parsing. A stream request flag or streaming response type alone does not prove end-to-end streaming.
+- **Atomic / transactional / race-free / quota:** inspect the actual read/write primitive, transaction or lock key, non-atomic read-modify-write sequences, shared-store semantics, and process / worker / replica scope. A process-local lock or shared KV alone does not prove deployment-wide atomicity.
+- **Idempotent / exactly-once / ordered:** inspect key derivation, reservation/commit windows, retries, partial failures, duplicate side effects, and expiry/fallback behavior.
+- **Timeout / cancellation:** locate the timer, identify the operation it surrounds, and prove whether abort propagates to concrete I/O or merely stops the caller waiting.
+- **Secrets / secure storage / authentication coverage:** trace source, precedence, persistence, actual caller arguments, transport, log redaction, route/command coverage, bypasses, and fail-open/fail-closed behavior. A secret-provider abstraction does not prove secure persistence or use.
+- **Global / all / always / never / compatible / supported:** inspect every relevant entry and alternate path, then state the smallest proven scope.
+- **Production / deployed / externally active:** require external deployment evidence; otherwise describe repository-configured behavior.
+
+For every material claim, actively look for the nearest rejection branch, unsupported command/flag, alternate provider, disabled feature, bypass, fallback, degraded mode, exception swallowing, retry exhaustion, buffering/materialization, process-local state, or non-atomic operation that could falsify or narrow it.
+
+If proof is insufficient, narrow the wording to the exact behavior and scope proved, or omit the claim. If the unproved semantic is central to the requested report, return `blocked`. A current defect or degraded path is current implementation truth and may be stated neutrally; it is not change history.
 
 ### Build a private evidence map
 
-Before editing, privately map each material statement to narrow implementation evidence. Use that map to avoid speculation and to identify stale text. Do not save the map as an audit log, research note, or change appendix in the target project.
+Before editing, privately map each material statement to:
+
+- narrow implementation evidence and its capability proof level;
+- the exact instance/request/key/process/worker/replica/service/environment scope;
+- producer and consumer evidence for cross-component claims;
+- the nearest counter-evidence or narrowing path checked.
+
+Use that map to avoid speculation and to identify stale text. Do not save the map as an audit log, research note, or change appendix in the target project.
 
 In the report, use project-relative implementation anchors when they materially help a maintainer verify or navigate the explanation:
 
@@ -145,6 +211,17 @@ When reality changes:
 - preserve accurate unrelated content;
 - do not retain the old account for comparison.
 
+Use **one fact, one canonical home**:
+
+- overview: compact system shape only;
+- runtime / technology / framework section: technology responsibility, not full flows;
+- architecture: boundaries and dependency direction;
+- runtime flows: step-by-step execution;
+- key mechanisms: non-obvious internal behavior;
+- security / failure: cross-cutting guarantees, limits, and failure boundaries.
+
+Explain a mechanism in detail once. Elsewhere state only the section-specific consequence or use a short reference. During update/audit, search for and remove stale or duplicated versions scattered across sections.
+
 Do not add a note saying that text was updated, corrected, migrated, or superseded.
 
 ### Keep explanation proportional
@@ -159,15 +236,30 @@ Explain details that a maintainer needs to understand the system:
 
 Avoid exhaustive file lists, dependency dumps, routine helper internals, and facts obvious from a single conventional declaration unless they clarify the system.
 
+### Calibrate claim scope
+
+State the smallest runtime boundary the evidence proves: instance; request or job; key or tenant; process or worker; host or replica; service; deployment; environment.
+
+Do not turn a verified local boundary into a repository-wide guarantee:
+
+- a process-local or per-key lock does not prove cross-worker atomicity;
+- shared storage does not by itself prove transactional quota enforcement;
+- one middleware, route group, adapter, or entry does not prove all requests or all I/O use it;
+- a streaming flag does not prove end-to-end incremental delivery;
+- one package or root workspace does not define every component's language or runtime.
+
+Avoid `all`, `every`, `always`, `never`, `global`, `fully`, `strict`, `end-to-end`, `supported`, and `compatible` unless all relevant entries, alternate paths, and topology boundaries were checked. Qualify the component, key, process, host, service, or environment instead.
+
 ## Mode mechanics
 
 ### `init`
 
 1. Resolve the report path and confirm no established report should be preserved elsewhere.
-2. Establish the system shape.
-3. Copy `templates/technical-report.md` as a structural starting point.
-4. Write only verified, applicable sections; delete instructions and empty headings.
-5. Check that the opening overview is compact enough for selective intake reading.
+2. Establish the full repository/runtime topology before generalizing from any primary package.
+3. Close active wiring for the material runtime flows and apply semantic proof gates.
+4. Copy `templates/technical-report.md` as a structural starting point.
+5. Write only verified, applicable sections; delete instructions and empty headings.
+6. Check that the opening overview is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
 
 If a report already exists, follow `audit` instead.
 
@@ -196,13 +288,20 @@ Before finishing, confirm that:
 - each material technical statement is supported by production source or executable configuration;
 - tests are not the sole support for a production behavior claim;
 - the report does not rely on README, docs, ADR, Helm, comments, prompts, or plans as implementation proof;
+- active claims close the production loop from executable entry through selected wiring and actual arguments to effect;
+- cross-component claims verify both producer/caller and consumer/callee contracts;
+- strong semantics pass their data, concurrency, topology, and counter-evidence gates;
+- fallback, bypass, rejection, buffering, and degraded paths that narrow claims were checked;
+- claim quantifiers match the proved instance/process/worker/replica/service/environment scope;
 - dependencies described as active have verified wiring and responsibility;
 - removed modules, stale interfaces, obsolete configuration, and broken anchors are absent;
+- each mechanism has one canonical detailed explanation and the overview stays compact;
 - the report contains no before/after story or “this change” narrative;
 - rationale and decision trade-offs are absent;
 - prompts, requirements, phases, checkpoints, task progress, command output, and test-run results are absent;
 - changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
-- the overview remains concise and no empty template sections remain.
+- non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
+- no empty template sections remain.
 
 ## Blocking rule
 
@@ -215,3 +314,5 @@ Return `blocked` when a trustworthy result cannot be produced, for example:
 - the report cannot be edited safely.
 
 Investigate and draft before writing. If a blocker prevents a coherent update, leave the report unchanged. State the blocker in the operation result, not in the report.
+
+In a scoped `update`, an important adjacent uncertainty outside the accepted scope may be excluded from report claims and verified `scope`, then returned as `unverified`. In full `init` / `audit`, material uncertainty about an existing claim or important omission requires `blocked`; `unverified` is allowed only for a boundary explicitly outside the report baseline or stated scope. Do not use it to hide an unproved central semantic, make `no-impact` cover an unchecked area, or create a partial report that should have been `blocked`.

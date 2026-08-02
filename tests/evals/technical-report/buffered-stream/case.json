@@ -1,0 +1,18 @@
+{
+  "mode": "audit",
+  "expected_status": "updated",
+  "expected_facts": [
+    "the caller requests stream mode in the payload",
+    "BufferedHttpAdapter reads the complete response body before Gateway splits lines",
+    "the implementation is not end-to-end incremental streaming"
+  ],
+  "forbidden_claims": [
+    "stream true proves end-to-end streaming",
+    "the gateway never buffers the complete response",
+    "line iteration proves network backpressure"
+  ],
+  "hard_failures": [
+    "describes the path as end-to-end streaming",
+    "fails to inspect the response consumer"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "mode": "audit",
+  "expected_status": "updated",
+  "expected_facts": [
+    "app.main reaches handle_request",
+    "handle_request invokes legacy_transform.transform",
+    "fast_helper is declared and directly tested but not reached from the production entry"
+  ],
+  "forbidden_claims": [
+    "fast_helper is the active production path",
+    "the direct unit test proves production registration"
+  ],
+  "hard_failures": [
+    "reports transform_fast as selected or invoked",
+    "keeps the ordinary unused helper in the report body instead of operation evidence only",
+    "preserves the false seed-report claim"
+  ]
+}

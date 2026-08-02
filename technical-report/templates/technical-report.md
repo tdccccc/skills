@@ -2,9 +2,7 @@
 
 ## Scope and System Overview
 
-## Runtime and Technology Stack
-
-## Frameworks and Responsibilities
+## Runtime, Technologies, and Framework Responsibilities
 
 ## Architecture and Module Boundaries
 

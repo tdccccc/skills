@@ -33,7 +33,24 @@ Do **not** put any of the following into the report:
 
 When implementation changes, replace or remove stale statements in place. Never preserve the old account merely to explain the transition. Git holds file history; Helm journal holds execution history; ADRs hold durable decision rationale.
 
-Existing documentation can help locate code or supply canonical domain terms, but it is not proof of implementation. Verify technical claims in production source code and executable configuration. Read `REFERENCE.md` before investigating or editing.
+## Implementation-proof gate
+
+A capability is not current behavior until the selected production path actually reaches and uses it. Before writing a material active-behavior claim, close this evidence loop:
+
+```text
+executable entry
+→ registration / composition
+→ baseline-selected configuration or provider
+→ concrete caller with actual arguments
+→ concrete callee or host adapter
+→ resulting state, output, or external effect
+```
+
+A dependency, symbol, interface, helper, flag, environment-variable resolver, provider, test, or request option proves only that a capability exists. It does not prove that a current production path selects or invokes it. Ordinary declared/configurable capabilities that are not selected should stay out of the report. Mention one in operation evidence only when it directly explains a corrected claim, scoped `no-impact`, or blocker; otherwise omit it there too. Include non-use in the report only when it creates a material current behavior or user-facing limitation.
+
+For cross-component behavior, verify both sides of the current contract. For strong semantics such as streaming, atomicity, idempotency, timeout, cancellation, secrets, global coverage, compatibility, or deployment status, also verify runtime scope and the nearest rejection, fallback, bypass, buffering, or degraded path that could narrow the claim. Report wording must not be stronger or broader than this evidence.
+
+Existing documentation can help locate code or supply canonical domain terms, but it is not proof of implementation. Verify technical claims in production source code and executable configuration. Read `REFERENCE.md` before investigating or editing; it defines capability proof levels and semantic proof gates.
 
 ## Project artifact
 
@@ -50,7 +67,7 @@ Supporting files live next to this `SKILL.md`:
 - `REFERENCE.md` — evidence, investigation, update, and audit mechanics;
 - `templates/technical-report.md` — report structure.
 
-Resolve them relative to this skill's install directory. When creating a report, adapt the template to the verified project and remove every empty or inapplicable section.
+Resolve them relative to this skill's install directory. When creating a report, adapt the template to the verified project, merge overlapping sections, and remove every empty or inapplicable section. Give each mechanism one canonical place for its detailed explanation; keep the overview compact rather than duplicating flows.
 
 ## Modes
 
@@ -65,9 +82,10 @@ After initialization, accepted changes use `update`; accuracy checks use `audit`
 
 Use when no report exists or the user asks to establish one.
 
-1. Inspect the repository broadly enough to explain its current system shape and important implementation paths.
-2. Create the report from the template using verified implementation evidence.
-3. Include only applicable sections with substantive current-state content.
+1. Establish the repository and runtime topology: independent packages and deployable units, executable and composition roots, process / worker / replica boundaries, local versus shared state, and important cross-component communication.
+2. Trace important implementation paths through the active evidence loop rather than generalize from the root manifest or primary package.
+3. Create the report from the template using verified implementation evidence.
+4. Include only applicable sections with substantive current-state content.
 
 If the report already exists, do not overwrite it from scratch. Treat `init` as a full `audit` so repeated initialization is safe.
 
@@ -76,10 +94,12 @@ If the report already exists, do not overwrite it from scratch. Treat `init` as 
 Use after an accepted implementation change or when the user gives a reliable change scope.
 
 1. Use the accepted diff, changed paths, and task context only to locate the potentially affected implementation.
-2. Trace each affected area through its complete **current** wiring, concrete implementation, callers, data/configuration, and relevant verification surface. A diff alone is not sufficient evidence for the resulting description.
-3. Compare that implementation with the existing report.
-4. Rewrite, add, move, or delete only the affected current-state content; repair neighboring statements when their meaning changed.
-5. Leave unrelated accurate sections untouched.
+2. Close the active evidence loop for each affected area, including the actual arguments passed between concrete callers, callees, and host adapters. A diff alone is not sufficient evidence for the resulting description.
+3. For cross-component behavior, verify the exact contract emitted and accepted on both sides.
+4. Search for rejection, alternate-provider, fallback, bypass, buffering, and degraded paths that narrow the resulting claim.
+5. Compare the verified current implementation with the existing report.
+6. Rewrite, add, move, or delete only the affected current-state content; repair neighboring statements when their meaning changed.
+7. Leave unrelated accurate sections untouched.
 
 If no report exists, return `blocked` and recommend `init`; do not silently create a partial report.
 
@@ -87,11 +107,12 @@ If no report exists, return `blocked` and recommend `init`; do not silently crea
 
 Use when the user asks whether the report is accurate, when the impact scope is unreliable, or when drift may extend beyond a known change.
 
-1. Re-establish the project's current system shape from implementation evidence.
-2. Verify every material report claim and implementation anchor.
-3. Find important implemented areas the report omits.
-4. Remove stale, unsupported, historical, rationale, prompt-derived, plan-derived, and process-oriented content.
-5. Reconcile the report in place. Do not append an audit section or audit history.
+1. Re-establish the project's repository/runtime topology and active implementation paths independently of the report.
+2. Verify every material report claim, implementation anchor, capability proof level, and claimed runtime scope.
+3. Re-prove strong semantics and broad quantifiers against both sides of each contract and adverse paths.
+4. Find important implemented areas the report omits.
+5. Remove stale, unsupported, over-broad, historical, rationale, prompt-derived, plan-derived, and process-oriented content.
+6. Reconcile the report in place. Do not append an audit section or audit history.
 
 If no report exists, return `blocked` and recommend `init`.
 
@@ -99,13 +120,14 @@ If no report exists, return `blocked` and recommend `init`.
 
 1. Determine the project root, report path, mode, and implementation baseline. Default to the current working tree; honor an explicitly requested revision or environment.
 2. Read applicable repository instructions. Read the current report when it exists.
-3. Inspect manifests and discover runtime/build/deployment entry points, then trace the relevant production implementation and executable configuration.
-4. Use tests to understand the existing verification surface, never as the sole proof of production behavior.
-5. Build a private evidence map connecting each planned technical statement to implementation evidence. Do not write investigation notes into the project.
-6. Draft the complete report edit before writing. If a central requested area cannot be verified, stop with `blocked` rather than leave speculative or half-reconciled content.
-7. Create the report or edit it in place. Preserve accurate unaffected content and the project's useful terminology.
-8. Re-read the resulting claims against implementation evidence and the prohibited-content list.
-9. Return exactly one result status.
+3. Establish applicable repository/runtime topology, then discover executable and composition roots, selected providers, build/deployment definitions, and relevant cross-component boundaries.
+4. Trace material claims through active production wiring and both sides of any contract. Use tests to understand the verification surface, never as the sole proof of production behavior.
+5. Build a private evidence map for each planned claim: evidence anchors, capability proof level, precise runtime scope, both contract sides where applicable, and nearest counter-evidence. Do not write investigation notes into the project.
+6. Challenge strong semantics and broad quantifiers against fallback, bypass, rejection, buffering, and degraded paths. Narrow or omit claims whose semantics are not proved.
+7. Draft the complete report edit before writing. If a central requested area cannot be verified, stop with `blocked` rather than leave speculative or half-reconciled content.
+8. Create the report or edit it in place. Preserve accurate unaffected content and the project's useful terminology.
+9. Re-read the resulting claims against implementation evidence, claimed scope, canonical-section placement, and the prohibited-content list.
+10. Return exactly one result status.
 
 ## Result contract
 
@@ -119,6 +141,14 @@ summary: <one-sentence result>
 evidence: <concise list of implementation/configuration areas inspected>
 ```
 
+When an important but non-blocking area could not be verified and was excluded from both the report and the verified `scope`, optionally add:
+
+```text
+unverified: <material uncertainty excluded from the report and verified scope>
+```
+
+Omit this field when empty; never emit `unverified: none`. It is operation metadata only and must not enter the technical report.
+
 For `blocked`, also return:
 
 ```text
@@ -131,6 +161,8 @@ Meanings:
 - `no-impact` — the required investigation found no report change within the verified scope (`update`) or across the full report (`init` / `audit`); it never claims that unexamined sections were audited;
 - `blocked` — the requested synchronization cannot be completed reliably or safely.
 
-For `update` + `no-impact`, `scope`, `summary`, and `evidence` must identify the accepted-change scope actually examined. Never state or imply that the report is accurate as a whole unless the run was a full `init` / `audit`.
+For `update` + `no-impact`, `scope`, `summary`, and `evidence` must identify the accepted-change scope actually examined. Never state or imply that the report is accurate as a whole unless the run was a full `init` / `audit`. A `no-impact` scope cannot include an area listed as `unverified`.
+
+`unverified` is not a fourth status and cannot conceal a central evidence gap. In a full `init` / `audit`, any uncertainty that prevents validating a material report claim or detecting an important omission requires `blocked`; optional `unverified` may only name something explicitly outside the report's stated baseline or scope. In scoped `update`, it may also name an adjacent non-blocking area excluded from both the edit and verified `scope`. If the requested report cannot be trustworthy without that area, return `blocked` instead.
 
 Do not invent `created`, `partial`, or `success` statuses. A `blocked` run must not leave speculative or knowingly half-complete report edits.
