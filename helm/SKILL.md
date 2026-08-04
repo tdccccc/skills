@@ -69,6 +69,8 @@ Clarify enough to write a goal. Explore the repo when facts live in code. Option
 
 **Language alignment:** read the project's root `CONTEXT.md` (or `CONTEXT-MAP.md`) before framing — essential when starting a new project or taking over an unfamiliar one. Use its vocabulary in goal.md; on conflict, resolve the term before the goal. When intake pins a new term, write it back to CONTEXT.md (create lazily if missing; format per `domain-modeling`) — the goal inherits the project's language, it does not define it.
 
+**Technical-report orientation:** if the project has an established technical report, first understand the initiative scope, then consult only its compact overview / section index and sections relevant to that scope. Do not load a long report in full by default; expand only when the work genuinely crosses the whole system. The report is orientation, not implementation truth — verify material facts against source code and executable configuration. Helm neither audits nor edits the report during Intake.
+
 **Design gate:** if the goal or big framework isn't settled — or the user wants the design stress-tested — run `grill-with-docs` first (design phase); its outputs (CONTEXT.md, docs/adr/) are the project assets helm consumes. Helm starts once the direction is locked. A mid-execution “grill me” means: pause, grill the current plan, land conclusions in the phase file / journal, then resume.
 
 Skip formal intake when the work is already well-scoped; go to Frame or Resume.
@@ -98,7 +100,9 @@ Rules:
 - One phase = one checkable outcome, small enough to discard or rework without grief (hours, not weeks).
 - Include **Assumptions** and **Abort / reshape triggers**.
 - Prefer ≤ 7 concrete tasks. If more, split phases.
+- Make task boundaries and verification concrete enough that the owner can isolate and accept one meaningful implementation chunk at a time.
 - A bad phase: “implement the whole feature + tests + docs + refactor.”
+- Do not add report-impact guesses, report edits, or a parallel report-status field to the phase plan; synchronization is a post-acceptance handoff.
 - When the phase becomes the working phase, mark its index line `active` (see REFERENCE.md).
 
 ### 3. Execute
@@ -117,15 +121,41 @@ Silently classify, then act:
 
 | Result | Action |
 |--------|--------|
-| On track | Continue / check off tasks |
+| On track | Accept only with observed verification evidence, then continue / check off tasks |
 | Path wrong, goal still right | **L1** or **L2** (see Steer) |
 | Goal / success criteria wrong | **L3** — stop implementation first |
 
+A chunk is **accepted** only when its required verification has an observed result, the Checkpoint is On track, and the owner accepts the isolated change as serving the phase outcome. For L2/L3, decide keep vs discard/revert first; synchronize only code retained and re-accepted under the current phase context.
+
 **Surface to the user** a one-line classification before rewriting files on **L2 or L3** (and when unsure). L1 may stay silent if the fix is obvious and local.
+
+#### Technical-report handoff
+
+Technical-report maintenance is enabled when the project already has an established report (normally `docs/technical-report.md`) or the user explicitly enabled / requested one. After accepting each meaningful implementation chunk, invoke the independent **`technical-report`** skill before checking off that chunk or completing its phase. If maintenance was explicitly enabled but no report exists yet, invoke its `init` mode for the first handoff, passing the accepted scope as investigation context; later handoffs use `update`.
+
+Give `technical-report` investigation context, not report prose or an impact verdict:
+
+- the accepted change scope, including relevant behavior and explicit exclusions;
+- only that chunk's isolated diff or exact changed paths — never an unrelated mixed working-tree diff;
+- verification performed, observed results, and anything not run;
+- the relevant goal intent, phase outcome, constraints, and the chunk's role.
+
+Helm decides **when** to synchronize. `technical-report` independently investigates the current implementation and decides **whether and how** to synchronize it. Helm must not pre-filter “small” changes, dictate affected sections or conclusions, edit the technical report directly, or turn the user prompt / change rationale / phase history into report content.
+
+Consume the result exactly:
+
+| `technical-report` result | Helm action |
+|---------------------------|-------------|
+| `updated` | Reporting handoff is satisfied; continue. |
+| `no-impact` | Accept the skill's impact judgment without re-deciding it; continue. |
+| `blocked` | Surface the blocker; do not substitute a Helm edit or complete the chunk / phase / initiative until resolved and retried. |
+
+A reporting `blocked` result does not mechanically set the Helm phase to `status: blocked` or imply L1/L2/L3. Apply Helm classification only if the underlying evidence changes the path or goal. Do not add a parallel report-status field. Phase completion and Close check that all accepted chunks reached `updated` or `no-impact`; they do not trigger a duplicate whole-report sweep when there is no new accepted diff.
 
 ### 5. Close
 
-- **Done:** all success criteria checked, **or** explicitly waived in `journal.md` (name which criterion and why). Set goal `status: done`.
+- **Done:** first confirm every success criterion is checked or explicitly waived in `journal.md` (name which criterion and why). When technical-report maintenance is enabled, also confirm every accepted meaningful chunk completed its handoff with `updated` or `no-impact`; a missing handoff and `blocked` both prevent Close. Then set goal `status: done`.
+- Close does not run a speculative final report sweep and Helm never edits the technical report to unblock itself.
 - **Abandoned:** set `status: abandoned` + one journal entry with why. Do not fake completion.
 
 ---
@@ -147,7 +177,7 @@ Silently classify, then act:
 
 **Parallel agents:**
 
-- One `owner` per initiative (a session/agent id) in goal.md. Only the owner changes goal.md status / owner lines. **Delegates (subagents) are never owners**: read-only on goal.md and journal.md; they may check off tasks in their assigned phase file but never change `status` — transitions belong to the owner.
+- One `owner` per initiative (a session/agent id) in goal.md. Only the owner changes goal.md status / owner lines. **Delegates (subagents) are never owners**: read-only on goal.md and journal.md. They may write only the implementation artifacts assigned by the contract; final phase task check-off and every `status` transition belong to the owner after acceptance and any required technical-report handoff.
 - Different phases may run in parallel under different owners; **the same phase is never double-written**.
 - Handoff = one journal entry (result + next step) + `owner` change, in the same edit turn.
 - Keep goal.md edits small and directional (a status or owner line) — never full rewrites.
@@ -193,7 +223,7 @@ Personal rule: **in-place goal + append-only journal**, not version forests (`go
 
 ## Delegation (subagents)
 
-Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only — they may check off tasks in their assigned phase file only. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint).
+Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only. Their execution report must return the candidate change scope, isolated diff / exact changed paths, verification with observed results, and relevant phase context. A normal execution delegate must not judge technical-report impact, invoke `technical-report`, or edit the project's technical report. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint). When technical-report maintenance is enabled, leave final task check-off to the owner after the accepted chunk's reporting handoff reaches `updated` or `no-impact`.
 
 **Intake recon (read-only research):** when intake needs heavy repo exploration, delegate it instead of reading everything in-session. Compose the contract from `templates/intake-prompt.md`. Key rules: status lines via grep before full goal.md reads; code verification scoped to what the near-term phase will plausibly touch (file:line only for a few anchor points); unknown answers are valid output; report comes back concise — the main session may dump it into `research.md` for reuse when planning.
 

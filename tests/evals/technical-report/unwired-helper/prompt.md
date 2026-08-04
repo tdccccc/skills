@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Audit `seed-report.md` against the current implementation, reconcile that file in place, and return the technical-report operation result. Do not create a second report.

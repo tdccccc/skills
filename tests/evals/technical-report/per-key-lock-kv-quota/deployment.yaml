@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quota-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quota-api
+  template:
+    metadata:
+      labels:
+        app: quota-api
+    spec:
+      containers:
+        - name: api
+          image: example/quota-api:current
+          command: ["python", "app.py"]
+          env:
+            - name: QUOTA_FILE
+              value: /data/quota.json
+            - name: WORKERS
+              value: "4"
+          volumeMounts:
+            - name: quota-data
+              mountPath: /data
+      volumes:
+        - name: quota-data
+          persistentVolumeClaim:
+            claimName: quota-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quota-data
+spec:
+  accessModes: ["ReadWriteMany"]
+  resources:
+    requests:
+      storage: 1Gi

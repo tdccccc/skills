@@ -20,13 +20,15 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 ### ZCode（用户级 skill）
 
-把 `helm` 链到 ZCode 会扫描的目录，例如：
+把 `helm` 和它编排的独立 `technical-report` 链到一个 ZCode 会扫描的目录，例如：
 
 ```bash
-mkdir -p ~/.zcode/skills ~/.agents/skills
-ln -sfn /path/to/skills/helm ~/.zcode/skills/helm
+mkdir -p ~/.agents/skills
 ln -sfn /path/to/skills/helm ~/.agents/skills/helm
+ln -sfn /path/to/skills/technical-report ~/.agents/skills/technical-report
 ```
+
+也可以改用 `~/.zcode/skills/`，但同一份 skill 选择一个发现目录即可，避免重复安装。
 
 装完后**新开会话**（或重启客户端）再使用。
 
@@ -49,7 +51,8 @@ Agent 会：
 2. 没有则写薄 `goal.md`（目标 + 成功标准 + 阶段标题）  
 3. 只细写**当前** phase 的 plan  
 4. 按步骤执行（默认本会话；可委托 subagent 执行某个 phase）  
-5. 不对劲时按档位改 plan 或改 goal，并记 journal  
+5. 每个 meaningful chunk 通过验证并由 Checkpoint 接受后，若项目启用了技术报告，调用独立 `technical-report` skill 同步当前实现
+6. 不对劲时按档位改 plan 或改 goal，并记 journal
 
 ## 产物在哪
 
@@ -82,6 +85,26 @@ docs/helm/<initiative-id>/
 - 有 → 用它的词汇写 goal，术语冲突先澄清再定目标
 - 没有 → 首个术语定型时懒创建一个
 - 新术语写回 `CONTEXT.md`，不塞进 goal.md（goal 继承项目的语言，不定义语言）
+
+如果项目已有技术报告，先确定这次 initiative 的范围，再只看报告的简短概览、目录和相关章节；默认不把长报告全文塞进上下文。技术报告只用于快速定位当前系统，重要事实仍要回到代码和可执行配置核验。
+
+## 技术报告联动
+
+Helm 只负责**什么时候同步**，不负责技术报告**写什么**。项目已经存在技术报告（默认 `docs/technical-report.md`），或你明确要求启用时，每个已验证且被 Checkpoint 接受的 meaningful chunk 都交给独立 `technical-report` skill。首次启用但报告尚不存在时，第一个 handoff 走 `init` 建立完整当前态报告，之后走增量 `update`：
+
+```text
+实现 → 验证 → Helm 接受 chunk → technical-report 调查并同步 → 继续 phase
+```
+
+Helm 提供这一个 chunk 的准确范围、隔离后的 diff / changed paths、实际验证结果和 phase context，供专职 skill 定位实现。Helm 不预判是否有影响、不指定章节或结论，也不直接改报告。
+
+`technical-report` 返回：
+
+- `updated`：报告已按当前实现同步；
+- `no-impact`：调查后确认报告无需改动，Helm 接受该判断；
+- `blocked`：无法可靠同步；Helm 展示 blocker，不代写，也不完成该 chunk、phase 或 initiative，解决后重试。
+
+技术报告只写项目**当前怎么实现、怎么运行**。改动过程、改动原因、用户 prompt、Helm phase/journal 和测试执行流水都不进入报告。
 
 ## 中途改方向
 
@@ -116,11 +139,12 @@ L2/L3 时 agent 应先用一句话说明档位，再改文件。
 默认在本会话执行。某一小块想交给 subagent 时，契约里写清：
 
 - 读什么：`goal.md`、当前 phase、最近几条 journal、有则读 `CONTEXT.md`
-- 写权限：goal/journal 只读，只允许在它负责的 phase 文件里打 ✓
-- 报告要带验收证据；「完成」由主会话 Checkpoint 判定，不是自己说了算
-- 报告回来后先对照 goal/phase，再决定是否转向
+- 写权限：goal/journal 只读；最终 task 勾选和所有状态变更留给 owner
+- execution report 返回：候选改动范围、隔离后的 diff / 精确 changed paths、验证及实际结果、相关 phase context
+- 普通执行 subagent 不判断技术报告影响、不调用 `technical-report`、不编辑技术报告
+- 「完成」由主会话 Checkpoint 判定，不是 subagent 自己说了算；接受后再由 owner 发起技术报告 handoff
 
-> 做只读调研（intake recon）时，用模板 `templates/intake-prompt.md`（同安装目录）组织委托契约：先 grep status 行再决定读哪些 goal.md、代码核验只限近期 phase 会碰到的模块、报告控制在 ~20 行。主会话把报告要点存进 `research.md` 供写 plan 复用。
+> 做只读调研（intake recon）时，用模板 `templates/intake-prompt.md`（同安装目录）组织委托契约：先 grep status 行再决定读哪些 goal.md、代码核验只限近期 phase 会碰到的模块；已有长技术报告时只看概览和相关章节。主会话把报告要点存进 `research.md` 供写 plan 复用。
 
 ## 什么时候别用
 
@@ -135,5 +159,6 @@ skill 自带模板（安装目录下）：
 - `templates/goal.md`
 - `templates/phase.md`
 - `templates/journal-entry.md`
+- `templates/intake-prompt.md`（只读 Intake 调研委托提示词）
 
 agent 协议全文见同目录 `SKILL.md`。

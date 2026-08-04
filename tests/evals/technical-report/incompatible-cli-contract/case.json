@@ -1,0 +1,19 @@
+{
+  "mode": "audit",
+  "expected_status": "updated",
+  "expected_facts": [
+    "main.main invokes api.handle_export, which reaches service.export_report",
+    "service.export_report emits --format and --out",
+    "worker_cli accepts --output-format and a positional output path",
+    "the current subprocess exits non-zero and api.handle_export maps it to status 502"
+  ],
+  "forbidden_claims": [
+    "the API and CLI have a compatible export contract",
+    "the callee capability proves the caller uses it correctly"
+  ],
+  "hard_failures": [
+    "reports the integration as working",
+    "inspects only the caller or only the callee",
+    "fails to trace main.main through the subprocess result and API error mapping"
+  ]
+}

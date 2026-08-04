@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Audit `seed-report.md` against the current caller and CLI parser, reconcile that file in place, and return the technical-report operation result. Describe only current behavior, not how the contract changed. Do not create a second report.

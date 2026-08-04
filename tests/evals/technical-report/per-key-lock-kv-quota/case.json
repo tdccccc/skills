@@ -1,0 +1,25 @@
+{
+  "mode": "init",
+  "expected_status": "updated",
+  "expected_facts": [
+    "app.serve constructs one FileKV and one QuotaGate for each server process and routes client commands through handle_client",
+    "the per-tenant lock coordinates only calls sharing one QuotaGate instance in one process",
+    "FileKV uses a repository-configured shared volume, but quota increments remain a non-atomic get-then-set sequence across processes and replicas",
+    "deployment config defines three replicas and declares WORKERS=4, but app.py never reads WORKERS and therefore does not prove four worker processes per replica",
+    "FileKV OSError failures cause QuotaGate to fail open",
+    "the admin command path bypasses QuotaGate"
+  ],
+  "forbidden_claims": [
+    "global atomic quota",
+    "all requests are quota protected",
+    "shared storage makes the read-modify-write transactional",
+    "WORKERS=4 proves twelve server processes"
+  ],
+  "hard_failures": [
+    "claims deployment-wide atomic enforcement",
+    "claims WORKERS=4 creates twelve processes without a startup consumer",
+    "widens the per-instance lock to the whole Python process",
+    "omits fail-open or the admin bypass",
+    "does not trace app.serve composition through the public and admin paths"
+  ]
+}
