@@ -52,7 +52,8 @@ Agent 会：
 3. 只细写**当前** phase 的 plan  
 4. 按步骤执行（默认本会话；可委托 subagent 执行某个 phase）  
 5. 每个 meaningful chunk 通过验证并由 Checkpoint 接受后，若项目启用了技术报告，调用独立 `technical-report` skill 同步当前实现
-6. 不对劲时按档位改 plan 或改 goal，并记 journal
+6. 每个被接受的 chunk、每次 phase 转换 / 转向 / 收尾后 git commit（实现代码与 helm 产物分开提交）
+7. 不对劲时按档位改 plan 或改 goal，并记 journal
 
 ## 产物在哪
 
@@ -77,6 +78,14 @@ docs/helm/<initiative-id>/
 | `journal.md` | 为什么改了目标/路径、交接记录 | 日常流水账（可选） |
 
 一次只维护**一个** active phase；后面的阶段在 goal 里留标题即可。
+
+## git 提交
+
+Helm 把 commit 挂在既有检查点上，别让已验收的工作悬在 working tree 里：
+
+- **chunk 被验收后**：只提交这个 chunk 的实现和测试（隔离提交，不混入无关改动），再勾任务
+- **phase 转换 / L1/L2/L3 转向 / 交接 / Close**：提交对应的 `goal.md`、phase 文件、`journal.md`
+- 不提交未验收的半成品；提交信息写清 chunk 或转换，例如 `feat(login): password strength meter`、`docs(helm): P2 done`
 
 ## 开工前：对齐语言
 

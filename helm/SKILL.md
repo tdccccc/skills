@@ -127,6 +127,8 @@ Silently classify, then act:
 
 A chunk is **accepted** only when its required verification has an observed result, the Checkpoint is On track, and the owner accepts the isolated change as serving the phase outcome. For L2/L3, decide keep vs discard/revert first; synchronize only code retained and re-accepted under the current phase context.
 
+**Git sync — commit points:** commits are part of acceptance, not a separate decision. Once a chunk is accepted (and, when enabled, its technical-report handoff reached `updated` or `no-impact`), commit its **isolated change** — only that chunk's implementation and tests, never mixed working-tree edits — then check it off. Phase transitions, steers (L1/L2/L3), journal entries, and Close each end with a commit of the helm artifacts they touched (goal.md, phase files, journal.md); the mechanical steps are in REFERENCE.md. Commit messages name the chunk or transition, e.g. `feat(login): password strength meter` or `docs(helm): P2 done`. Never commit unaccepted mid-flight work, and respect an explicit user preference to skip commits.
+
 **Surface to the user** a one-line classification before rewriting files on **L2 or L3** (and when unsure). L1 may stay silent if the fix is obvious and local.
 
 #### Technical-report handoff
@@ -154,9 +156,9 @@ A reporting `blocked` result does not mechanically set the Helm phase to `status
 
 ### 5. Close
 
-- **Done:** first confirm every success criterion is checked or explicitly waived in `journal.md` (name which criterion and why). When technical-report maintenance is enabled, also confirm every accepted meaningful chunk completed its handoff with `updated` or `no-impact`; a missing handoff and `blocked` both prevent Close. Then set goal `status: done`.
+- **Done:** first confirm every success criterion is checked or explicitly waived in `journal.md` (name which criterion and why). When technical-report maintenance is enabled, also confirm every accepted meaningful chunk completed its handoff with `updated` or `no-impact`; a missing handoff and `blocked` both prevent Close. Then set goal `status: done` and commit the closing state (`docs(helm): <slug> done`).
 - Close does not run a speculative final report sweep and Helm never edits the technical report to unblock itself.
-- **Abandoned:** set `status: abandoned` + one journal entry with why. Do not fake completion.
+- **Abandoned:** set `status: abandoned` + one journal entry with why, then commit. Do not fake completion.
 
 ---
 
@@ -217,13 +219,13 @@ Personal rule: **in-place goal + append-only journal**, not version forests (`go
 ### Journal bootstrap
 
 - Create `journal.md` on the first L2, L3, abandonment, success-criteria waiver, or any decision you would regret losing.
-- Each entry: copy structure from `templates/journal-entry.md` and append (never rewrite old entries).
+- Each entry: copy structure from `templates/journal-entry.md` and append (never rewrite old entries). Commit the entry together with the steer's goal/phase edits (see Git sync).
 
 ---
 
 ## Delegation (subagents)
 
-Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only. Their execution report must return the candidate change scope, isolated diff / exact changed paths, verification with observed results, and relevant phase context. A normal execution delegate must not judge technical-report impact, invoke `technical-report`, or edit the project's technical report. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint). When technical-report maintenance is enabled, leave final task check-off to the owner after the accepted chunk's reporting handoff reaches `updated` or `no-impact`.
+Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only. Their execution report must return the candidate change scope, isolated diff / exact changed paths, verification with observed results, and relevant phase context. A normal execution delegate must not judge technical-report impact, invoke `technical-report`, or edit the project's technical report. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint). When technical-report maintenance is enabled, leave final task check-off to the owner after the accepted chunk's reporting handoff reaches `updated` or `no-impact`; commits are the owner's act — delegates never commit.
 
 **Intake recon (read-only research):** when intake needs heavy repo exploration, delegate it instead of reading everything in-session. Compose the contract from `templates/intake-prompt.md`. Key rules: status lines via grep before full goal.md reads; code verification scoped to what the near-term phase will plausibly touch (file:line only for a few anchor points); unknown answers are valid output; report comes back concise — the main session may dump it into `research.md` for reuse when planning.
 
@@ -257,6 +259,7 @@ goal index line: `1. P1 — verify webhook stubs against live event types — st
 - Prefer editing existing helm files over inventing new doc schemes.
 - Resume active initiatives before creating new ones; check `owner` before editing.
 - Status changes touch **only** the goal.md index line — never invent parallel state fields.
+- Commit every accepted chunk's isolated change and every artifact transition — accepted work does not sit uncommitted.
 - After any L2/L3, restate **current focus** and **next concrete step** to the user.
 - Do not expand goal.md into a novel; push detail into the active phase plan.
 - When the user changes their mind mid-flight, classify L1/L2/L3 and update files — don’t only agree in chat.
