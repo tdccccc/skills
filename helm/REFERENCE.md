@@ -17,12 +17,13 @@ Status edits happen in the **goal.md phase index only** (single source of truth)
 
 ### Complete phase `PN`
 
-1. Confirm every accepted meaningful chunk in `PN` has completed its enabled technical-report handoff with `updated` or `no-impact`.
-2. If any handoff is `blocked`, surface and resolve it before transition; Helm does not edit the report or convert the result mechanically into phase `status: blocked`.
-3. Index line `PN` → `done`.
-4. Choose next phase (or Close if none).
-5. If next exists → **Start** it (or leave it `pending` and pause if the user stops here).
-6. Commit the goal.md index change: `docs(helm): PN done` (add `, start PN+1` when the next phase starts in the same turn).
+1. Confirm every required phase verification has an observed successful result, including the relevant regression checks and any recorded exception's compensating verification.
+2. Confirm every accepted meaningful chunk in `PN` has completed its enabled technical-report handoff with `updated` or `no-impact`.
+3. If any handoff is `blocked`, surface and resolve it before transition; Helm does not edit the report or convert the result mechanically into phase `status: blocked`.
+4. Index line `PN` → `done`.
+5. Choose next phase (or Close if none).
+6. If next exists → **Start** it (or leave it `pending` and pause if the user stops here).
+7. Commit the goal.md index change: `docs(helm): PN done` (add `, start PN+1` when the next phase starts in the same turn).
 
 Do not run another whole-report sweep merely because the phase is ending when no new accepted diff exists. Do not add report state to goal.md or the phase file. If a reporting blocker causes a cross-session pause, record the blocker and next step with the existing journal mechanics.
 
@@ -53,11 +54,12 @@ Do not run another whole-report sweep merely because the phase is ending when no
 1. Tell the user: `L2 reshape — <one line why>`.
 2. Stop digging the same hole.
 3. Mark the failed phase **superseded** (default). In-place rewrite only if the outcome stays the same and the plan was merely messy.
-4. Update goal.md index outcomes/order if the roadmap changes; keep Intent/Success stable.
-5. **Start** the new current phase (see transitions).
-6. Append journal: evidence → path change → next focus.
-7. Commit the goal / phase / journal edits: `docs(helm): L2 reshape`.
-8. Resume from the new active phase only.
+4. Decide which tests still express a stable goal-level contract and which encode the failed path; keep, rewrite, discard, or revert them with the implementation disposition.
+5. Update goal.md index outcomes/order if the roadmap changes; keep Intent/Success stable.
+6. **Start** the new current phase (see transitions).
+7. Append journal: evidence → path change → test / code disposition → next focus.
+8. Commit the goal / phase / journal edits: `docs(helm): L2 reshape`.
+9. Resume from the new active phase only.
 
 ### L3 — Steer (destination)
 
@@ -66,8 +68,8 @@ Do not run another whole-report sweep merely because the phase is ending when no
 3. Create `journal.md` if needed; capture evidence (what we learned; links to reports/logs).
 4. **Revise `goal.md` in place** — Intent / Success / Non-goals / Constraints / Phases. Set `status: active` (or `proposed` if user wants to re-confirm), bump `updated`.
 5. **Re-phase from reality** — keep still-valuable `done` work; supersede dead phases; mark a new `active` index line. If the new direction changes term meanings or reverses decisions, update CONTEXT.md / supersede ADRs (domain-modeling conventions) in the same turn.
-6. **Dispose code** — journal what to keep vs discard/revert.
-7. Write/start a fresh plan for the new active phase.
+6. **Dispose code and tests** — journal what to keep, rewrite, discard, or revert; an old test may encode a destination that is no longer valid.
+7. Write/start a fresh plan for the new active phase and select its test strategy from the revised outcome.
 8. Commit the revised goal, plan, journal, and any CONTEXT.md / ADR changes: `docs(helm): L3 steer`.
 9. Resume execution.
 

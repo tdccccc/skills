@@ -1,142 +1,72 @@
 # Personal Skills
 
-This repository is a personal skills package for Claude Code.
+一组面向日常开发的个人 skills，覆盖代码修改、长期任务推进、技术文档、任务委托、领域建模和配置安全检查。
 
-## Install
+## 安装
 
-Quick install:
+### Claude Code
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash
 ```
 
-This downloads `bootstrap.sh`, clones or updates this repository under
-`${XDG_CACHE_HOME:-$HOME/.cache}/tdccccc-skills`, and runs `install.sh` from
-that cached repository. Skills are installed into `~/.claude/skills/`.
-
-Clone this repository and run the installer:
+安装完成后重启 Claude Code。克隆仓库开发时可以使用软链：
 
 ```bash
 git clone <repo-url> personal-skills
 cd personal-skills
-./install.sh
-```
-
-Each skill declares an `install-targets:` field in its `SKILL.md` frontmatter
-(`claude`, `codex`, or `both`); the installer only copies skills whose
-`install-targets` includes `claude`. A skill without the field defaults to
-`both`. Each skill is self-contained: any helper scripts, tools, and reference
-docs it needs live inside its own directory and are copied along with it.
-
-For local development, install with symlinks instead of copies:
-
-```bash
 ./install.sh --link
 ```
 
-Useful options:
+常用选项：
 
 ```bash
-./install.sh --no-force        # Skip skills that already exist (default replaces them)
+./install.sh --no-force
 ./install.sh --dest /path/to/skills
 ./install.sh --dry-run
 ```
 
-With the one-line installer, pass installer options after `bash -s --`:
+### ZCode
+
+把需要的 skill 链到 `~/.agents/skills/` 或 `~/.zcode/skills/`。同一份 skill 选择一个目录即可，例如：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | bash -s -- --no-force
+mkdir -p ~/.agents/skills
+ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 ```
 
-Restart Claude Code after installing or updating skills.
+安装或更新后新开会话。
 
-## Uninstall
+## 有哪些 skills
 
-To remove this repository's skills, manually delete the skill directories from
-Claude Code's skills directory.
+- [code-change-discipline](code-change-discipline/README.md)：修改代码前先选择测试策略；功能和 Bug 默认先测试后实现，小修也适用。
+- [helm](helm/README.md)：先定目标、一次规划一个阶段，并在执行中按证据调整方向。
+- [technical-report](technical-report/SKILL.md)：基于代码和可执行配置创建、更新或审计当前实现报告。
+- [tocodex](tocodex/README.md)：把明确任务委托给 Codex CLI，并读取结果。
+- [grill-me](grill-me/SKILL.md)：通过持续追问帮助梳理和检验设计。
+- [grill-with-docs](grill-with-docs/SKILL.md)：在设计访谈过程中同步形成领域术语和 ADR。
+- [domain-modeling](domain-modeling/SKILL.md)：维护领域语言、术语和架构决策。
+- [security-audit](security-audit/README.md)：检查 Claude Code 配置中的可疑 hooks、MCP servers 和命令。
 
-If upgrading from the previous skill name, remove
-`~/.claude/skills/claude-codex-runner` after installing `tocodex` to avoid
-keeping both versions active:
+## 怎么用
 
-```bash
-# List installed skills from this repo
-ls -d ~/.claude/skills/*/
-
-# Delete the ones belonging to this repository
-rm -rf ~/.claude/skills/helm \
-       ~/.claude/skills/tocodex ~/.claude/skills/technical-report \
-       ~/.claude/skills/grill-me ~/.claude/skills/grill-with-docs \
-       ~/.claude/skills/domain-modeling ~/.claude/skills/security-audit
-```
-
-Restart Claude Code to drop the removed skills.
-
-## Skills
-
-The install target for each skill is shown in parentheses.
-
-- `helm/` (claude) personal intent workflow: lock a goal, plan one phase at a time, execute with checkpoints, and steer when plan or goal must change.
-- `technical-report/` (claude) creates, updates, and audits a code-evidenced report of a repository's current technical implementation.
-- `tocodex/` (claude) delegates well-scoped tasks to Codex CLI via Agent and summarizes the results.
-- `grill-me/` (claude) interviews you relentlessly via multiple-choice popups to stress-test a plan or design until every decision is resolved. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
-- `grill-with-docs/` (claude) combines grilling with domain modeling, creating ADRs and glossary as you go. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
-- `domain-modeling/` (claude) builds and sharpens a project's domain model, terminology, and ADRs. Adapted from [mattpocock/skills](https://github.com/mattpocock/skills).
-- `security-audit/` (claude) audits Claude Code configuration for malicious hooks, MCP servers, and suspicious commands.
-
-## Tools
-
-- `security-audit/scripts/scan.py` runs the standalone Claude Code security scan.
-
-## Layout
+安装后直接描述需求，相关 skill 会按场景启用。也可以显式指定：
 
 ```text
-skills/
-  README.md
-  bootstrap.sh
-  install.sh
-  helm/
-    SKILL.md
-    REFERENCE.md
-    README.md
-    templates/
-      goal.md
-      phase.md
-      journal-entry.md
-      intake-prompt.md
-  technical-report/
-    SKILL.md
-    REFERENCE.md
-    templates/
-      technical-report.md
-  tocodex/
-    SKILL.md
-    README.md
-    README.en.md
-  domain-modeling/
-    SKILL.md
-    CONTEXT-FORMAT.md
-    ADR-FORMAT.md
-  grill-me/
-    SKILL.md
-  grill-with-docs/
-    SKILL.md
-  security-audit/
-    SKILL.md
-    scripts/
-      scan.py
-    LICENSE
-    README.md
+修复空端口被解析成 0 的 Bug
+用 Helm 做这个支付回调重构
+更新当前项目的技术报告
+把这个任务交给 Codex
 ```
 
-## Conventions
+多步骤代码工作通常由 Helm 管理目标和阶段，同时由 `code-change-discipline` 管理测试策略。
 
-- Each skill directory contains one `SKILL.md`.
-- A skill's `SKILL.md` frontmatter may set `install-targets:` to `claude`, `codex`, or `both` to control where it installs; omitting it defaults to `both`.
-- Imported third-party skills may keep their upstream `LICENSE` and `README.md`.
-- Adapted third-party skills carry a `source:` frontmatter field pointing at the upstream repo.
-- Each skill is self-contained: all files it needs live inside its own directory so it installs as a single unit.
-- Task records generated in target projects use `docs/tocodex/<task-id>/`.
-- Codex execution logs (`stdout.log`, `stderr.log`) live alongside task files under `docs/tocodex/<task-id>/`.
-- Helm initiatives live under `docs/helm/<initiative-id>/` (`goal.md`, `phases/`, `journal.md`). Phase status lives in the goal.md index only (`helm/REFERENCE.md` holds transition/steer mechanics).
-- Technical reports default to `docs/technical-report.md` in target projects. They describe verified current implementation and are reconciled in place; change history, rationale, prompts, plans, and execution logs belong elsewhere.
+## 更新与卸载
+
+再次运行安装命令即可更新。卸载时删除对应的 skill 目录，然后重启客户端：
+
+```bash
+rm -rf ~/.claude/skills/<skill-name>
+```
+
+本仓库中的每个 skill 都是独立目录，具体行为和规则见各自的 `SKILL.md`。

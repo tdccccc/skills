@@ -31,6 +31,7 @@ class InstallScriptTests(unittest.TestCase):
     def assert_claude_collection(self, skills_dir):
         # Skills whose install-targets include claude (current repo set).
         for skill_name in [
+            "code-change-discipline",
             "helm",
             "technical-report",
             "tocodex",
@@ -62,6 +63,10 @@ class InstallScriptTests(unittest.TestCase):
                 (skills_dir / "helm" / "templates" / template_name).is_file(),
                 msg=f"missing helm template: {template_name}",
             )
+
+        self.assertTrue(
+            (skills_dir / "code-change-discipline" / "README.md").is_file()
+        )
 
         technical_report = skills_dir / "technical-report"
         self.assertTrue((technical_report / "REFERENCE.md").is_file())

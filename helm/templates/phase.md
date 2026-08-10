@@ -18,16 +18,24 @@ updated: {YYYY-MM-DD}
 
 {Short path description — not an essay.}
 
+## Test strategy
+
+- change kind: {behavior change | bug fix | behavior-preserving refactor | optimization | non-behavioral}
+- strategy: {strict Red-Green-Refactor | Green characterization baseline | correctness + performance baseline | proportionate check}
+- Red / baseline signal: {focused command and expected failure reason, or the Green baseline to preserve}
+- Green / regression checks: {focused and relevant regression commands with expected signals}
+- exception: {why test-first is infeasible and the compensating verification; omit when none}
+
 ## Tasks
 
-- [ ] {Concrete task}
-- [ ] {Concrete task}
-- [ ] {Concrete task}
+- [ ] {One coherent, independently acceptable behavior chunk with its tests}
+- [ ] {One coherent, independently acceptable behavior chunk with its tests}
+- [ ] {Non-behavioral task, if needed}
 
 ## Verification
 
-- {Command, manual check, or artifact to inspect}
-- {Expected signal of success}
+- {Focused command or check and observed success signal}
+- {Relevant regression command or check and observed success signal}
 
 ## Abort / reshape triggers
 
