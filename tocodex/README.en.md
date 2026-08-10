@@ -36,6 +36,8 @@ Check progress: press **↓ arrow key** in Claude Code to view Agent live output
 | No tests/config/deps/security | Involves tests/config/deps/security |
 | One-shot script | Needs verification steps |
 
+This table only controls how detailed the delegation is; small changes do not skip testing. Code changes still follow `code-change-discipline` and return observed verification results.
+
 ## Task file structure
 
 ```

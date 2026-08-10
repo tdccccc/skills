@@ -47,4 +47,4 @@ it matters; a report with honest gaps beats a padded one — never invent file r
 Optional add-ons, when the main session needs them:
 - *Suggested phase boundaries:* rough candidate phase splits aligned to the code anchors above
   (outcomes only — details stay in the phase plan).
-- *Existing tests to run:* test entry points relevant to the anchors (names/commands only, don't run them).
+- *Existing behavior boundaries and tests:* executable API / CLI / UI / persistence / component boundaries that could carry the phase's behavior checks, plus relevant focused test harnesses and commands (facts only; don't design or run the tests).

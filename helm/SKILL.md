@@ -101,15 +101,19 @@ Rules:
 - Include **Assumptions** and **Abort / reshape triggers**.
 - Prefer ≤ 7 concrete tasks. If more, split phases.
 - Make task boundaries and verification concrete enough that the owner can isolate and accept one meaningful implementation chunk at a time.
+- For every chunk that changes code, tests, or executable configuration, record its **change kind**, **test strategy**, **expected Red or Green baseline**, and **Green and regression checks**. Record a justified exception and compensating verification when test-first is not feasible.
+- Tests belong inside each behavioral chunk; never defer them to a horizontal testing task at the end of the phase.
 - A bad phase: “implement the whole feature + tests + docs + refactor.”
 - Do not add report-impact guesses, report edits, or a parallel report-status field to the phase plan; synchronization is a post-acceptance handoff.
 - When the phase becomes the working phase, mark its index line `active` (see REFERENCE.md).
 
 ### 3. Execute
 
-Work the phase task list in this session by default.
+Work the phase task list in this session by default. Every change to code, tests, or executable configuration also follows **`code-change-discipline`**; that skill owns the baseline strategy while Helm owns phase state, acceptance, reporting handoff, and commit points.
 
-After each meaningful chunk (or each delegated report), run a **Checkpoint**. A delegated report claiming “done” is not acceptance — the report must carry verification evidence, and the Checkpoint decides. Do not wait until the whole phase ends if something smells wrong.
+For a feature or bug-fix chunk, observe the expected Red before touching production logic, make the minimum production change, observe Green, refactor while staying Green, then run relevant regression checks. For a behavior-preserving refactor or optimization, follow its planned Green baseline or measurement strategy instead of manufacturing Red.
+
+An expected Red is unaccepted work: do not accept it, invoke `technical-report`, check off its task, or commit it. After each Green candidate chunk (or each delegated report), run a **Checkpoint**. A delegated report claiming “done” is not acceptance — the report must carry verification evidence, and the Checkpoint decides. Do not wait until the whole phase ends if something smells wrong.
 
 ### 4. Checkpoint
 
@@ -125,7 +129,7 @@ Silently classify, then act:
 | Path wrong, goal still right | **L1** or **L2** (see Steer) |
 | Goal / success criteria wrong | **L3** — stop implementation first |
 
-A chunk is **accepted** only when its required verification has an observed result, the Checkpoint is On track, and the owner accepts the isolated change as serving the phase outcome. For L2/L3, decide keep vs discard/revert first; synchronize only code retained and re-accepted under the current phase context.
+A chunk is **accepted** only when its required verification has an observed result, the Checkpoint is On track, and the owner accepts the isolated change as serving the phase outcome. Evidence must match the planned strategy: behavior changes and bug fixes carry observed **Red and Green evidence** plus relevant regressions; behavior-preserving refactors carry **before-and-after Green evidence**; optimizations carry **correctness and baseline/result evidence**. State **checks not run**, test-first exceptions, and compensating verification explicitly; missing required evidence blocks acceptance. For L2/L3, decide what code and tests to keep, rewrite, discard, or revert first; synchronize only work retained and re-accepted under the current phase context.
 
 **Git sync — commit points:** commits are part of acceptance, not a separate decision. Once a chunk is accepted (and, when enabled, its technical-report handoff reached `updated` or `no-impact`), commit its **isolated change** — only that chunk's implementation and tests, never mixed working-tree edits — then check it off. Phase transitions, steers (L1/L2/L3), journal entries, and Close each end with a commit of the helm artifacts they touched (goal.md, phase files, journal.md); the mechanical steps are in REFERENCE.md. Commit messages name the chunk or transition, e.g. `feat(login): password strength meter` or `docs(helm): P2 done`. Never commit unaccepted mid-flight work, and respect an explicit user preference to skip commits.
 
@@ -133,7 +137,7 @@ A chunk is **accepted** only when its required verification has an observed resu
 
 #### Technical-report handoff
 
-Technical-report maintenance is enabled when the project already has an established report (normally `docs/technical-report.md`) or the user explicitly enabled / requested one. After accepting each meaningful implementation chunk, invoke the independent **`technical-report`** skill before checking off that chunk or completing its phase. If maintenance was explicitly enabled but no report exists yet, invoke its `init` mode for the first handoff, passing the accepted scope as investigation context; later handoffs use `update`.
+Technical-report maintenance is enabled when the project already has an established report (normally `docs/technical-report.md`) or the user explicitly enabled / requested one. Red, Green, and refactor are internal steps of one candidate chunk and never trigger separate reporting handoffs. After accepting each meaningful implementation chunk, invoke the independent **`technical-report`** skill once before checking off that chunk or completing its phase. If maintenance was explicitly enabled but no report exists yet, invoke its `init` mode for the first handoff, passing the accepted scope as investigation context; later handoffs use `update`.
 
 Give `technical-report` investigation context, not report prose or an impact verdict:
 
@@ -191,11 +195,13 @@ A reporting `blocked` result does not mechanically set the Helm phase to `status
 
 When execution disappoints or priorities shift, **classify before rewriting everything**. The mechanical steps for transitions and each level live in **`REFERENCE.md`** — read it before executing them.
 
-**L1 — Adjust (local):** steps, APIs, file choices, or ordering are wrong; phase outcome and goal still hold. Edit the phase plan in place, keep executing.
+**L1 — Adjust (local):** steps, APIs, file choices, test seams, or ordering are wrong; phase outcome and goal still hold. Edit the phase plan in place, keep executing.
 
-**L2 — Reshape (path):** phase outcome is wrong or the approach failed, but Intent + Success criteria still hold. Tell the user `L2 reshape — <one line why>`, stop digging, re-plan.
+**L2 — Reshape (path):** phase outcome is wrong or the approach failed, but Intent + Success criteria still hold. Tell the user `L2 reshape — <one line why>`, stop digging, re-plan, and decide which tests still express a stable contract versus the failed path.
 
-**L3 — Steer (destination):** success criteria, non-goals, or core intent no longer match reality. Tell the user `L3 steer — <one line why>`, **freeze** feature work, revise goal.md in place, re-phase, journal evidence, resume.
+**L3 — Steer (destination):** success criteria, non-goals, or core intent no longer match reality. Tell the user `L3 steer — <one line why>`, **freeze** feature work, revise goal.md in place, re-phase, journal evidence, and explicitly keep, rewrite, discard, or revert tests together with implementation before resuming.
+
+An expected Red is evidence that the planned behavior is still missing, not a steer signal by itself. Classify only when the failure challenges the test path, phase outcome, or goal.
 
 **Asset maintenance:** steering changes only what must change. L1 never touches CONTEXT.md or ADRs; L2 touches them only if the failure exposed a terminology error or reversed a decision. L3: if the new direction changes a term's meaning or reverses a decision, update CONTEXT.md / supersede the ADR in the same edit turn (format per `domain-modeling`) and link the changes from the journal entry.
 
@@ -225,7 +231,7 @@ Personal rule: **in-place goal + append-only journal**, not version forests (`go
 
 ## Delegation (subagents)
 
-Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only. Their execution report must return the candidate change scope, isolated diff / exact changed paths, verification with observed results, and relevant phase context. A normal execution delegate must not judge technical-report impact, invoke `technical-report`, or edit the project's technical report. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint). When technical-report maintenance is enabled, leave final task check-off to the owner after the accepted chunk's reporting handoff reaches `updated` or `no-impact`; commits are the owner's act — delegates never commit.
+Execution stays in this session by default; a well-scoped phase may be delegated to a subagent. Delegates are never owners (see Status & concurrency): state in the contract what to read (goal.md, the phase file, recent journal entries, CONTEXT.md if present) and that goal.md / journal.md are read-only. For executable changes, include the planned **test strategy**, **target test**, **expected Red or Green baseline**, Green and regression commands, and any approved exception. Their execution report must return the candidate change scope, isolated diff / exact changed paths, **observed Red, Green, and regression results** as applicable, **checks not run**, and relevant phase context. If the expected evidence cannot be obtained, the delegate stops and reports why rather than bypassing the strategy. A normal execution delegate must not judge technical-report impact, invoke `technical-report`, or edit the project's technical report. On report return, run a Checkpoint; “done” is not acceptance (see Checkpoint). When technical-report maintenance is enabled, leave final task check-off to the owner after the accepted chunk's reporting handoff reaches `updated` or `no-impact`; commits are the owner's act — delegates never commit.
 
 **Intake recon (read-only research):** when intake needs heavy repo exploration, delegate it instead of reading everything in-session. Compose the contract from `templates/intake-prompt.md`. Key rules: status lines via grep before full goal.md reads; code verification scoped to what the near-term phase will plausibly touch (file:line only for a few anchor points); unknown answers are valid output; report comes back concise — the main session may dump it into `research.md` for reuse when planning.
 
