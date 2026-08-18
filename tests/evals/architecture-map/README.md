@@ -1,6 +1,6 @@
-# Technical-report behavior evals
+# Architecture-map behavior evals
 
-These synthetic repositories test whether `technical-report` proves active implementation rather than inferring behavior from declarations. Copy one fixture to a disposable directory, run its prompt against a fresh agent with the installed skill, then inspect the edited/created report and operation result. Never run a write-enabled eval against the canonical fixture directory: `updated` is valid only when the disposable report file actually changes.
+These synthetic repositories test whether `architecture-map` proves active implementation rather than inferring behavior from declarations. Copy one fixture to a disposable directory, run its prompt against a fresh agent with the installed skill, then inspect the edited/created report and operation result. Never run a write-enabled eval against the canonical fixture directory: `updated` is valid only when the disposable report file actually changes.
 
 Each fixture contains:
 

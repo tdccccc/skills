@@ -18,7 +18,7 @@ Status edits happen in the **goal.md phase index only** (single source of truth)
 ### Complete phase `PN`
 
 1. Confirm every required phase verification has an observed successful result, including the relevant regression checks and any recorded exception's compensating verification.
-2. Confirm every accepted meaningful chunk in `PN` has completed its enabled technical-report handoff with `updated` or `no-impact`.
+2. Confirm every accepted meaningful chunk in `PN` has completed its enabled architecture-map handoff with `updated` or `no-impact`.
 3. If any handoff is `blocked`, surface and resolve it before transition; Helm does not edit the report or convert the result mechanically into phase `status: blocked`.
 4. Index line `PN` → `done`.
 5. Choose next phase (or Close if none).
@@ -73,15 +73,15 @@ Do not run another whole-report sweep merely because the phase is ending when no
 8. Commit the revised goal, plan, journal, and any CONTEXT.md / ADR changes: `docs(helm): L3 steer`.
 9. Resume execution.
 
-## Technical-report handoff mechanics
+## Architecture-map handoff mechanics
 
-Run this only after the owner has accepted an isolated meaningful implementation chunk at Checkpoint and only when technical-report maintenance is enabled.
+Run this only after the owner has accepted an isolated meaningful implementation chunk at Checkpoint and only when architecture-map maintenance is enabled.
 
 1. Assemble the accepted scope and exclusions.
 2. Isolate its diff or exact changed paths from unrelated working-tree changes.
 3. Include verification commands / checks, observed results, and skipped verification.
 4. Include the goal intent, active phase outcome, constraints, and the chunk's role; for L2/L3, include the final keep/discard/revert disposition.
-5. Invoke `technical-report` without proposing an impact verdict, target wording, or affected sections.
+5. Invoke `architecture-map` without proposing an impact verdict, target wording, or affected sections.
 6. Consume one result:
    - `updated` or `no-impact` → handoff complete; owner may check off the chunk;
    - `blocked` → surface the blocker and retry after resolution; leave the chunk incomplete.

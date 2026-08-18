@@ -1,10 +1,10 @@
 ---
-name: technical-report
-description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions technical-report, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
+name: architecture-map
+description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions architecture-map, technical-report, 架构地图, 架构报告, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
 install-targets: claude
 ---
 
-# Technical Report
+# Architecture Map
 
 Maintain a clear, code-evidenced, interactive explanation of how the project **currently works**.
 
@@ -20,7 +20,7 @@ The report is one self-contained HTML file with no external dependencies; open i
 - layered color coding with a legend, dependency/data-flow edges with labels, search filtering, and selection highlighting;
 - optional text sections as tabs for cross-cutting topics that do not map to a single node: runtime and technologies, data and state, security and failure behavior, build and deployment.
 
-The file separates data from presentation. The `<script type="application/json" id="report-data">` block holds the entire report content as one JSON object; everything else is fixed template code from `templates/technical-report.html`. Report generation copies the template and replaces only the content of the `report-data` block; it never modifies template code.
+The file separates data from presentation. The `<script type="application/json" id="report-data">` block holds the entire report content as one JSON object; everything else is fixed template code from `templates/architecture-map.html`. Report generation copies the template and replaces only the content of the `report-data` block; it never modifies template code.
 
 ### Data schema
 
@@ -113,7 +113,7 @@ Existing documentation can help locate code or supply canonical domain terms, bu
 Default path:
 
 ```text
-<project-root>/docs/technical-report.html
+<project-root>/docs/architecture-map.html
 ```
 
 Use a user-specified path when provided. If an existing report uses another clearly established path, keep that path rather than creating a duplicate.
@@ -121,7 +121,7 @@ Use a user-specified path when provided. If an existing report uses another clea
 Supporting files live next to this `SKILL.md`:
 
 - `REFERENCE.md` — evidence, investigation, update, and audit mechanics;
-- `templates/technical-report.html` — the fixed HTML template whose `report-data` block is filled per report.
+- `templates/architecture-map.html` — the fixed HTML template whose `report-data` block is filled per report.
 
 ### Migration from a markdown report
 
@@ -131,7 +131,7 @@ If an established markdown report exists (`docs/technical-report.md` or a custom
 
 Infer the mode from the request and repository state. Resolve a missing report deterministically:
 
-- explicit `init`, an unspecified first request, or the first Helm synchronization after the user enables technical-report maintenance → `init`, even when an accepted change scope is available;
+- explicit `init`, an unspecified first request, or the first Helm synchronization after the user enables architecture-map maintenance → `init`, even when an accepted change scope is available;
 - explicit `update` or `audit` that expects an already established report → `blocked` with a recommendation to run `init`.
 
 After initialization, accepted changes use `update`; accuracy checks use `audit`.
@@ -143,7 +143,7 @@ Use when no report exists or the user asks to establish one.
 1. Establish the repository and runtime topology: independent packages and deployable units, executable and composition roots, process / worker / replica boundaries, local versus shared state, and important cross-component communication.
 2. Trace important implementation paths through the active evidence loop rather than generalize from the root manifest or primary package.
 3. Compose the `report-data` object (schema above) from verified implementation evidence.
-4. Copy `templates/technical-report.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
+4. Copy `templates/architecture-map.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
 5. Include only applicable modules, edges, and sections with substantive current-state content.
 
 If the report already exists, do not overwrite it from scratch. Treat `init` as a full `audit` so repeated initialization is safe.
@@ -206,7 +206,7 @@ When an important but non-blocking area could not be verified and was excluded f
 unverified: <material uncertainty excluded from the report and verified scope>
 ```
 
-Omit this field when empty; never emit `unverified: none`. It is operation metadata only and must not enter the technical report.
+Omit this field when empty; never emit `unverified: none`. It is operation metadata only and must not enter the architecture map report.
 
 For `blocked`, also return:
 

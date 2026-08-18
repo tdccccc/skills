@@ -1,6 +1,6 @@
-# Technical Report Reference
+# Architecture Map Reference
 
-Read this file before creating, updating, or auditing a technical report. It defines how to establish implementation truth and reconcile a current-state report.
+Read this file before creating, updating, or auditing an architecture map report. It defines how to establish implementation truth and reconcile a current-state report.
 
 ## What the report represents
 
@@ -254,7 +254,7 @@ Avoid `all`, `every`, `always`, `never`, `global`, `fully`, `strict`, `end-to-en
 
 ## Authoring the data block
 
-The whole report content is one JSON object inside the `<script type="application/json" id="report-data">` block. Everything outside that block is fixed template code: never modify it while creating or editing a report. Template bugs are fixed in `templates/technical-report.html`, not in an individual report.
+The whole report content is one JSON object inside the `<script type="application/json" id="report-data">` block. Everything outside that block is fixed template code: never modify it while creating or editing a report. Template bugs are fixed in `templates/architecture-map.html`, not in an individual report.
 
 ### Schema semantics
 
@@ -283,7 +283,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 1. Resolve the report path and confirm no established report should be preserved elsewhere.
 2. Establish the full repository/runtime topology before generalizing from any primary package.
 3. Close active wiring for the material runtime flows and apply semantic proof gates.
-4. Copy `templates/technical-report.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
+4. Copy `templates/architecture-map.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
 5. Write only verified, applicable modules, edges, and sections; do not change anything outside the data block.
 6. Check that the top-level diagram is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
 
@@ -330,7 +330,7 @@ Before finishing, confirm that:
 - changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
 - no empty modules or sections remain;
-- the `report-data` block is valid JSON and is the only part of the HTML file that differs from `templates/technical-report.html`;
+- the `report-data` block is valid JSON and is the only part of the HTML file that differs from `templates/architecture-map.html`;
 - module ids are unique, every `parent` exists, no module is deeper than three levels, and every `layer` value is one of the six defined layers;
 - every edge references existing module ids with a valid `kind`;
 - module summaries are one line and each material claim has supporting `evidence` anchors or section `anchors`;

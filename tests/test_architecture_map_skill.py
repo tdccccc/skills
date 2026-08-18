@@ -8,16 +8,16 @@ import unittest
 from pathlib import Path
 
 
-class TechnicalReportSkillContractTests(unittest.TestCase):
+class ArchitectureMapSkillContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo_root = Path(__file__).resolve().parents[1]
-        cls.skill_dir = cls.repo_root / "technical-report"
-        cls.eval_dir = cls.repo_root / "tests" / "evals" / "technical-report"
+        cls.skill_dir = cls.repo_root / "architecture-map"
+        cls.eval_dir = cls.repo_root / "tests" / "evals" / "architecture-map"
         cls.skill = (cls.skill_dir / "SKILL.md").read_text(encoding="utf-8")
         cls.reference = (cls.skill_dir / "REFERENCE.md").read_text(encoding="utf-8")
         cls.template = (
-            cls.skill_dir / "templates" / "technical-report.html"
+            cls.skill_dir / "templates" / "architecture-map.html"
         ).read_text(encoding="utf-8")
         cls.helm_skill = (cls.repo_root / "helm" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -32,16 +32,16 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
     def test_frontmatter_and_supporting_files(self):
         self.assertRegex(
             self.skill,
-            r"\A---\nname: technical-report\n(?:.*\n)*?install-targets: claude\n---\n",
+            r"\A---\nname: architecture-map\n(?:.*\n)*?install-targets: claude\n---\n",
         )
         self.assertIn("`REFERENCE.md`", self.skill)
-        self.assertIn("`templates/technical-report.html`", self.skill)
+        self.assertIn("`templates/architecture-map.html`", self.skill)
         self.assertTrue((self.skill_dir / "REFERENCE.md").is_file())
         self.assertTrue(
-            (self.skill_dir / "templates" / "technical-report.html").is_file()
+            (self.skill_dir / "templates" / "architecture-map.html").is_file()
         )
         self.assertFalse(
-            (self.skill_dir / "templates" / "technical-report.md").exists()
+            (self.skill_dir / "templates" / "architecture-map.md").exists()
         )
 
     def test_modes_and_result_contract_are_explicit(self):
@@ -185,7 +185,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
         self.assertIn("unverified: <material uncertainty", self.skill)
         self.assertIn("Omit this field when empty", self.skill)
         self.assertIn("never emit `unverified: none`", self.skill)
-        self.assertIn("must not enter the technical report", self.skill)
+        self.assertIn("must not enter the architecture map report", self.skill)
         self.assertIn("`unverified` is not a fourth status", self.skill)
         self.assertIn("In a full `init` / `audit`", self.skill)
         self.assertIn("requires `blocked`", self.skill)
@@ -441,11 +441,11 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
     def test_helm_uses_specialized_handoff_after_acceptance(self):
         required_phrases = (
             "After accepting each meaningful implementation chunk",
-            "invoke the independent **`technical-report`** skill",
+            "invoke the independent **`architecture-map`** skill",
             "If maintenance was explicitly enabled but no report exists yet",
             "invoke its `init` mode for the first handoff",
             "Helm must not pre-filter",
-            "edit the technical report directly",
+            "edit the architecture map directly",
             "`updated`",
             "`no-impact`",
             "`blocked`",
@@ -464,7 +464,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
     def test_helm_zcode_install_includes_specialized_skill(self):
         self.assertIn("skills/helm ~/.agents/skills/helm", self.helm_readme)
         self.assertIn(
-            "skills/technical-report ~/.agents/skills/technical-report",
+            "skills/architecture-map ~/.agents/skills/architecture-map",
             self.helm_readme,
         )
 

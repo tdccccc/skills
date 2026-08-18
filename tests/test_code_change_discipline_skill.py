@@ -158,12 +158,12 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
         execute = self.section(self.helm_skill, "### 3. Execute")
         self.assertIn(
             "An expected Red is unaccepted work: do not accept it, invoke "
-            "`technical-report`, check off its task, or commit it.",
+            "`architecture-map`, check off its task, or commit it.",
             execute,
         )
         self.assertRegex(
             self.helm_skill,
-            r"accepted[\s\S]*?technical-report[\s\S]*?commit[\s\S]*?check (?:it )?off",
+            r"accepted[\s\S]*?architecture-map[\s\S]*?commit[\s\S]*?check (?:it )?off",
         )
 
     def test_phase_template_records_strategy_without_parallel_status(self):
@@ -191,7 +191,7 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
             self.helm_readme,
         )
         self.assertIn(
-            "skills/technical-report ~/.agents/skills/technical-report",
+            "skills/architecture-map ~/.agents/skills/architecture-map",
             self.helm_readme,
         )
 

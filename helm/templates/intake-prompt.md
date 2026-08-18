@@ -28,7 +28,7 @@ Report back concisely (≤ ~20 lines), structured:
 3. **Doc format.** Note project-specific conventions, but treat the installed Helm `SKILL.md` and
    its `templates/goal.md` / `templates/phase.md` as the current schema authority; historical
    initiatives may use obsolete fields. Read only candidate artifacts needed to spot conventions.
-4. **Technical-report orientation.** If an established technical report exists, first locate its
+4. **Architecture-map orientation.** If an established architecture map report exists, first locate its
    overview / headings, then read only the overview and sections relevant to this initiative. List
    the sections actually read. Do not read the whole report by default, judge its update impact, or
    edit it. Treat it as orientation; verify material claims in code and executable configuration.
