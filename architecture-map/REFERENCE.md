@@ -287,8 +287,6 @@ The whole report content is one JSON object inside the `<script type="applicatio
 5. Write only verified, applicable modules, edges, and sections; do not change anything outside the data block.
 6. Check that the top-level diagram is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
 
-If a markdown report exists without an HTML report, migrate it first (see SKILL.md): use it as a claim inventory only, re-verify every material claim, then delete the markdown file after the HTML report is written.
-
 If a report already exists, follow `audit` instead.
 
 ### `update`

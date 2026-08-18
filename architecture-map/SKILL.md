@@ -1,6 +1,6 @@
 ---
 name: architecture-map
-description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions architecture-map, technical-report, 架构地图, 架构报告, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
+description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions architecture-map, 架构地图, 架构报告, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
 install-targets: claude
 ---
 
@@ -122,10 +122,6 @@ Supporting files live next to this `SKILL.md`:
 
 - `REFERENCE.md` — evidence, investigation, update, and audit mechanics;
 - `templates/architecture-map.html` — the fixed HTML template whose `report-data` block is filled per report.
-
-### Migration from a markdown report
-
-If an established markdown report exists (`docs/technical-report.md` or a custom established path) and no HTML report exists, migrate on the next run: use the markdown only to locate candidate claims and structure, re-verify every material claim against implementation evidence, generate the HTML report, then delete the markdown file. Git preserves its history. Do not keep both files; the HTML report is the single canonical report.
 
 ## Modes
 
