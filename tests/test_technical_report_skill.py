@@ -17,7 +17,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
         cls.skill = (cls.skill_dir / "SKILL.md").read_text(encoding="utf-8")
         cls.reference = (cls.skill_dir / "REFERENCE.md").read_text(encoding="utf-8")
         cls.template = (
-            cls.skill_dir / "templates" / "technical-report.md"
+            cls.skill_dir / "templates" / "technical-report.html"
         ).read_text(encoding="utf-8")
         cls.helm_skill = (cls.repo_root / "helm" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -35,10 +35,13 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
             r"\A---\nname: technical-report\n(?:.*\n)*?install-targets: claude\n---\n",
         )
         self.assertIn("`REFERENCE.md`", self.skill)
-        self.assertIn("`templates/technical-report.md`", self.skill)
+        self.assertIn("`templates/technical-report.html`", self.skill)
         self.assertTrue((self.skill_dir / "REFERENCE.md").is_file())
         self.assertTrue(
-            (self.skill_dir / "templates" / "technical-report.md").is_file()
+            (self.skill_dir / "templates" / "technical-report.html").is_file()
+        )
+        self.assertFalse(
+            (self.skill_dir / "templates" / "technical-report.md").exists()
         )
 
     def test_modes_and_result_contract_are_explicit(self):
@@ -162,7 +165,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
     def test_report_uses_one_canonical_home_per_mechanism(self):
         required = (
             "one fact, one canonical home",
-            "overview: compact system shape only",
+            "overview diagram: compact system shape only",
             "runtime flows: step-by-step execution",
             "Explain a mechanism in detail once",
         )
@@ -170,11 +173,11 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
             self.assertIn(phrase, self.reference)
 
         self.assertIn(
-            "## Runtime, Technologies, and Framework Responsibilities",
+            '<script type="application/json" id="report-data">',
             self.template,
         )
-        self.assertNotIn("## Runtime and Technology Stack", self.template)
-        self.assertNotIn("## Frameworks and Responsibilities", self.template)
+        self.assertIn("`report-data` block", self.skill)
+        self.assertIn("never modifies template code", self.skill)
 
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
@@ -203,39 +206,88 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
         for boundary in required_boundaries:
             self.assertIn(boundary, combined)
 
-    def test_template_contains_only_current_state_sections(self):
-        headings = re.findall(r"^## (.+)$", self.template, flags=re.MULTILINE)
-        expected = [
-            "Scope and System Overview",
-            "Runtime, Technologies, and Framework Responsibilities",
-            "Architecture and Module Boundaries",
-            "Entry Points, Interfaces, and Runtime Flows",
-            "Data and State",
-            "Key Implementation Mechanisms",
-            "External Integrations and Executable Configuration",
-            "Build, Test, Deployment, and Operations",
-            "Security and Failure Behavior",
-        ]
-        self.assertEqual(headings, expected)
-
-        forbidden_patterns = (
-            r"\bchanges?\b",
-            r"\bhistory\b",
-            r"\brationale\b",
-            r"\bdecisions?\b",
-            r"\bprompts?\b",
-            r"\bplans?\b",
-            r"\broadmap\b",
-            r"\blogs?\b",
-            r"\btodos?\b",
-            r"\bfollow-ups?\b",
+    def test_template_is_a_data_driven_single_file(self):
+        block = re.search(
+            r'<script type="application/json" id="report-data">(.*?)</script>',
+            self.template,
+            flags=re.S,
         )
-        for heading in headings:
-            normalized = heading.casefold()
-            self.assertFalse(
-                any(re.search(pattern, normalized) for pattern in forbidden_patterns),
-                msg=f"process/history heading in report template: {heading}",
+        self.assertIsNotNone(block, msg="template must carry a report-data block")
+        data = json.loads(block.group(1))
+        for key in ("title", "summary", "modules", "edges", "sections"):
+            self.assertIn(key, data, msg=f"missing top-level key: {key}")
+
+        allowed_fields = {
+            "id",
+            "label",
+            "parent",
+            "layer",
+            "summary",
+            "detail",
+            "notes",
+            "evidence",
+        }
+        modules_by_id = {}
+        for module in data["modules"]:
+            self.assertIn("id", module)
+            self.assertTrue(
+                set(module) <= allowed_fields,
+                msg=f"unknown module field in {module['id']}",
             )
+            self.assertIn(
+                module["layer"],
+                {"entry", "core", "data", "infra", "external", "frontend"},
+                msg=f"invalid layer in {module['id']}",
+            )
+            modules_by_id[module["id"]] = module
+        self.assertEqual(
+            len(data["modules"]), len(modules_by_id), msg="duplicate module ids"
+        )
+
+        parent_ids = {
+            module["parent"] for module in data["modules"] if "parent" in module
+        }
+        self.assertTrue(
+            parent_ids <= set(modules_by_id), msg="parent references missing module"
+        )
+
+        def depth(mid):
+            levels = 0
+            while "parent" in modules_by_id[mid]:
+                mid = modules_by_id[mid]["parent"]
+                levels += 1
+            return levels
+
+        self.assertLessEqual(
+            max(depth(mid) for mid in modules_by_id),
+            2,
+            msg="example data exceeds three levels",
+        )
+
+        for edge in data["edges"]:
+            self.assertIn(edge["from"], modules_by_id, msg="edge from missing module")
+            self.assertIn(edge["to"], modules_by_id, msg="edge to missing module")
+            self.assertIn(edge.get("kind", "flow"), {"flow", "dep"})
+
+        for section in data["sections"]:
+            self.assertIn("title", section)
+            for block in section.get("blocks", []):
+                self.assertIn(block["type"], {"p", "bullets", "code", "anchors"})
+
+        for element in (
+            '<svg id="canvas">',
+            'id="panel"',
+            'id="breadcrumb"',
+            'id="tabs"',
+            'id="legend"',
+            'id="search"',
+        ):
+            self.assertIn(element, self.template, msg=f"missing fixed element {element}")
+        self.assertNotRegex(
+            self.template,
+            r'(?:src|href)\s*=\s*["\']https?://',
+            msg="template must work offline without external dependencies",
+        )
 
     def test_behavior_eval_fixtures_preserve_hard_cases(self):
         expected_files = {
@@ -244,7 +296,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
                 "legacy_transform.py",
                 "fast_helper.py",
                 "test_fast_helper.py",
-                "seed-report.md",
+                "seed-report.html",
                 "prompt.md",
                 "case.json",
             },
@@ -252,7 +304,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
                 "main.py",
                 "gateway.py",
                 "http_adapter.py",
-                "seed-report.md",
+                "seed-report.html",
                 "prompt.md",
                 "case.json",
             },
@@ -261,7 +313,7 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
                 "api.py",
                 "service.py",
                 "worker_cli.py",
-                "seed-report.md",
+                "seed-report.html",
                 "prompt.md",
                 "case.json",
             },
@@ -287,6 +339,18 @@ class TechnicalReportSkillContractTests(unittest.TestCase):
             prompt = (case_dir / "prompt.md").read_text(encoding="utf-8")
             self.assertIn("disposable fixture copy", prompt)
             self.assertNotIn("Do not edit fixture files", prompt)
+
+            seed = case_dir / "seed-report.html"
+            if seed.is_file():
+                seed_block = re.search(
+                    r'<script type="application/json" id="report-data">(.*?)</script>',
+                    seed.read_text(encoding="utf-8"),
+                    flags=re.S,
+                )
+                self.assertIsNotNone(
+                    seed_block, msg=f"missing report-data block in {case_name}"
+                )
+                self.assertIn("modules", json.loads(seed_block.group(1)))
 
             contract = json.loads((case_dir / "case.json").read_text(encoding="utf-8"))
             self.assertIn(contract["mode"], {"init", "update", "audit"})

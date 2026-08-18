@@ -1,14 +1,70 @@
 ---
 name: technical-report
-description: 'Create, update, and audit a repository technical report that explains the verified current implementation. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions technical-report, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
+description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions technical-report, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
 install-targets: claude
 ---
 
 # Technical Report
 
-Maintain a clear, code-evidenced explanation of how the project **currently works**.
+Maintain a clear, code-evidenced, interactive explanation of how the project **currently works**.
 
 The report is a current-state implementation reference, not a history of how the project arrived there. Explain the actual technology, architecture, wiring, flows, and key mechanisms. Do not narrate the change that prompted the update.
+
+## Report format
+
+The report is one self-contained HTML file with no external dependencies; open it directly in a browser. It presents:
+
+- an overview architecture diagram: one node per top-level module, each with a one-line summary;
+- drill-down: clicking a module that has sub-modules enters its sub-diagram; a breadcrumb shows the path and navigates back level by level;
+- a detail panel: clicking a node shows its explanation, mechanisms, and code evidence anchors;
+- layered color coding with a legend, dependency/data-flow edges with labels, search filtering, and selection highlighting;
+- optional text sections as tabs for cross-cutting topics that do not map to a single node: runtime and technologies, data and state, security and failure behavior, build and deployment.
+
+The file separates data from presentation. The `<script type="application/json" id="report-data">` block holds the entire report content as one JSON object; everything else is fixed template code from `templates/technical-report.html`. Report generation copies the template and replaces only the content of the `report-data` block; it never modifies template code.
+
+### Data schema
+
+```json
+{
+  "title": "project name",
+  "summary": "one-sentence system overview",
+  "modules": [
+    {
+      "id": "unique-id",
+      "label": "short module name",
+      "parent": "parent module id (omit for top-level modules)",
+      "layer": "entry | core | data | infra | external | frontend",
+      "summary": "one-line responsibility, rendered under the node label",
+      "detail": "canonical explanation, 2-4 sentences",
+      "notes": ["non-obvious mechanism, one per bullet"],
+      "evidence": ["path/to/file.ext (StableSymbol)"]
+    }
+  ],
+  "edges": [
+    { "from": "module id", "to": "module id", "label": "short edge label (optional)", "kind": "flow | dep" }
+  ],
+  "sections": [
+    { "title": "Runtime and Technologies", "blocks": [
+      { "type": "p", "text": "paragraph" },
+      { "type": "bullets", "items": ["item"] },
+      { "type": "code", "text": "command or config" },
+      { "type": "anchors", "items": ["path/to/file.ext (Symbol)"] }
+    ] }
+  ]
+}
+```
+
+Authoring rules:
+
+- The `modules` array forms a tree through `parent`. Top-level modules omit `parent`. Maximum depth is three levels: system → module → component. Deeper detail belongs in `detail` / `notes` text.
+- `id` values are unique, short, lowercase; dots may mirror the hierarchy but `parent` defines it.
+- `layer` takes one of the six values above; the template defines node colors and a legend for them. Assign the layer that best describes the module's role in this project.
+- `summary` is one short line shown under the node label; keep it under roughly thirty characters.
+- `detail` holds the canonical detailed explanation of the module; `notes` holds non-obvious mechanisms as short bullets. One fact has one canonical home: explain a mechanism in the owning module's `detail`/`notes`, or in a section when it crosses modules; elsewhere reference it briefly or not at all.
+- Every material claim carries evidence anchors in `evidence` or in an `anchors` block: project-relative `path/to/file.ext (StableSymbol)` form, pointing at content that supports the nearby statement. No machine-specific absolute paths.
+- Edges may connect modules at any depth. The template lifts them automatically: an edge between two deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` for invocation or data flow (solid line) and `dep` for dependency or deployment relation (dashed line). `label` is optional and short.
+- `sections` holds only applicable topics with substantive current-state content; omit empty sections. Use a section for cross-cutting content (runtime/technology responsibilities, data and state, security and failure behavior, build/deployment) that does not belong to one module.
+- The `report-data` block must be valid JSON: no comments, no trailing commas, `"` and `\` escaped, and any literal `</script>` inside a string written as `<\/script>`.
 
 ## Content contract
 
@@ -57,7 +113,7 @@ Existing documentation can help locate code or supply canonical domain terms, bu
 Default path:
 
 ```text
-<project-root>/docs/technical-report.md
+<project-root>/docs/technical-report.html
 ```
 
 Use a user-specified path when provided. If an existing report uses another clearly established path, keep that path rather than creating a duplicate.
@@ -65,9 +121,11 @@ Use a user-specified path when provided. If an existing report uses another clea
 Supporting files live next to this `SKILL.md`:
 
 - `REFERENCE.md` — evidence, investigation, update, and audit mechanics;
-- `templates/technical-report.md` — report structure.
+- `templates/technical-report.html` — the fixed HTML template whose `report-data` block is filled per report.
 
-Resolve them relative to this skill's install directory. When creating a report, adapt the template to the verified project, merge overlapping sections, and remove every empty or inapplicable section. Give each mechanism one canonical place for its detailed explanation; keep the overview compact rather than duplicating flows.
+### Migration from a markdown report
+
+If an established markdown report exists (`docs/technical-report.md` or a custom established path) and no HTML report exists, migrate on the next run: use the markdown only to locate candidate claims and structure, re-verify every material claim against implementation evidence, generate the HTML report, then delete the markdown file. Git preserves its history. Do not keep both files; the HTML report is the single canonical report.
 
 ## Modes
 
@@ -84,8 +142,9 @@ Use when no report exists or the user asks to establish one.
 
 1. Establish the repository and runtime topology: independent packages and deployable units, executable and composition roots, process / worker / replica boundaries, local versus shared state, and important cross-component communication.
 2. Trace important implementation paths through the active evidence loop rather than generalize from the root manifest or primary package.
-3. Create the report from the template using verified implementation evidence.
-4. Include only applicable sections with substantive current-state content.
+3. Compose the `report-data` object (schema above) from verified implementation evidence.
+4. Copy `templates/technical-report.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
+5. Include only applicable modules, edges, and sections with substantive current-state content.
 
 If the report already exists, do not overwrite it from scratch. Treat `init` as a full `audit` so repeated initialization is safe.
 
@@ -97,9 +156,9 @@ Use after an accepted implementation change or when the user gives a reliable ch
 2. Close the active evidence loop for each affected area, including the actual arguments passed between concrete callers, callees, and host adapters. A diff alone is not sufficient evidence for the resulting description.
 3. For cross-component behavior, verify the exact contract emitted and accepted on both sides.
 4. Search for rejection, alternate-provider, fallback, bypass, buffering, and degraded paths that narrow the resulting claim.
-5. Compare the verified current implementation with the existing report.
-6. Rewrite, add, move, or delete only the affected current-state content; repair neighboring statements when their meaning changed.
-7. Leave unrelated accurate sections untouched.
+5. Compare the verified current implementation with the existing report's `report-data` block.
+6. Rewrite, add, move, or delete only the affected module entries, edges, and section blocks; write the edited JSON back into the `report-data` block, leaving template code untouched.
+7. Leave unrelated accurate entries untouched.
 
 If no report exists, return `blocked` and recommend `init`; do not silently create a partial report.
 
@@ -112,21 +171,21 @@ Use when the user asks whether the report is accurate, when the impact scope is 
 3. Re-prove strong semantics and broad quantifiers against both sides of each contract and adverse paths.
 4. Find important implemented areas the report omits.
 5. Remove stale, unsupported, over-broad, historical, rationale, prompt-derived, plan-derived, and process-oriented content.
-6. Reconcile the report in place. Do not append an audit section or audit history.
+6. Reconcile the `report-data` block in place. Do not append an audit section or audit history.
 
 If no report exists, return `blocked` and recommend `init`.
 
 ## Workflow
 
 1. Determine the project root, report path, mode, and implementation baseline. Default to the current working tree; honor an explicitly requested revision or environment.
-2. Read applicable repository instructions. Read the current report when it exists.
+2. Read applicable repository instructions. Read the current report's `report-data` block when it exists.
 3. Establish applicable repository/runtime topology, then discover executable and composition roots, selected providers, build/deployment definitions, and relevant cross-component boundaries.
 4. Trace material claims through active production wiring and both sides of any contract. Use tests to understand the verification surface, never as the sole proof of production behavior.
 5. Build a private evidence map for each planned claim: evidence anchors, capability proof level, precise runtime scope, both contract sides where applicable, and nearest counter-evidence. Do not write investigation notes into the project.
 6. Challenge strong semantics and broad quantifiers against fallback, bypass, rejection, buffering, and degraded paths. Narrow or omit claims whose semantics are not proved.
 7. Draft the complete report edit before writing. If a central requested area cannot be verified, stop with `blocked` rather than leave speculative or half-reconciled content.
-8. Create the report or edit it in place. Preserve accurate unaffected content and the project's useful terminology.
-9. Re-read the resulting claims against implementation evidence, claimed scope, canonical-section placement, and the prohibited-content list.
+8. Create the report by copying the template and filling the `report-data` block, or edit the existing data block in place. Preserve accurate unaffected entries, template code, and the project's useful terminology.
+9. Re-read the resulting claims against implementation evidence, claimed scope, canonical module/section placement, and the prohibited-content list.
 10. Return exactly one result status.
 
 ## Result contract

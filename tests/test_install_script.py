@@ -71,7 +71,7 @@ class InstallScriptTests(unittest.TestCase):
         technical_report = skills_dir / "technical-report"
         self.assertTrue((technical_report / "REFERENCE.md").is_file())
         self.assertTrue(
-            (technical_report / "templates" / "technical-report.md").is_file()
+            (technical_report / "templates" / "technical-report.html").is_file()
         )
         self.assertTrue((skills_dir / "tocodex" / "SKILL.md").is_file())
 

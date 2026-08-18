@@ -7,7 +7,7 @@ Each fixture contains:
 - `prompt.md` — user request;
 - `case.json` — expected facts, forbidden claims, and hard-failure conditions;
 - minimal implementation/configuration evidence;
-- `seed-report.md` when the case exercises audit/update correction.
+- `seed-report.html` when the case exercises audit/update correction.
 
 Score each case out of 10:
 

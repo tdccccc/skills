@@ -137,7 +137,7 @@ A chunk is **accepted** only when its required verification has an observed resu
 
 #### Technical-report handoff
 
-Technical-report maintenance is enabled when the project already has an established report (normally `docs/technical-report.md`) or the user explicitly enabled / requested one. Red, Green, and refactor are internal steps of one candidate chunk and never trigger separate reporting handoffs. After accepting each meaningful implementation chunk, invoke the independent **`technical-report`** skill once before checking off that chunk or completing its phase. If maintenance was explicitly enabled but no report exists yet, invoke its `init` mode for the first handoff, passing the accepted scope as investigation context; later handoffs use `update`.
+Technical-report maintenance is enabled when the project already has an established report (normally `docs/technical-report.html`) or the user explicitly enabled / requested one. Red, Green, and refactor are internal steps of one candidate chunk and never trigger separate reporting handoffs. After accepting each meaningful implementation chunk, invoke the independent **`technical-report`** skill once before checking off that chunk or completing its phase. If maintenance was explicitly enabled but no report exists yet, invoke its `init` mode for the first handoff, passing the accepted scope as investigation context; later handoffs use `update`.
 
 Give `technical-report` investigation context, not report prose or an impact verdict:
 

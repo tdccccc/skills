@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技术报告</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--hi:#58a6ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+#topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex:0 0 auto}
+#topbar h1{font-size:17px;margin:0}
+#topbar .sum{color:var(--muted);font-size:12.5px;margin-top:2px}
+#search{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;width:220px;font-size:13px;outline:none}
+#search:focus{border-color:var(--hi)}
+#tabs{display:flex;gap:2px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex:0 0 auto}
+.tab{padding:8px 14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-size:13px;user-select:none}
+.tab.active{color:var(--text);border-bottom-color:var(--hi)}
+main{position:relative;flex:1 1 auto;display:none}
+#view-diagram.active{display:flex;flex-direction:column}
+#view-section.active{display:block}
+#breadcrumb{padding:8px 20px;color:var(--muted);font-size:12.5px;flex:0 0 auto;user-select:none}
+#breadcrumb .crumb{cursor:pointer;color:var(--hi)}
+#breadcrumb .sep{opacity:.5}
+#canvas-wrap{flex:1 1 auto;overflow:auto;padding:12px 20px}
+svg{display:block}
+.node{cursor:pointer;user-select:none}
+.node text{pointer-events:none}
+.node:hover rect{stroke-width:2.5}
+.node.dim{opacity:.16}
+.node.selected rect{stroke-width:3}
+.edge path{fill:none;stroke:#8b949e;stroke-width:1.4;opacity:.55}
+.edge.dep path{stroke-dasharray:5 4}
+.edge.dim path{opacity:.08}
+.edge.dim text{opacity:.08}
+.edge.hi path{stroke:var(--hi);stroke-width:2.4;opacity:.95}
+.edge-label{fill:var(--muted);font-size:10.5px;pointer-events:none}
+#legend{position:absolute;left:16px;bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px;opacity:.95}
+.legend-row{display:flex;align-items:center;gap:8px}
+.swatch{width:10px;height:10px;border-radius:2px;display:inline-block}
+#panel{position:absolute;top:0;right:0;bottom:0;width:400px;max-width:88vw;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:18px 20px;display:none;z-index:10;box-shadow:-8px 0 24px rgba(0,0,0,.35)}
+#panel.open{display:block}
+#panel .close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+#panel h2{margin:0 0 4px;font-size:16px;padding-right:24px}
+#panel .path{color:var(--muted);font-size:12px;margin:0 0 10px}
+#panel .layer{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid;margin-bottom:10px}
+#panel h3{font-size:13px;margin:16px 0 6px}
+#panel p{font-size:13.5px;margin:6px 0}
+#panel ul{margin:4px 0;padding-left:18px}
+#panel li{font-size:13px;margin:3px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font:12px ui-monospace,Consolas,monospace;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:#79c0ff;word-break:break-all}
+.hint{color:var(--muted);font-size:12.5px;border-top:1px solid var(--border);margin-top:14px;padding-top:10px}
+#view-section article{max-width:860px;margin:0 auto;padding:24px 28px 60px}
+#view-section h2{font-size:18px;border-bottom:1px solid var(--border);padding-bottom:8px}
+#view-section p{font-size:14px}
+#view-section ul{padding-left:20px}
+#view-section li{margin:3px 0}
+#view-section pre{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;font:12.5px ui-monospace,Consolas,monospace}
+#fatal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(13,17,23,.9);z-index:99}
+#fatal div{max-width:640px;background:var(--surface);border:1px solid #f85149;border-radius:10px;padding:20px;font:13px ui-monospace,Consolas,monospace;white-space:pre-wrap;color:#f85149;word-break:break-all}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header id="topbar">
+  <div>
+    <h1 id="title"></h1>
+    <div class="sum" id="summary"></div>
+  </div>
+  <input id="search" type="search" placeholder="搜索当前视图中的模块…" autocomplete="off">
+</header>
+<nav id="tabs"></nav>
+<main id="view-diagram" class="active">
+  <div id="breadcrumb"></div>
+  <div id="canvas-wrap"><svg id="canvas"></svg></div>
+</main>
+<main id="view-section">
+  <article id="section-body"></article>
+</main>
+<div id="legend"></div>
+<aside id="panel"></aside>
+<div id="fatal" class="hidden"><div id="fatal-msg"></div></div>
+
+<!-- 报告全部内容位于下方 report-data JSON 块中。
+     创建/更新报告时只替换该块的内容，其余模板代码保持原样。 -->
+<script type="application/json" id="report-data">
+{
+  "title": "unwired-helper",
+  "summary": "请求处理应用。",
+  "modules": [
+    {
+      "id": "main",
+      "label": "入口",
+      "layer": "entry",
+      "summary": "处理请求",
+      "detail": "app.main 调用 handle_request。",
+      "evidence": [
+        "app.py (main)"
+      ]
+    },
+    {
+      "id": "handler",
+      "label": "请求处理",
+      "layer": "core",
+      "summary": "归一化输入",
+      "detail": "Requests use `fast_helper.transform_fast`, which is the active production normalization path.",
+      "evidence": [
+        "app.py (handle_request)",
+        "fast_helper.py (transform_fast)"
+      ]
+    },
+    {
+      "id": "legacy",
+      "label": "既有归一化",
+      "layer": "core",
+      "summary": "原归一化实现",
+      "detail": "legacy_transform.transform 是既有实现。",
+      "evidence": [
+        "legacy_transform.py (transform)"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "main",
+      "to": "handler",
+      "kind": "flow"
+    }
+  ],
+  "sections": []
+}
+</script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var svg = $('#canvas');
+
+  var data;
+  try {
+    data = JSON.parse(document.getElementById('report-data').textContent);
+  } catch (e) {
+    $('#fatal').classList.remove('hidden');
+    $('#fatal-msg').textContent = 'report-data 解析失败：' + e.message;
+    return;
+  }
+  data.modules = data.modules || [];
+  data.edges = data.edges || [];
+  data.sections = data.sections || [];
+
+  var LAYERS = {
+    entry:    { name: '入口',     fill: '#1a3a2a', stroke: '#3fb950' },
+    core:     { name: '核心逻辑', fill: '#1a2a3a', stroke: '#58a6ff' },
+    data:     { name: '数据存储', fill: '#2a1a3a', stroke: '#bc8cff' },
+    infra:    { name: '基础设施', fill: '#3a2a1a', stroke: '#d29922' },
+    external: { name: '外部系统', fill: '#2a1a1a', stroke: '#f85149' },
+    frontend: { name: '前端',     fill: '#1a3a3a', stroke: '#39d2c0' }
+  };
+
+  var byId = {};
+  var topIds = [];
+  data.modules.forEach(function (m) {
+    byId[m.id] = m;
+    m._children = [];
+  });
+  data.modules.forEach(function (m) {
+    var p = m.parent || null;
+    if (p && byId[p]) { byId[p]._children.push(m.id); m._p = p; }
+    else { m._p = null; topIds.push(m.id); }
+  });
+
+  function chain(id) {
+    var out = [];
+    var m = byId[id];
+    while (m) { out.unshift(m.id); m = byId[m._p]; }
+    return out;
+  }
+
+  var state = { path: [], selected: null, query: '' };
+
+  function currentParent() {
+    return state.path.length ? state.path[state.path.length - 1] : null;
+  }
+
+  function viewItems(parent) {
+    var ids = parent ? (byId[parent] || { _children: [] })._children.slice() : topIds.slice();
+    var nodes = ids.map(function (id) { return byId[id]; }).filter(Boolean);
+    var set = {};
+    nodes.forEach(function (n) { set[n.id] = true; });
+    function visAnc(id) {
+      var m = byId[id];
+      while (m && !set[m.id]) m = byId[m._p];
+      return m ? m.id : null;
+    }
+    var edges = [], seen = {}, extOrder = [], extSet = {}, boundary = 0;
+    function addExt(id) {
+      if (byId[id] && id !== parent && !extSet[id]) { extSet[id] = true; extOrder.push(id); }
+    }
+    function pushEdge(f, t, e) {
+      var k = f + '\u2192' + t;
+      if (seen[k]) return;
+      seen[k] = true;
+      edges.push({ from: f, to: t, label: e.label || '', kind: e.kind || 'flow' });
+    }
+    data.edges.forEach(function (e) {
+      var fa = visAnc(e.from), ta = visAnc(e.to);
+      if (fa && ta) { if (fa !== ta) pushEdge(fa, ta, e); return; }
+      if (fa && !ta) {
+        if (e.to === parent) { boundary++; pushEdge(fa, '__parent', e); }
+        else { addExt(e.to); pushEdge(fa, e.to, e); }
+        return;
+      }
+      if (!fa && ta) {
+        if (e.from === parent) { boundary++; pushEdge('__parent', ta, e); }
+        else { addExt(e.from); pushEdge(e.from, ta, e); }
+        return;
+      }
+      if (e.to === parent) { boundary++; addExt(e.from); pushEdge(e.from, '__parent', e); }
+      else if (e.from === parent) { boundary++; addExt(e.to); pushEdge('__parent', e.to, e); }
+    });
+    var ext = extOrder.map(function (id) { return byId[id]; });
+    var parentNode = null;
+    if (parent && boundary > 0) {
+      var p = byId[parent];
+      parentNode = { id: '__parent', label: (p.label || p.id) + '（模块入口）', layer: p.layer, summary: '', _children: [] };
+    }
+    return { nodes: nodes, ext: ext, parentNode: parentNode, edges: edges };
+  }
+
+  function est(s, px) {
+    var w = 0;
+    for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i); w += c < 128 ? px * 0.55 : px; }
+    return w;
+  }
+  function trunc(s, px, max) {
+    var w = 0, out = '';
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i), cw = c < 128 ? px * 0.55 : px;
+      if (w + cw > max) return out + '\u2026';
+      w += cw; out += s[i];
+    }
+    return out;
+  }
+  function nodeW(n) {
+    return Math.max(96, Math.min(240, Math.ceil(est(n.label || n.id, 12.5)) + 28));
+  }
+  var NODE_H = 58, ROW_GAP = 26, LAYER_GAP = 110, MARGIN = 40;
+
+  function layout(items, edges) {
+    var normal = items.filter(function (x) { return !x.ext; });
+    var ids = {};
+    normal.forEach(function (x) { ids[x.n.id] = true; });
+    var adj = {}, indeg = {}, depth = {};
+    normal.forEach(function (x) { adj[x.n.id] = []; indeg[x.n.id] = 0; });
+    edges.forEach(function (e) {
+      if (ids[e.from] && ids[e.to]) { adj[e.from].push(e.to); indeg[e.to]++; }
+    });
+    var queue = [];
+    normal.forEach(function (x) { if (indeg[x.n.id] === 0) { depth[x.n.id] = 0; queue.push(x.n.id); } });
+    var done = 0;
+    while (queue.length) {
+      var id = queue.shift(); done++;
+      adj[id].forEach(function (t) {
+        if ((depth[t] || 0) < depth[id] + 1) depth[t] = depth[id] + 1;
+        if (--indeg[t] === 0) queue.push(t);
+      });
+    }
+    if (done < normal.length) {
+      for (var pass = 0; pass < normal.length; pass++) {
+        normal.forEach(function (x) {
+          adj[x.n.id].forEach(function (t) { depth[t] = Math.max(depth[t] || 0, (depth[x.n.id] || 0) + 1); });
+        });
+      }
+    }
+    normal.forEach(function (x) { if (depth[x.n.id] === undefined) depth[x.n.id] = 0; });
+    items.forEach(function (x) {
+      if (!x.ext) return;
+      var n = x.n, maxIn = -1, minOut = Infinity;
+      edges.forEach(function (e) {
+        if (e.to === n.id && ids[e.from]) maxIn = Math.max(maxIn, depth[e.from]);
+        if (e.from === n.id && ids[e.to]) minOut = Math.min(minOut, depth[e.to]);
+      });
+      if (x.up) depth[n.id] = minOut < Infinity ? minOut - 1 : -1;
+      else if (maxIn >= 0) depth[n.id] = maxIn + 1;
+      else if (minOut < Infinity) depth[n.id] = Math.max(0, minOut - 1);
+      else depth[n.id] = 0;
+    });
+    var minD = Infinity;
+    items.forEach(function (x) { minD = Math.min(minD, depth[x.n.id]); });
+    if (minD < 0) items.forEach(function (x) { depth[x.n.id] -= minD; });
+    var layers = {};
+    items.forEach(function (x) { var d = depth[x.n.id]; (layers[d] = layers[d] || []).push(x); });
+    var ds = Object.keys(layers).map(Number).sort(function (a, b) { return a - b; });
+    var order = {};
+    ds.forEach(function (d, i) {
+      var arr = layers[d];
+      if (i > 0) {
+        var prev = order[ds[i - 1]], prevIdx = {};
+        prev.forEach(function (x, j) { prevIdx[x.n.id] = j; });
+        function bar(x) {
+          var sum = 0, cnt = 0;
+          edges.forEach(function (e) {
+            if (e.to === x.n.id && prevIdx[e.from] !== undefined) { sum += prevIdx[e.from]; cnt++; }
+            if (e.from === x.n.id && prevIdx[e.to] !== undefined) { sum += prevIdx[e.to]; cnt++; }
+          });
+          if (cnt) return sum / cnt;
+          return 1e9;
+        }
+        arr.sort(function (a, b) { return bar(a) - bar(b); });
+      }
+      order[d] = arr;
+    });
+    var pos = {}, x = MARGIN, boxes = [];
+    ds.forEach(function (d) {
+      var arr = order[d], maxW = 0;
+      arr.forEach(function (it) { maxW = Math.max(maxW, nodeW(it.n)); });
+      var y = 0;
+      arr.forEach(function (it) { pos[it.n.id] = { x: x, y: y, w: maxW, h: NODE_H }; y += NODE_H + ROW_GAP; });
+      boxes.push({ arr: arr, h: Math.max(arr.length * NODE_H + (arr.length - 1) * ROW_GAP, NODE_H) });
+      x += maxW + LAYER_GAP;
+    });
+    var width = x - LAYER_GAP + MARGIN;
+    var height = 160;
+    boxes.forEach(function (b) { height = Math.max(height, b.h); });
+    boxes.forEach(function (b) {
+      var off = (height - b.h) / 2;
+      b.arr.forEach(function (it) { pos[it.n.id].y += off; });
+    });
+    return { pos: pos, width: width, height: height };
+  }
+
+  function edgePath(a, b) {
+    var x1 = a.x + a.w / 2, y1 = a.y + a.h / 2, x2 = b.x + b.w / 2, y2 = b.y + b.h / 2;
+    var dx = x2 - x1, dy = y2 - y1;
+    var t1 = Math.min(Math.abs(dx) > 0.001 ? (a.w / 2 + 8) / Math.abs(dx) : 1e9, Math.abs(dy) > 0.001 ? (a.h / 2 + 8) / Math.abs(dy) : 1e9);
+    var t2 = Math.min(Math.abs(dx) > 0.001 ? (b.w / 2 + 8) / Math.abs(dx) : 1e9, Math.abs(dy) > 0.001 ? (b.h / 2 + 8) / Math.abs(dy) : 1e9);
+    var sx = x1 + dx * t1, sy = y1 + dy * t1, ex = x2 - dx * t2, ey = y2 - dy * t2;
+    var d;
+    if (ex > sx) {
+      var c = Math.max(40, (ex - sx) / 2);
+      d = 'M' + sx + ',' + sy + ' C' + (sx + c) + ',' + sy + ' ' + (ex - c) + ',' + ey + ' ' + ex + ',' + ey;
+    } else {
+      var cc = Math.max(40, (ey - sy) / 2);
+      d = 'M' + sx + ',' + sy + ' C' + sx + ',' + (sy + cc) + ' ' + ex + ',' + (ey - cc) + ' ' + ex + ',' + ey;
+    }
+    return { d: d, mx: (sx + ex) / 2, my: (sy + ey) / 2 };
+  }
+
+  function mk(tag, attrs, cls) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    if (cls) el.setAttribute('class', cls);
+    return el;
+  }
+
+  function closePanel() { $('#panel').classList.remove('open'); }
+
+  function openPanel(n) {
+    var panel = $('#panel');
+    panel.innerHTML = '';
+    panel.classList.add('open');
+    var close = document.createElement('button');
+    close.className = 'close';
+    close.textContent = '\u2715';
+    close.addEventListener('click', closePanel);
+    panel.appendChild(close);
+    var h2 = document.createElement('h2');
+    h2.textContent = n.label || n.id;
+    panel.appendChild(h2);
+    var pathEl = document.createElement('div');
+    pathEl.className = 'path';
+    pathEl.textContent = '系统 / ' + chain(n.id).map(function (id) { return byId[id].label || id; }).join(' / ');
+    panel.appendChild(pathEl);
+    var layer = LAYERS[n.layer] || LAYERS.core;
+    var badge = document.createElement('span');
+    badge.className = 'layer';
+    badge.textContent = layer.name;
+    badge.style.borderColor = layer.stroke;
+    badge.style.color = layer.stroke;
+    panel.appendChild(badge);
+    if (n.summary) {
+      var s = document.createElement('p');
+      s.textContent = n.summary;
+      panel.appendChild(s);
+    }
+    if (n.detail) {
+      var d = document.createElement('p');
+      d.textContent = n.detail;
+      panel.appendChild(d);
+    }
+    if (n.notes && n.notes.length) {
+      var h3 = document.createElement('h3');
+      h3.textContent = '机制说明';
+      panel.appendChild(h3);
+      var ul = document.createElement('ul');
+      n.notes.forEach(function (t) {
+        var li = document.createElement('li');
+        li.textContent = t;
+        ul.appendChild(li);
+      });
+      panel.appendChild(ul);
+    }
+    if (n.evidence && n.evidence.length) {
+      var h3b = document.createElement('h3');
+      h3b.textContent = '代码证据';
+      panel.appendChild(h3b);
+      var chips = document.createElement('div');
+      chips.className = 'chips';
+      n.evidence.forEach(function (t) {
+        var c = document.createElement('span');
+        c.className = 'chip';
+        c.textContent = t;
+        chips.appendChild(c);
+      });
+      panel.appendChild(chips);
+    }
+    if (n._children.length) {
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = '该模块含 ' + n._children.length + ' 个子模块，图中已下钻。点击面包屑或「系统」逐级返回。';
+      panel.appendChild(hint);
+    }
+  }
+
+  function renderBreadcrumb() {
+    var bc = $('#breadcrumb');
+    bc.innerHTML = '';
+    var root = document.createElement('span');
+    root.className = 'crumb';
+    root.textContent = '系统';
+    root.addEventListener('click', function () {
+      state.path = []; state.selected = null;
+      renderDiagram(); closePanel();
+    });
+    bc.appendChild(root);
+    state.path.forEach(function (id) {
+      var sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.textContent = ' / ';
+      bc.appendChild(sep);
+      var c = document.createElement('span');
+      c.className = 'crumb';
+      c.textContent = byId[id].label || id;
+      c.addEventListener('click', function () {
+        state.path = state.path.slice(0, state.path.indexOf(id) + 1);
+        state.selected = null;
+        renderDiagram(); closePanel();
+      });
+      bc.appendChild(c);
+    });
+  }
+
+  function renderDiagram() {
+    var parent = currentParent();
+    var view = viewItems(parent);
+    var items = view.nodes.map(function (n) { return { n: n, ext: false, up: false }; });
+    view.ext.forEach(function (n) { items.push({ n: n, ext: true, up: false }); });
+    if (view.parentNode) items.push({ n: view.parentNode, ext: true, up: true });
+    var L = layout(items, view.edges);
+    svg.setAttribute('width', L.width);
+    svg.setAttribute('height', L.height);
+    svg.innerHTML = '';
+    var defs = document.createElementNS(SVG_NS, 'defs');
+    function marker(id, color) {
+      var m = document.createElementNS(SVG_NS, 'marker');
+      m.setAttribute('id', id);
+      m.setAttribute('viewBox', '0 0 10 10');
+      m.setAttribute('refX', '9');
+      m.setAttribute('refY', '5');
+      m.setAttribute('markerWidth', '7');
+      m.setAttribute('markerHeight', '7');
+      m.setAttribute('orient', 'auto-start-reverse');
+      var p = document.createElementNS(SVG_NS, 'path');
+      p.setAttribute('d', 'M0,0 L10,5 L0,10 z');
+      p.setAttribute('fill', color);
+      m.appendChild(p);
+      return m;
+    }
+    defs.appendChild(marker('arr', '#8b949e'));
+    defs.appendChild(marker('arr-hi', '#58a6ff'));
+    svg.appendChild(defs);
+
+    if (!items.length) {
+      var msg = mk('text', { x: MARGIN, y: 60, fill: '#8b949e', 'font-size': 13 });
+      msg.textContent = '（该视图没有模块数据）';
+      svg.appendChild(msg);
+      renderBreadcrumb();
+      return;
+    }
+
+    var sel = state.selected;
+    var q = state.query.trim().toLowerCase();
+    function matches(n) {
+      if (!q) return true;
+      return (n.label + ' ' + (n.summary || '') + ' ' + (n.detail || '')).toLowerCase().indexOf(q) >= 0;
+    }
+    var dimmed = {};
+    items.forEach(function (it) { if (!matches(it.n)) dimmed[it.n.id] = true; });
+    var connected = {};
+    if (sel) {
+      view.edges.forEach(function (e) {
+        if (e.from === sel || e.to === sel) { connected[e.from] = true; connected[e.to] = true; }
+      });
+      connected[sel] = true;
+    }
+
+    view.edges.forEach(function (e) {
+      var a = L.pos[e.from], b = L.pos[e.to];
+      if (!a || !b) return;
+      var p = edgePath(a, b);
+      var cls = 'edge';
+      if (e.kind === 'dep') cls += ' dep';
+      var hi = sel && (e.from === sel || e.to === sel);
+      var searchDim = dimmed[e.from] || dimmed[e.to];
+      var selDim = sel && !(e.from === sel || e.to === sel);
+      if (hi) cls += ' hi';
+      else if (searchDim || selDim) cls += ' dim';
+      var g = mk('g', {}, cls);
+      var path = mk('path', { d: p.d, fill: 'none', 'marker-end': 'url(#' + (hi ? 'arr-hi' : 'arr') + ')' });
+      g.appendChild(path);
+      if (e.label) {
+        var t = mk('text', { x: p.mx, y: p.my - 6, 'text-anchor': 'middle' }, 'edge-label');
+        t.setAttribute('stroke', '#0d1117');
+        t.setAttribute('stroke-width', '4');
+        t.setAttribute('paint-order', 'stroke');
+        t.textContent = e.label;
+        g.appendChild(t);
+      }
+      svg.appendChild(g);
+    });
+
+    items.forEach(function (it) {
+      var n = it.n, p = L.pos[n.id];
+      if (!p) return;
+      var layer = LAYERS[n.layer] || LAYERS.core;
+      var g = mk('g', {}, 'node');
+      g.setAttribute('data-id', n.id);
+      if (dimmed[n.id]) g.setAttribute('class', 'node dim');
+      if (sel && n.id === sel) g.setAttribute('class', 'node selected');
+      if (sel && !connected[n.id]) g.setAttribute('class', 'node dim');
+      var rect = mk('rect', {
+        x: p.x, y: p.y, width: p.w, height: p.h, rx: 8,
+        fill: layer.fill, stroke: layer.stroke, 'stroke-width': 1.5
+      });
+      if (it.ext) { rect.setAttribute('stroke-dasharray', '5 4'); rect.setAttribute('fill-opacity', '0.55'); }
+      g.appendChild(rect);
+      var t1 = mk('text', { x: p.x + p.w / 2, y: p.y + 23, 'text-anchor': 'middle', fill: '#e6edf3', 'font-size': 12.5, 'font-weight': 600 });
+      t1.textContent = trunc(n.label || n.id, 12.5, p.w - 18);
+      g.appendChild(t1);
+      if (n.summary) {
+        var t2 = mk('text', { x: p.x + p.w / 2, y: p.y + 40, 'text-anchor': 'middle', fill: '#8b949e', 'font-size': 11 });
+        t2.textContent = trunc(n.summary, 11, p.w - 18);
+        g.appendChild(t2);
+      }
+      if (n._children.length) {
+        var t3 = mk('text', { x: p.x + p.w - 8, y: p.y + p.h - 8, 'text-anchor': 'end', fill: layer.stroke, 'font-size': 9.5 });
+        t3.textContent = '+' + n._children.length;
+        g.appendChild(t3);
+      }
+      g.addEventListener('click', function () { onNodeClick(n.id, it); });
+      svg.appendChild(g);
+    });
+
+    renderBreadcrumb();
+  }
+
+  function onNodeClick(id, it) {
+    if (it.up) {
+      state.path.pop();
+      state.selected = null;
+      renderDiagram();
+      closePanel();
+      return;
+    }
+    if (byId[id]._children.length) {
+      state.path = chain(id);
+      state.selected = null;
+    } else {
+      state.selected = id;
+    }
+    renderDiagram();
+    openPanel(byId[id]);
+  }
+
+  function renderSection(sec) {
+    var body = $('#section-body');
+    body.innerHTML = '';
+    var h2 = document.createElement('h2');
+    h2.textContent = sec.title || '未命名';
+    body.appendChild(h2);
+    (sec.blocks || []).forEach(function (b) {
+      if (b.type === 'p') {
+        var p = document.createElement('p');
+        p.textContent = b.text || '';
+        body.appendChild(p);
+      } else if (b.type === 'bullets') {
+        var ul = document.createElement('ul');
+        (b.items || []).forEach(function (t) {
+          var li = document.createElement('li');
+          li.textContent = t;
+          ul.appendChild(li);
+        });
+        body.appendChild(ul);
+      } else if (b.type === 'code') {
+        var pre = document.createElement('pre');
+        pre.textContent = b.text || '';
+        body.appendChild(pre);
+      } else if (b.type === 'anchors') {
+        var chips = document.createElement('div');
+        chips.className = 'chips';
+        (b.items || []).forEach(function (t) {
+          var c = document.createElement('span');
+          c.className = 'chip';
+          c.textContent = t;
+          chips.appendChild(c);
+        });
+        body.appendChild(chips);
+      }
+    });
+  }
+
+  function buildTabs() {
+    var tabs = $('#tabs');
+    tabs.innerHTML = '';
+    var defs = [{ id: 'diagram', title: '架构', sec: null }];
+    data.sections.forEach(function (s, i) { defs.push({ id: 'sec' + i, title: s.title || '未命名', sec: s }); });
+    defs.forEach(function (d) {
+      var t = document.createElement('div');
+      t.className = 'tab' + (d.id === 'diagram' ? ' active' : '');
+      t.textContent = d.title;
+      t.addEventListener('click', function () {
+        document.querySelectorAll('#tabs .tab').forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        if (d.sec === null) {
+          $('#view-section').classList.remove('active');
+          $('#view-diagram').classList.add('active');
+          $('#search').classList.remove('hidden');
+          renderDiagram();
+        } else {
+          $('#view-diagram').classList.remove('active');
+          $('#view-section').classList.add('active');
+          $('#search').classList.add('hidden');
+          closePanel();
+          renderSection(d.sec);
+        }
+      });
+      tabs.appendChild(t);
+    });
+  }
+
+  function buildLegend() {
+    var used = {};
+    data.modules.forEach(function (m) { if (LAYERS[m.layer]) used[m.layer] = true; });
+    var lg = $('#legend');
+    lg.innerHTML = '';
+    Object.keys(LAYERS).forEach(function (k) {
+      if (!used[k]) return;
+      var row = document.createElement('div');
+      row.className = 'legend-row';
+      var sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = LAYERS[k].stroke;
+      row.appendChild(sw);
+      var lb = document.createElement('span');
+      lb.textContent = LAYERS[k].name;
+      row.appendChild(lb);
+      lg.appendChild(row);
+    });
+  }
+
+  $('#title').textContent = data.title || '技术报告';
+  $('#summary').textContent = data.summary || '';
+  document.title = (data.title || '技术报告') + ' · 技术报告';
+  $('#search').addEventListener('input', function (e) {
+    state.query = e.target.value;
+    renderDiagram();
+  });
+  svg.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.node')) return;
+    state.selected = null;
+    renderDiagram();
+    closePanel();
+  });
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { state.selected = null; closePanel(); renderDiagram(); }
+  });
+  buildTabs();
+  buildLegend();
+  renderDiagram();
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@ Read this file before creating, updating, or auditing a technical report. It def
 
 ## What the report represents
 
+The report is one self-contained HTML file. Its entire content lives in the `report-data` JSON block; everything else in the file is fixed template code. Editing a report means editing that JSON block.
+
 The report describes the implementation visible at the selected baseline:
 
 - default: the repository's current working tree, including uncommitted implementation present on disk;
@@ -151,10 +153,10 @@ Before editing, privately map each material statement to:
 
 Use that map to avoid speculation and to identify stale text. Do not save the map as an audit log, research note, or change appendix in the target project.
 
-In the report, use project-relative implementation anchors when they materially help a maintainer verify or navigate the explanation:
+In the report, put project-relative implementation anchors in module `evidence` arrays and section `anchors` blocks when they materially help a maintainer verify or navigate the explanation:
 
 ```text
-`path/to/file.ext` (`StableSymbolOrSection`)
+path/to/file.ext (StableSymbolOrSection)
 ```
 
 Prefer stable symbols, modules, configuration keys, and section names over dense line-number citations. Never use machine-specific absolute paths. An anchor must point to content that supports the nearby statement; a generic entry point is not evidence for an entire multi-module flow.
@@ -162,6 +164,8 @@ Prefer stable symbols, modules, configuration keys, and section names over dense
 ## Writing current-state content
 
 ### Explain how, not the change
+
+The same wording rules apply to every text field in the data block: module `summary`, `detail`, `notes`, section `blocks`, and edge `label`.
 
 Good current-state wording:
 
@@ -203,24 +207,22 @@ The importer does not support JSON yet and should add it later.
 
 When reality changes:
 
-- replace stale wording with the current implementation;
-- delete descriptions of removed components;
-- move content when responsibilities moved;
-- merge duplicate descriptions;
-- remove empty or inapplicable sections;
-- preserve accurate unrelated content;
+- replace stale module `summary` / `detail` / `notes` wording with the current implementation;
+- delete module entries, their edges, and section content for removed components;
+- move `detail` / `notes` content to the module or section that now owns the responsibility;
+- merge duplicate descriptions across modules and sections;
+- remove empty or inapplicable modules, edges, and sections;
+- preserve accurate unrelated entries and all template code;
 - do not retain the old account for comparison.
 
 Use **one fact, one canonical home**:
 
-- overview: compact system shape only;
-- runtime / technology / framework section: technology responsibility, not full flows;
-- architecture: boundaries and dependency direction;
-- runtime flows: step-by-step execution;
-- key mechanisms: non-obvious internal behavior;
-- security / failure: cross-cutting guarantees, limits, and failure boundaries.
+- overview diagram: compact system shape only;
+- module `detail` / `notes`: the canonical explanation of that module's internals and key mechanisms;
+- `edges` with labels: dependency direction and runtime flows: step-by-step execution;
+- sections: cross-cutting content (runtime/technology responsibilities, data and state, security and failure, build and deployment).
 
-Explain a mechanism in detail once. Elsewhere state only the section-specific consequence or use a short reference. During update/audit, search for and remove stale or duplicated versions scattered across sections.
+Explain a mechanism in detail once, in its owning module or section. Elsewhere state only the local consequence or use a short reference. During update/audit, search for and remove stale or duplicated versions scattered across modules and sections.
 
 Do not add a note saying that text was updated, corrected, migrated, or superseded.
 
@@ -250,6 +252,30 @@ Do not turn a verified local boundary into a repository-wide guarantee:
 
 Avoid `all`, `every`, `always`, `never`, `global`, `fully`, `strict`, `end-to-end`, `supported`, and `compatible` unless all relevant entries, alternate paths, and topology boundaries were checked. Qualify the component, key, process, host, service, or environment instead.
 
+## Authoring the data block
+
+The whole report content is one JSON object inside the `<script type="application/json" id="report-data">` block. Everything outside that block is fixed template code: never modify it while creating or editing a report. Template bugs are fixed in `templates/technical-report.html`, not in an individual report.
+
+### Schema semantics
+
+- `title` / `summary` — project name and a one-sentence system overview shown in the header.
+- `modules` — one entry per module. `parent` builds the tree; modules without `parent` (or with an unknown parent) render at the top level. Maximum depth is three levels (system → module → component); deeper content belongs in `detail` / `notes` text.
+- `layer` — one of `entry`, `core`, `data`, `infra`, `external`, `frontend`, chosen for the module's role in this project. The template colors nodes by layer and renders a legend.
+- `summary` — one short line rendered under the node label; keep it under roughly thirty characters.
+- `detail` — the canonical 2-4 sentence explanation; `notes` — non-obvious mechanisms, one per bullet; `evidence` — project-relative anchors supporting the claims.
+- `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
+- `sections` — optional tabs for cross-cutting content. Each block is `p` (paragraph), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
+
+### Validation before writing
+
+- the block is valid JSON: no comments, no trailing commas, `"` and `\` escaped, any literal `</script>` written as `<\/script>`;
+- module ids are unique; every `parent` references an existing module; no module is deeper than three levels;
+- every `layer` is one of the six defined values;
+- every edge references existing module ids and has `kind` `flow` or `dep`;
+- every module is reachable from the top level through `parent` links (no orphan subtrees);
+- summaries are one line; anchors use project-relative paths and support the nearby statement;
+- the report contains no empty `sections` entries and no unused schema fields.
+
 ## Mode mechanics
 
 ### `init`
@@ -257,9 +283,11 @@ Avoid `all`, `every`, `always`, `never`, `global`, `fully`, `strict`, `end-to-en
 1. Resolve the report path and confirm no established report should be preserved elsewhere.
 2. Establish the full repository/runtime topology before generalizing from any primary package.
 3. Close active wiring for the material runtime flows and apply semantic proof gates.
-4. Copy `templates/technical-report.md` as a structural starting point.
-5. Write only verified, applicable sections; delete instructions and empty headings.
-6. Check that the opening overview is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
+4. Copy `templates/technical-report.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
+5. Write only verified, applicable modules, edges, and sections; do not change anything outside the data block.
+6. Check that the top-level diagram is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
+
+If a markdown report exists without an HTML report, migrate it first (see SKILL.md): use it as a claim inventory only, re-verify every material claim, then delete the markdown file after the HTML report is written.
 
 If a report already exists, follow `audit` instead.
 
@@ -268,17 +296,17 @@ If a report already exists, follow `audit` instead.
 1. Require an existing report.
 2. Confirm the accepted scope is specific enough to investigate; use Git diff/status only for discovery.
 3. Trace each affected implementation to its current boundaries.
-4. Determine impact by comparing verified current implementation to the report — do not accept another agent's impact guess.
-5. Prepare a coherent section-level edit, including deletion of stale statements.
+4. Determine impact by comparing verified current implementation to the report's `report-data` block — do not accept another agent's impact guess.
+5. Prepare a coherent data-block edit: rewrite, add, move, or delete only the affected module entries, edges, and section blocks, including deletion of stale statements.
 6. If no report statement needs to change within the implementation scope examined for this accepted change, return scoped `no-impact`; do not imply that unrelated report sections were audited.
 
 ### `audit`
 
 1. Require an existing report.
 2. Establish the current system shape independently of the report.
-3. Verify every material claim and useful implementation anchor.
+3. Verify every material claim and useful implementation anchor in the `report-data` block.
 4. Check important current implementation areas for omissions.
-5. Reconcile all detected drift in place.
+5. Reconcile all detected drift in place, editing only the `report-data` block.
 6. Run the content-boundary checklist below.
 
 ## Content-boundary checklist
@@ -295,13 +323,18 @@ Before finishing, confirm that:
 - claim quantifiers match the proved instance/process/worker/replica/service/environment scope;
 - dependencies described as active have verified wiring and responsibility;
 - removed modules, stale interfaces, obsolete configuration, and broken anchors are absent;
-- each mechanism has one canonical detailed explanation and the overview stays compact;
+- each mechanism has one canonical detailed explanation and the overview diagram stays compact;
 - the report contains no before/after story or “this change” narrative;
 - rationale and decision trade-offs are absent;
 - prompts, requirements, phases, checkpoints, task progress, command output, and test-run results are absent;
 - changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
-- no empty template sections remain.
+- no empty modules or sections remain;
+- the `report-data` block is valid JSON and is the only part of the HTML file that differs from `templates/technical-report.html`;
+- module ids are unique, every `parent` exists, no module is deeper than three levels, and every `layer` value is one of the six defined layers;
+- every edge references existing module ids with a valid `kind`;
+- module summaries are one line and each material claim has supporting `evidence` anchors or section `anchors`;
+- any literal `</script>` inside the data block appears as `<\/script>`.
 
 ## Blocking rule
 

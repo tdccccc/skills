@@ -1,1 +1,1 @@
-Treat this disposable fixture copy as the project root. Initialize `docs/technical-report.md` in place. Focus on runtime topology, quota enforcement, shared state, concurrency, bypasses, and failure behavior, then return the technical-report operation result.
+Treat this disposable fixture copy as the project root. Initialize `docs/technical-report.html` in place. Focus on runtime topology, quota enforcement, shared state, concurrency, bypasses, and failure behavior, then return the technical-report operation result.
