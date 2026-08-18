@@ -87,53 +87,34 @@ svg{display:block}
      创建/更新报告时只替换该块的内容，其余模板代码保持原样。 -->
 <script type="application/json" id="report-data">
 {
-  "title": "buffered-stream",
-  "summary": "网关调用上游服务并按行处理响应。",
+  "title": "unrelated-tests-change",
+  "summary": "最小请求处理应用。",
   "modules": [
     {
       "id": "main",
       "label": "入口",
       "layer": "entry",
-      "summary": "组装网关并调用 generate",
-      "detail": "main.main 构造 Gateway 并注入 BufferedHttpAdapter。",
+      "summary": "执行请求处理",
+      "detail": "main 调用 handle_request 并打印结果。",
       "evidence": [
-        "main.py (main)"
+        "app.py (main)"
       ]
     },
     {
-      "id": "gateway",
-      "label": "Gateway",
+      "id": "handler",
+      "label": "请求处理",
       "layer": "core",
-      "summary": "调用上游并按行返回",
-      "detail": "The gateway provides end-to-end streaming and never buffers the complete upstream response.",
-      "notes": [
-        "请求负载带 stream 字段，表示流式意图",
-        "line iteration proves network backpressure"
-      ],
+      "summary": "生成应答",
+      "detail": "handle_request 读取 payload 的 id 并返回 ok 应答。",
       "evidence": [
-        "gateway.py (Gateway.generate)"
-      ]
-    },
-    {
-      "id": "http",
-      "label": "HTTP 适配器",
-      "layer": "infra",
-      "summary": "发送请求并返回响应",
-      "detail": "BufferedHttpAdapter.post_json 发送 JSON 请求并返回响应。",
-      "evidence": [
-        "http_adapter.py (BufferedHttpAdapter.post_json)"
+        "app.py (handle_request)"
       ]
     }
   ],
   "edges": [
     {
       "from": "main",
-      "to": "gateway",
-      "kind": "flow"
-    },
-    {
-      "from": "gateway",
-      "to": "http",
+      "to": "handler",
       "kind": "flow"
     }
   ],

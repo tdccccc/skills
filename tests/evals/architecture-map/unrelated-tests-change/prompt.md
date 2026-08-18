@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. The accepted change added a new test to `test_app.py` only; production code is untouched. Update `seed-report.html` in place (edit only the `report-data` block) for this accepted scope and return the architecture-map operation result.

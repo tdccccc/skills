@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>技术报告</title>
+<title>架构地图</title>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--hi:#58a6ff}
 *{box-sizing:border-box}
@@ -160,9 +160,14 @@ svg{display:block}
     $('#fatal-msg').textContent = 'report-data 解析失败：' + e.message;
     return;
   }
-  data.modules = data.modules || [];
-  data.edges = data.edges || [];
-  data.sections = data.sections || [];
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    $('#fatal').classList.remove('hidden');
+    $('#fatal-msg').textContent = 'report-data 必须是一个 JSON 对象。';
+    return;
+  }
+  data.modules = Array.isArray(data.modules) ? data.modules : [];
+  data.edges = Array.isArray(data.edges) ? data.edges : [];
+  data.sections = Array.isArray(data.sections) ? data.sections : [];
 
   var LAYERS = {
     entry:    { name: '入口',     fill: '#1a3a2a', stroke: '#3fb950' },
@@ -176,10 +181,15 @@ svg{display:block}
   var byId = {};
   var topIds = [];
   data.modules.forEach(function (m) {
+    if (byId[m.id]) {
+      console.warn('架构地图：重复的模块 id，忽略后续条目：' + m.id);
+      return;
+    }
     byId[m.id] = m;
     m._children = [];
   });
   data.modules.forEach(function (m) {
+    if (byId[m.id] !== m) return;
     var p = m.parent || null;
     if (p && byId[p]) { byId[p]._children.push(m.id); m._p = p; }
     else { m._p = null; topIds.push(m.id); }
@@ -684,9 +694,9 @@ svg{display:block}
     });
   }
 
-  $('#title').textContent = data.title || '技术报告';
+  $('#title').textContent = data.title || '架构地图';
   $('#summary').textContent = data.summary || '';
-  document.title = (data.title || '技术报告') + ' · 技术报告';
+  document.title = (data.title || '架构地图') + ' · 架构地图';
   $('#search').addEventListener('input', function (e) {
     state.query = e.target.value;
     renderDiagram();

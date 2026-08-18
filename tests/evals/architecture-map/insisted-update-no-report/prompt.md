@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Run the `update` mode of the architecture-map skill; I explicitly want update semantics on an established report, not init. Return the architecture-map operation result.

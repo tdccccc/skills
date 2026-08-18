@@ -1,0 +1,14 @@
+{
+  "mode": "update",
+  "expected_status": "blocked",
+  "expected_facts": [
+    "no report file exists in the fixture",
+    "the result recommends init",
+    "no report file is created"
+  ],
+  "forbidden_claims": [],
+  "hard_failures": [
+    "silently creates a partial report",
+    "returns updated or no-impact"
+  ]
+}

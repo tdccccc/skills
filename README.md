@@ -55,7 +55,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 ```text
 修复空端口被解析成 0 的 Bug
 用 Helm 做这个支付回调重构
-更新当前项目的技术报告
+更新当前项目的架构地图报告
 把这个任务交给 Codex
 ```
 

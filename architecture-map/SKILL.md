@@ -1,6 +1,6 @@
 ---
 name: architecture-map
-description: 'Create, update, and audit a repository technical report that explains the verified current implementation as an interactive single-file HTML architecture report with drill-down diagrams. Use when the user asks for a technical report, implementation report, architecture or technology documentation, to synchronize technical documentation after accepted code changes, or mentions architecture-map, 架构地图, 架构报告, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, or execution logs.'
+description: 'Create, update, and audit a repository architecture map report that explains the verified current implementation as an interactive single-file HTML report with drill-down diagrams. Use when the user asks for a technical report, implementation report, or current-state architecture / technology documentation, to synchronize technical documentation after accepted code changes, or mentions architecture-map, 架构地图, 架构报告, 技术报告, 开发报告, 更新技术报告, or 审计技术报告. Not for changelogs, decision rationale, plans, prompts, execution logs, or forward-looking architecture design.'
 install-targets: claude
 ---
 
@@ -128,6 +128,7 @@ Supporting files live next to this `SKILL.md`:
 Infer the mode from the request and repository state. Resolve a missing report deterministically:
 
 - explicit `init`, an unspecified first request, or the first Helm synchronization after the user enables architecture-map maintenance → `init`, even when an accepted change scope is available;
+- an `update` or `audit` request when no report exists → `init`: a maintenance intent without a report means establishing one;
 - explicit `update` or `audit` that expects an already established report → `blocked` with a recommendation to run `init`.
 
 After initialization, accepted changes use `update`; accuracy checks use `audit`.

@@ -276,6 +276,8 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - summaries are one line; anchors use project-relative paths and support the nearby statement;
 - the report contains no empty `sections` entries and no unused schema fields.
 
+The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The checklist is authoring discipline, not a runtime guarantee.
+
 ## Mode mechanics
 
 ### `init`
@@ -291,7 +293,7 @@ If a report already exists, follow `audit` instead.
 
 ### `update`
 
-1. Require an existing report.
+1. Require an existing report; when none exists, fall back to `init` unless the user explicitly insists on `update` semantics for an established report.
 2. Confirm the accepted scope is specific enough to investigate; use Git diff/status only for discovery.
 3. Trace each affected implementation to its current boundaries.
 4. Determine impact by comparing verified current implementation to the report's `report-data` block — do not accept another agent's impact guess.
@@ -300,7 +302,7 @@ If a report already exists, follow `audit` instead.
 
 ### `audit`
 
-1. Require an existing report.
+1. Require an existing report; when none exists, fall back to `init` unless the user explicitly insists on `audit` semantics for an established report.
 2. Establish the current system shape independently of the report.
 3. Verify every material claim and useful implementation anchor in the `report-data` block.
 4. Check important current implementation areas for omissions.

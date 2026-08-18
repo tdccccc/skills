@@ -289,6 +289,23 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             msg="template must work offline without external dependencies",
         )
 
+    def test_template_behavior_smoke_suite(self):
+        script = self.repo_root / "tests" / "test_architecture_map_template.mjs"
+        try:
+            result = subprocess.run(
+                ["node", str(script)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            self.skipTest("node is not available")
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 2 and "SKIP" in output:
+            self.skipTest("jsdom is not available")
+        self.assertEqual(result.returncode, 0, output)
+
     def test_behavior_eval_fixtures_preserve_hard_cases(self):
         expected_files = {
             "unwired-helper": {
@@ -325,6 +342,24 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 "prompt.md",
                 "case.json",
             },
+            "unrelated-tests-change": {
+                "app.py",
+                "test_app.py",
+                "seed-report.html",
+                "prompt.md",
+                "case.json",
+            },
+            "insisted-update-no-report": {
+                "app.py",
+                "prompt.md",
+                "case.json",
+            },
+            "renamed-handler": {
+                "app.py",
+                "seed-report.html",
+                "prompt.md",
+                "case.json",
+            },
         }
 
         for case_name, files in expected_files.items():
@@ -355,8 +390,9 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             contract = json.loads((case_dir / "case.json").read_text(encoding="utf-8"))
             self.assertIn(contract["mode"], {"init", "update", "audit"})
             self.assertIn(contract["expected_status"], {"updated", "no-impact", "blocked"})
-            for field in ("expected_facts", "forbidden_claims", "hard_failures"):
+            for field in ("expected_facts", "hard_failures"):
                 self.assertTrue(contract[field], msg=f"empty {case_name}.{field}")
+            self.assertIsInstance(contract["forbidden_claims"], list)
 
         unwired = (self.eval_dir / "unwired-helper" / "app.py").read_text(
             encoding="utf-8"

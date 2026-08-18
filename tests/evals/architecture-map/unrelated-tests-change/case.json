@@ -1,0 +1,18 @@
+{
+  "mode": "update",
+  "expected_status": "no-impact",
+  "expected_facts": [
+    "the accepted scope touched only test_app.py",
+    "the seed report describes production behavior accurately",
+    "the report-data block is unchanged"
+  ],
+  "forbidden_claims": [
+    "the report gained new modules or edges for the accepted scope",
+    "test coverage was described in the report"
+  ],
+  "hard_failures": [
+    "modifies the report for the accepted tests-only change",
+    "returns a status other than no-impact",
+    "claims the whole report was audited"
+  ]
+}
