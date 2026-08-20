@@ -205,6 +205,7 @@ Use the brief to derive the module tree:
 - Do not promote a library to a runtime node merely because it has its own package. State explicitly which process or host loads it.
 - Group external providers under an “external systems” concept when their individual identity is secondary at overview level; keep an intermediary service separate when it is independently deployed or changes trust/failure behavior.
 - Group persistent artifacts under the component that owns their consistency semantics. Distinguish an authoritative commit from a projection that can be repaired or rebuilt.
+- A node owns behavior or a durable artifact with a named writer. A value object or DTO passed between modules is a note on its owning module plus at most one producer-to-consumer edge, never a node of its own.
 - When one persisted document mixes user-owned fields and generated fields, describe the ownership and repairability per field group. Never call the whole document rebuildable unless every material field can be reconstructed without losing user decisions.
 - Keep build, test, packaging, release, and deployment governance out of the runtime overview. Explain those relationships in their section or in a separate drill-down only when they form a real deployable-unit boundary.
 
@@ -226,6 +227,8 @@ Control and payload may deserve separate edges only when the labels make their r
 Synthesis can connect verified facts but cannot create a relationship that no runtime wiring, contract, data ownership rule, or deployment boundary supports. Verify both endpoints and the hand-off before adding an edge.
 
 Use diagram edges for actual invocation, ownership, or deployment hand-offs. Put cleanup order, event-append order, retry timing, and other temporal sequencing in `steps` or failure tables unless the implementation has a concrete data/control hand-off. Do not draw a checkpoint-to-report or state-to-history arrow merely because one happens before or after the other.
+
+Data nodes are passive endpoints. An edge that reads or writes a persisted artifact starts from the module that performs the access; two data nodes are never connected directly. When one artifact's content changes another — index repair from an existing report, path reconciliation from verified files, claim finalization into delivery state — name the module that performs the read and write and draw the edge from it. Inside the data module's drill-down that module renders as a dashed external context node, which is exactly the information the reader needs: who touches the data, and with what effect.
 
 Use five information levels so the reader can stop when they have enough detail:
 
@@ -370,7 +373,7 @@ Each section's first block must be one short takeaway paragraph that answers its
 | Record a short unordered set | `bullets` | Parallel items with the same grammatical shape |
 | Locate implementation | `anchors` | Project-relative file and stable symbol |
 
-Use the five section questions from `SKILL.md` as a completeness check, not as literal boilerplate. Omit a section or subsection that has no material verified answer.
+Use the five section questions from `SKILL.md` as both the completeness check and the section titles: localize them to the project's language and terms, but do not substitute a parallel category such as "key mechanisms" for Key Execution Flows. Omit a section or subsection that has no material verified answer.
 
 Avoid a section made of one long paragraph or a flat list of unrelated mechanisms. Split it by reader question. Keep a table cell or step focused on one fact cluster; move low-level constants to module notes or evidence unless they change how the system behaves.
 
@@ -394,7 +397,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - `title` / `summary` — project name and a one-sentence system overview shown in the header.
 - `modules` — one entry per module. `parent` builds the tree; modules without `parent` (or with an unknown parent) render at the top level. Maximum depth is three levels (system → module → component); deeper content belongs in `detail` / `notes` text.
 - `layer` — one of `entry`, `core`, `data`, `infra`, `external`, `frontend`, chosen for the module's role in this project. The template colors nodes by layer and renders a legend.
-- `summary` — one short line rendered under the node label; keep it under roughly thirty characters.
+- `summary` — one short line rendered under the node label; keep it under roughly thirty characters; it states the node's responsibility in this system, not an enumeration of its children or a technology list.
 - `detail` — the canonical 2-4 sentence explanation; `notes` — non-obvious mechanisms, one per bullet; `evidence` — project-relative anchors supporting the claims.
 - `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When several deep relationships lift to the same visible endpoints, the renderer aggregates their count and distinct labels so the overview does not misrepresent the first edge as the only relationship. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
 - `sections` — optional tabs for cross-cutting content. Blocks are `p` (paragraph), `heading` (`text`), `steps` (`items`, rendered as an ordered list), `table` (`columns` and `rows`), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
@@ -407,6 +410,8 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - module ids are unique; every `parent` references an existing module; no module is deeper than three levels;
 - every `layer` is one of the six defined values;
 - every edge references existing module ids and has `kind` `flow` or `dep`;
+- every module owns behavior or a durable artifact with a named writer; no module exists solely to carry a value between two other modules;
+- no edge connects two data nodes, and every edge that reads or writes a data node starts from the module that performs the access;
 - every module is reachable from the top level through `parent` links (no orphan subtrees);
 - summaries are one line; anchors use project-relative paths and support the nearby statement;
 - the report contains no empty `sections` entries and no unused schema fields.
