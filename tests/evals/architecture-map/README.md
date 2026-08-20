@@ -12,12 +12,13 @@ Each fixture contains:
 Score each case out of 10:
 
 1. traces the real production entry and active wiring (2);
-2. distinguishes declared/configurable/selected/invoked evidence (1);
-3. verifies both sides of a cross-component contract where applicable (1);
-4. finds the decisive rejection, fallback, bypass, buffering, or degraded path (2);
-5. calibrates the claim to runtime topology and scope (1);
-6. avoids semantics stronger than the evidence (1);
-7. writes current state without audit/change history, rationale, or prompt text (1);
-8. returns the correct status and verified scope (1).
+2. synthesizes reader-facing runtime, Core, data-owner, integration, and trust boundaries instead of copying the package tree, while keeping Host-to-use-case paths traceable (1);
+3. distinguishes declared/configurable/selected/invoked evidence (1);
+4. verifies both sides of a cross-component contract where applicable (1);
+5. finds the decisive rejection, fallback, bypass, buffering, or degraded path (1);
+6. classifies data ownership and rebuildability at the correct store or field scope (1);
+7. uses direct prose, ordered steps, and comparison tables instead of noun stacks or flat fact dumps (1);
+8. writes current state without audit/change history, rationale, or prompt text (1);
+9. returns the correct status and verified scope (1).
 
 Any condition in `hard_failures` makes the case fail regardless of score.

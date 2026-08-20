@@ -2,9 +2,20 @@
 
 Read this file before creating, updating, or auditing an architecture map report. It defines how to establish implementation truth and reconcile a current-state report.
 
+## Contents
+
+- What the report represents
+- Evidence hierarchy
+- Investigation mechanics
+- Architecture synthesis mechanics
+- Writing current-state content
+- Reader-facing section mechanics
+- Authoring the data block
+- Mode mechanics and blocking rules
+
 ## What the report represents
 
-The report is one self-contained HTML file. Its entire content lives in the `report-data` JSON block; everything else in the file is fixed template code. Editing a report means editing that JSON block.
+The report is one self-contained HTML file. Its project-specific content lives in the `report-data` JSON block; everything else is the versioned renderer shell from `templates/architecture-map.html`. Editing implementation claims means editing the data block. Updating renderer behavior means refreshing the whole shell from the shared template while preserving that block.
 
 The report describes the implementation visible at the selected baseline:
 
@@ -138,6 +149,12 @@ Strong semantics require `Invoked` wiring plus evidence for the guarantee itself
 - **Global / all / always / never / compatible / supported:** inspect every relevant entry and alternate path, then state the smallest proven scope.
 - **Production / deployed / externally active:** require external deployment evidence; otherwise describe repository-configured behavior.
 
+For idempotency or claim semantics, inspect the exact key derivation and the consumer that reserves it. Distinguish a record/index key from an automatic provider idempotency or claim key; state only the verified inputs and scope. A channel/provider field in a record does not prove that channel/provider participates in the claim key. For locks, distinguish process-local exclusion from a shared atomic claim. A process-local `RunLock` cannot be described as making concurrent hosts converge, preventing last-writer-wins, or resolving cross-process conflicts.
+
+For command-line products, trace each subcommand separately through the parser: some commands may return directly, invoke a filesystem/archive helper, or spawn another process without constructing the main runtime. Do not attach a runtime-builder edge or technology claim to the whole command family unless every relevant subcommand reaches it.
+
+For storage and recovery security, separate ordinary path normalization from stronger primitives. A lexical root check on regular reads/writes/renames does not imply no-follow or descriptor protection; report no-follow/descriptor guarantees only for the concrete exclusive-create, recovery, or namespace-guard paths that use them.
+
 For every material claim, actively look for the nearest rejection branch, unsupported command/flag, alternate provider, disabled feature, bypass, fallback, degraded mode, exception swallowing, retry exhaustion, buffering/materialization, process-local state, or non-atomic operation that could falsify or narrow it.
 
 If proof is insufficient, narrow the wording to the exact behavior and scope proved, or omit the claim. If the unproved semantic is central to the requested report, return `blocked`. A current defect or degraded path is current implementation truth and may be stated neutrally; it is not change history.
@@ -160,6 +177,63 @@ path/to/file.ext (StableSymbolOrSection)
 ```
 
 Prefer stable symbols, modules, configuration keys, and section names over dense line-number citations. Never use machine-specific absolute paths. An anchor must point to content that supports the nearby statement; a generic entry point is not evidence for an entire multi-module flow.
+
+## Architecture synthesis mechanics
+
+Do not convert discovered files directly into nodes. First write a private system brief with these fields:
+
+0. a system thesis: trigger → runtime unit → core use case → durable state or external effect → user-visible result;
+1. runtime units and their composition roots;
+2. host-facing entry points and the user or scheduler action that reaches each one;
+3. core use cases and the durable result or external effect each produces;
+4. port contracts and the host/provider adapters selected at each composition root;
+5. authoritative records, rebuildable projections, mixed stores whose fields have different ownership, configuration, checkpoints, caches, claims/locks, and histories;
+6. external systems and trust boundaries;
+7. one to three golden paths plus the important recovery or bypass path that changes their meaning.
+
+Keep caches, checkpoints, authoritative state, claims, history, and export/import archives as distinct data categories. Record archive/checkpoint sensitivity (for example prompts, research topics, extracted content, or model output) and distinguish verified permission/path checks from broader security assumptions.
+
+For CLI archives, inspect `dataExport` and `dataImport` independently. Export and import are not one symmetric safety boundary: export may validate source Vault paths and write a ZIP, while import may additionally validate the raw ZIP directory, entry names, CRC, compressed/uncompressed limits, compression ratio, and promotion/rollback transaction. Put each guarantee only on the command path that enforces it.
+
+Select two to four primary scenarios for the report. For each one, verify the trigger, ordered steps, hand-offs, durable/external effect, visible result, and the failure or alternate path that changes the reader's understanding. A set of disconnected component facts is not a scenario.
+
+Use the brief to derive the module tree:
+
+- Make a runtime, product surface, core boundary, data owner, or external trust boundary a top-level node when a new maintainer must understand it before reading implementation detail.
+- Put packages, adapters, services, commands, and storage files beneath the concept they implement. A directory boundary is supporting evidence, not an automatic architecture boundary.
+- Keep host composition roots separate from the host-neutral core. Show adapters under their owning host or runtime, and show core ports under the core when that distinction materially explains dependency direction.
+- Do not promote a library to a runtime node merely because it has its own package. State explicitly which process or host loads it.
+- Group external providers under an “external systems” concept when their individual identity is secondary at overview level; keep an intermediary service separate when it is independently deployed or changes trust/failure behavior.
+- Group persistent artifacts under the component that owns their consistency semantics. Distinguish an authoritative commit from a projection that can be repaired or rebuilt.
+- When one persisted document mixes user-owned fields and generated fields, describe the ownership and repairability per field group. Never call the whole document rebuildable unless every material field can be reconstructed without losing user decisions.
+- Keep build, test, packaging, release, and deployment governance out of the runtime overview. Explain those relationships in their section or in a separate drill-down only when they form a real deployable-unit boundary.
+
+Run four comprehension checks before accepting the overview:
+
+1. **Package-name removal:** explain the diagram without package or directory names. If the explanation collapses, the diagram is still an inventory.
+2. **Golden-path narration:** narrate the main flow from entry to effect using only visible top-level nodes and edge labels. If a hand-off is missing or requires hidden implementation knowledge, revise the tree or edges.
+3. **Runtime-unit check:** for every executable top-level node, name what starts it and whether it stays resident; for every non-executable top-level node, name the boundary or data it owns. If that answer is unclear, the node is probably at the wrong level.
+4. **Governance separation:** hide the build/test/release section and verify that the overview still describes how the system runs. If not, engineering workflow has leaked into runtime architecture.
+
+Run the same reader check on every drill-down. First state its **main spine** as trigger → owned use case → durable state or external effect. Then remove an edge from the drawing when it only repeats a helper call, cleanup order, or secondary ownership fact already explained in detail or steps. Keep the fact in the report; change only its visual home. A structural container may be edge-free when its child nodes carry all relationships; do not add a fake ownership arrow just to make the container non-isolated.
+
+For every Host, perform an **entry-to-use-case traceability** check: a reader must be able to identify which scheduled, manual, interactive/reading, and delivery paths that Host can trigger without opening source code. Prefer one aggregated use-case edge and a concrete mapping in the Host detail over separate arrows from every command, screen, or subcommand.
+
+Overview edges are selective. Include the primary invocation, data ownership, deployment, or trust-boundary relationships needed to narrate the system. Put secondary helper dependencies, repeated provider calls, and file-level relationships into drill-downs or sections. Every visible edge label should state what crosses the boundary, such as “starts daily run”, “writes report and index”, or “sends digest”; avoid labels such as “uses”, “integration”, or a bare method name unless that name is the project’s established vocabulary.
+
+Control and payload may deserve separate edges only when the labels make their roles unmistakable. A completion callback that triggers delivery and a Digest carried by that callback are not two triggers. If the renderer cannot show that distinction clearly, keep the control edge and explain the payload in the ordered flow.
+
+Synthesis can connect verified facts but cannot create a relationship that no runtime wiring, contract, data ownership rule, or deployment boundary supports. Verify both endpoints and the hand-off before adding an edge.
+
+Use diagram edges for actual invocation, ownership, or deployment hand-offs. Put cleanup order, event-append order, retry timing, and other temporal sequencing in `steps` or failure tables unless the implementation has a concrete data/control hand-off. Do not draw a checkpoint-to-report or state-to-history arrow merely because one happens before or after the other.
+
+Use five information levels so the reader can stop when they have enough detail:
+
+- **L0:** one-sentence system thesis in the report summary;
+- **L1:** top-level overview concepts and primary edges;
+- **L2:** drill-down components and their local hand-offs;
+- **L3:** cross-cutting tables and ordered scenarios;
+- **L4:** project-relative evidence anchors.
 
 ## Writing current-state content
 
@@ -238,6 +312,37 @@ Explain details that a maintainer needs to understand the system:
 
 Avoid exhaustive file lists, dependency dumps, routine helper internals, and facts obvious from a single conventional declaration unless they clarify the system.
 
+### Write for comprehension
+
+Assume the reader understands software engineering but not this repository. Start each module detail with its responsibility and boundary, then explain the concrete flow and only then name implementation details.
+
+Use these sentence tests:
+
+- **Actor:** Who starts or owns the action?
+- **Action:** What does it do?
+- **Object:** What input, state, file, request, or artifact does it affect?
+- **Outcome:** What becomes observable or durable?
+
+If a sentence cannot answer at least the first three, it is likely an abstract noun stack. Rewrite “delivery state and claim coordination” as “Before sending a digest, the delivery service creates a claim in `delivery-state.json`; another host that sees the claim does not send the same digest.”
+
+Treat template phrases as a warning sign, especially “This module is mainly responsible for…”, “The system implements this through…”, “provides unified capability”, and “completes lifecycle management”. Keep one only when the rest of the sentence immediately supplies a specific actor, action, object, and outcome.
+
+Keep a necessary technical term when replacing it would reduce precision, but define it through behavior on first use. Do not soften exact behavior with casual metaphors. Do not make the reader decode abbreviations, package names, or class names before understanding the responsibility.
+
+Translate exact internal states into consequences on first use. For example, write “结果未知（`ambiguous`），所以系统阻止自动重发” and “尽力追加的历史；写失败不会撤销日报完成状态” rather than assuming status names or `best-effort` explain themselves.
+
+Prefer:
+
+```text
+The daily pipeline writes the Markdown report first. It then updates generated references in `papers.json`; reading status and priority in the same file remain user-owned state.
+```
+
+Avoid:
+
+```text
+The persistence layer provides unified durable-commit and projection lifecycle capabilities.
+```
+
 ### Calibrate claim scope
 
 State the smallest runtime boundary the evidence proves: instance; request or job; key or tenant; process or worker; host or replica; service; deployment; environment.
@@ -252,9 +357,37 @@ Do not turn a verified local boundary into a repository-wide guarantee:
 
 Avoid `all`, `every`, `always`, `never`, `global`, `fully`, `strict`, `end-to-end`, `supported`, and `compatible` unless all relevant entries, alternate paths, and topology boundaries were checked. Qualify the component, key, process, host, service, or environment instead.
 
+## Reader-facing section mechanics
+
+Each section's first block must be one short takeaway paragraph that answers its reader question, then use the block type that matches the relationship:
+
+| Reader need | Block | Required content |
+| --- | --- | --- |
+| Understand a subsection | `heading` | A concrete question or mechanism name |
+| Follow execution order | `steps` | Trigger, ordered actions, durable/external result |
+| Compare repeated fields | `table` | Explicit columns and one subject per row |
+| Understand one consequence | `p` | One idea, named actor, concrete outcome |
+| Record a short unordered set | `bullets` | Parallel items with the same grammatical shape |
+| Locate implementation | `anchors` | Project-relative file and stable symbol |
+
+Use the five section questions from `SKILL.md` as a completeness check, not as literal boilerplate. Omit a section or subsection that has no material verified answer.
+
+Avoid a section made of one long paragraph or a flat list of unrelated mechanisms. Split it by reader question. Keep a table cell or step focused on one fact cluster; move low-level constants to module notes or evidence unless they change how the system behaves.
+
+Default to this sequence when the topic permits it: direct answer paragraph → comparison table or ordered steps → important exception/recovery table → evidence anchors. Bullets are for a short parallel set, not for dumping every discovered fact.
+
 ## Authoring the data block
 
-The whole report content is one JSON object inside the `<script type="application/json" id="report-data">` block. Everything outside that block is fixed template code: never modify it while creating or editing a report. Template bugs are fixed in `templates/architecture-map.html`, not in an individual report.
+The whole report content is one JSON object inside the `<script type="application/json" id="report-data">` block. Everything outside that block is fixed template code: never hand-edit it while creating or editing a project report. Template bugs are fixed in `templates/architecture-map.html`, then propagated with `scripts/refresh-template.mjs`.
+
+### Renderer shell and interaction contract
+
+- The shell carries `<meta name="architecture-map-template-version" ...>` and works offline without external assets.
+- Users can drag nodes, drag empty canvas to pan, zoom with the wheel/buttons, fit the current diagram, and reset node positions. Dragged positions are view-local and last for the current open-file session.
+- Opening the detail drawer reserves diagram space and triggers a re-fit; on narrow viewports it becomes a bottom sheet. Section tabs remain horizontally reachable instead of being clipped.
+- The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.
+- Edge labels are assigned non-overlapping positions when possible. A label with no clear slot stays available through the edge title/hover state instead of covering another label or node.
+- Run `node scripts/refresh-template.mjs --check <report>` from the skill directory to compare the complete shell. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh validates and preserves the existing `report-data` block exactly, uses an atomic same-directory replacement, rejects concurrent edits, and refuses to downgrade a report whose template version is newer than the installed shell.
 
 ### Schema semantics
 
@@ -263,8 +396,10 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - `layer` — one of `entry`, `core`, `data`, `infra`, `external`, `frontend`, chosen for the module's role in this project. The template colors nodes by layer and renders a legend.
 - `summary` — one short line rendered under the node label; keep it under roughly thirty characters.
 - `detail` — the canonical 2-4 sentence explanation; `notes` — non-obvious mechanisms, one per bullet; `evidence` — project-relative anchors supporting the claims.
-- `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
-- `sections` — optional tabs for cross-cutting content. Each block is `p` (paragraph), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
+- `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When several deep relationships lift to the same visible endpoints, the renderer aggregates their count and distinct labels so the overview does not misrepresent the first edge as the only relationship. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
+- `sections` — optional tabs for cross-cutting content. Blocks are `p` (paragraph), `heading` (`text`), `steps` (`items`, rendered as an ordered list), `table` (`columns` and `rows`), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
+
+After edge lifting, review the rendered overview rather than only the raw arrays. Roughly 5–8 top-level nodes and at most about 12 lifted edges are a soft selective-reading target. If the overview is denser, group only by verified architecture boundaries (runtime, product, deployable unit, host/core, data ownership, or external trust boundary) and move components into drill-down. Do not omit a material relationship or invent a container to satisfy the target.
 
 ### Validation before writing
 
@@ -275,6 +410,24 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - every module is reachable from the top level through `parent` links (no orphan subtrees);
 - summaries are one line; anchors use project-relative paths and support the nearby statement;
 - the report contains no empty `sections` entries and no unused schema fields.
+- every `heading` and `p` has non-empty `text`; every `steps` / `bullets` / `anchors` block has non-empty `items`; every `table` has non-empty `columns`, at least one row, and the same number of cells in each row;
+- the overview passes the package-name removal and golden-path narration checks;
+- the overview passes the runtime-unit and governance-separation checks;
+- every drill-down has a stated main spine, no isolated reader-relevant node (except a structural container whose children carry its relationships), and no helper-edge fan-out obscuring that spine;
+- every Host passes the entry-to-use-case traceability check without one arrow per command or screen;
+- the report contains a system thesis and two to four verified primary scenarios with trigger, ordered steps, effect, and meaningful failure/alternate path;
+- every edge is supported by separately verified endpoints and a real hand-off;
+- mixed stores classify user-owned and generated fields separately rather than overgeneralizing rebuildability;
+- idempotency/claim keys use the exact verified inputs and state their process/host scope;
+- process-local locks are not described as cross-process convergence or conflict resolution;
+- CLI edges and runtime claims are scoped to the subcommands that actually build or invoke the runtime;
+- caches, checkpoints, claims, authoritative state, and export/import archives are distinguished, including verified sensitivity and path/permission checks;
+- every section starts with a takeaway `p` block before tables, steps, bullets, code, or anchors;
+- section prose uses named actors and concrete outcomes rather than package inventories or noun-stack summaries;
+- visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
+- the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
+- every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional;
+- the current shell check passes after the data edit.
 
 The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The checklist is authoring discipline, not a runtime guarantee.
 
@@ -285,9 +438,10 @@ The renderer does not enforce this checklist. Violations are silently contained:
 1. Resolve the report path and confirm no established report should be preserved elsewhere.
 2. Establish the full repository/runtime topology before generalizing from any primary package.
 3. Close active wiring for the material runtime flows and apply semantic proof gates.
-4. Copy `templates/architecture-map.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
-5. Write only verified, applicable modules, edges, and sections; do not change anything outside the data block.
-6. Check that the top-level diagram is compact enough for selective intake reading and detailed mechanisms each have one canonical home.
+4. Build the private system brief and derive reader-facing concepts before naming modules or sections.
+5. Copy the current `templates/architecture-map.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
+6. Write only verified, applicable modules, edges, and sections; do not hand-edit anything outside the data block.
+7. Run the package-name removal, golden-path narration, section-question, and writing checks before accepting the report.
 
 If a report already exists, follow `audit` instead.
 
@@ -298,16 +452,19 @@ If a report already exists, follow `audit` instead.
 3. Trace each affected implementation to its current boundaries.
 4. Determine impact by comparing verified current implementation to the report's `report-data` block — do not accept another agent's impact guess.
 5. Prepare a coherent data-block edit: rewrite, add, move, or delete only the affected module entries, edges, and section blocks, including deletion of stale statements.
-6. If no report statement needs to change within the implementation scope examined for this accepted change, return scoped `no-impact`; do not imply that unrelated report sections were audited.
+6. Check the renderer shell with `scripts/refresh-template.mjs --check`; refresh it when stale, after preserving/validating the edited data block.
+7. If no report statement needs to change within the implementation scope examined and the shell is already current, return scoped `no-impact`; do not imply that unrelated report sections were audited. A shell-only refresh is `updated` and its summary must say that report claims were unchanged.
 
 ### `audit`
 
 1. Require an existing report; when none exists, fall back to `init` unless the user explicitly insists on `audit` semantics for an established report.
 2. Establish the current system shape independently of the report.
-3. Verify every material claim and useful implementation anchor in the `report-data` block.
-4. Check important current implementation areas for omissions.
-5. Reconcile all detected drift in place, editing only the `report-data` block.
-6. Run the content-boundary checklist below.
+3. Rebuild the private system brief and compare it with the report's concepts, grouping, and golden paths.
+4. Verify every material claim and useful implementation anchor in the `report-data` block.
+5. Check important current implementation areas for omissions.
+6. Reconcile factual drift, misleading grouping, package-inventory structure, and abstract prose in place, editing only the `report-data` block.
+7. Check and refresh the renderer shell with `scripts/refresh-template.mjs` when stale.
+8. Run the content-boundary checklist below.
 
 ## Content-boundary checklist
 
@@ -319,18 +476,24 @@ Before finishing, confirm that:
 - active claims close the production loop from executable entry through selected wiring and actual arguments to effect;
 - cross-component claims verify both producer/caller and consumer/callee contracts;
 - strong semantics pass their data, concurrency, topology, and counter-evidence gates;
+- exact idempotency key inputs, lock scope, ordinary storage checks, and stronger exclusive/recovery checks are not conflated;
 - fallback, bypass, rejection, buffering, and degraded paths that narrow claims were checked;
 - claim quantifiers match the proved instance/process/worker/replica/service/environment scope;
 - dependencies described as active have verified wiring and responsibility;
 - removed modules, stale interfaces, obsolete configuration, and broken anchors are absent;
 - each mechanism has one canonical detailed explanation and the overview diagram stays compact;
+- top-level nodes are reader-facing architecture concepts rather than a copy of the package tree;
+- a new maintainer can narrate each golden path using the visible overview nodes and edge labels;
+- section structure answers the five reader questions and uses tables or steps where they clarify repeated fields or sequence;
+- prose names actors, actions, objects, and outcomes; abstract noun stacks and vague capability claims are absent;
 - the report contains no before/after story or “this change” narrative;
 - rationale and decision trade-offs are absent;
 - prompts, requirements, phases, checkpoints, task progress, command output, and test-run results are absent;
 - changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
 - no empty modules or sections remain;
-- the `report-data` block is valid JSON and is the only part of the HTML file that differs from `templates/architecture-map.html`;
+- the `report-data` block is valid JSON and, after substituting that block into the current template, the complete report matches the generated result (`scripts/refresh-template.mjs --check` returns `current`);
+- the rendered overview has no route-failure marker and remains compact enough for selective intake; density thresholds never caused evidence or material flows to be omitted;
 - module ids are unique, every `parent` exists, no module is deeper than three levels, and every `layer` value is one of the six defined layers;
 - every edge references existing module ids with a valid `kind`;
 - module summaries are one line and each material claim has supporting `evidence` anchors or section `anchors`;

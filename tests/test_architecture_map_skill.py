@@ -133,6 +133,21 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         for phrase in required:
             self.assertIn(phrase, self.reference)
 
+    def test_scope_sensitive_storage_and_command_rules_are_explicit(self):
+        combined = self.skill + self.reference
+        required = (
+            "exact idempotency/claim key inputs",
+            "process-local lock only as process-local",
+            "concurrent hosts eventually converge",
+            "Trace command families separately",
+            "ordinary path normalization",
+            "no-follow or descriptor protection",
+            "caches, checkpoints, authoritative state, claims, history, and export/import archives",
+            "Do not draw a checkpoint-to-report or state-to-history arrow",
+        )
+        for phrase in required:
+            self.assertIn(phrase, combined)
+
     def test_init_requires_runtime_topology(self):
         init_section = self.skill.split("### `init`", 1)[1].split("### `update`", 1)[0]
         required = (
@@ -177,7 +192,73 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.template,
         )
         self.assertIn("`report-data` block", self.skill)
-        self.assertIn("never modifies template code", self.skill)
+        self.assertIn("without hand-editing the report shell", self.skill)
+        self.assertIn("preserves the report data block exactly", self.skill)
+
+    def test_interaction_readability_and_shell_migration_are_explicit(self):
+        combined = self.skill + self.reference
+        for phrase in (
+            "drag nodes",
+            "drag empty canvas to pan",
+            "obstacle-aware orthogonal",
+            "collision-managed labels",
+            "architecture-map-template-version",
+            "scripts/refresh-template.mjs",
+            "5–8 top-level nodes",
+            "12 lifted overview edges",
+            "route-failure",
+        ):
+            self.assertIn(phrase, combined)
+
+    def test_reader_first_architecture_synthesis_and_writing_are_explicit(self):
+        combined = self.skill + self.reference
+        for phrase in (
+            "experienced maintainer who is new to the repository",
+            "evidence → architecture model → explanation → rendering",
+            "Do not use the package tree as the overview architecture",
+            "runtime and composition roots",
+            "core use cases",
+            "authoritative records and rebuildable projections",
+            "golden paths",
+            "one-sentence system story",
+            "system thesis",
+            "trigger → runtime unit → core use case → durable state or external effect → user-visible result",
+            "two to four primary scenarios",
+            "five-minute overview",
+            "twenty-minute trace",
+            "L0:",
+            "L4:",
+            "subject–verb–object",
+            "Avoid noun-stack summaries",
+            "never label the whole file as a projection",
+            "Keep runtime architecture separate from engineering governance",
+            "A shared library is not a process",
+            "Runtime-unit check",
+            "Governance separation",
+            "cannot create a relationship",
+            "first block must be one short takeaway paragraph",
+            "This module is mainly responsible for",
+            "flat bullet inventory",
+            "What is the system shape and primary path?",
+            "What actually runs?",
+            "Who writes it, who reads it, and can it be rebuilt?",
+            "What starts the flow, what happens in order, and what is produced?",
+            "What is built, checked, published, or deployed?",
+            "What is trusted, rejected, retried, degraded, or exposed to the user?",
+            "main-spine pass",
+            "Host-to-use-case traceability",
+            "entry-to-use-case traceability",
+            "without drawing a fan-out from every command or screen",
+            "no route-failure marker or proper non-endpoint edge crossing",
+            "reader-facing concept",
+            "结果未知（`ambiguous`）",
+            "Keep audit narration out of reader-facing sections",
+        ):
+            self.assertIn(phrase, combined)
+
+        self.assertIn('"type": "heading"', self.skill)
+        self.assertIn('"type": "steps"', self.skill)
+        self.assertIn('"type": "table"', self.skill)
 
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
@@ -272,10 +353,13 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         for section in data["sections"]:
             self.assertIn("title", section)
             for block in section.get("blocks", []):
-                self.assertIn(block["type"], {"p", "bullets", "code", "anchors"})
+                self.assertIn(
+                    block["type"],
+                    {"p", "bullets", "code", "anchors", "heading", "steps", "table"},
+                )
 
         for element in (
-            '<svg id="canvas">',
+            'id="canvas"',
             'id="panel"',
             'id="breadcrumb"',
             'id="tabs"',
@@ -283,11 +367,143 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             'id="search"',
         ):
             self.assertIn(element, self.template, msg=f"missing fixed element {element}")
+        self.assertRegex(
+            self.template,
+            r"#view-section\.active\{[^}]*overflow:auto",
+            msg="long section reports must remain scrollable inside the shell",
+        )
+        self.assertRegex(
+            self.template,
+            r"#tabs\{[^}]*overflow-x:auto",
+            msg="narrow viewports must be able to reach every section tab",
+        )
+        self.assertIn("#view-diagram.panel-open #canvas-wrap", self.template)
+        self.assertIn("@media (max-width:1100px)", self.template)
+        self.assertIn("classList.add('panel-open')", self.template)
+        self.assertIn("classList.remove('panel-open')", self.template)
+        self.assertIn('<link rel="icon" href="data:,">', self.template)
         self.assertNotRegex(
             self.template,
             r'(?:src|href)\s*=\s*["\']https?://',
             msg="template must work offline without external dependencies",
         )
+
+    def test_template_version_and_refresh_script_preserve_report_data(self):
+        self.assertIn(
+            '<meta name="architecture-map-template-version" content="3">',
+            self.template,
+        )
+        refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
+        self.assertTrue(refresh_script.is_file())
+
+        custom_data = {
+            "title": "preserved report",
+            "summary": "custom data survives shell refresh",
+            "modules": [
+                {
+                    "id": "only",
+                    "label": "Only",
+                    "layer": "core",
+                    "summary": "one node",
+                    "detail": "evidence-backed detail",
+                    "evidence": ["src/only.ts (Only)"],
+                }
+            ],
+            "edges": [],
+            "sections": [],
+        }
+        data_block = json.dumps(custom_data, ensure_ascii=False, indent=2)
+        stale = self.template.replace(
+            '<meta name="architecture-map-template-version" content="3">',
+            '<meta name="architecture-map-template-version" content="1">',
+        ).replace(
+            "</head>", '<style id="old-shell-sentinel"></style>\n</head>', 1
+        )
+        stale = re.sub(
+            r'(<script type="application/json" id="report-data">).*?(</script>)',
+            lambda match: match.group(1) + "\n" + data_block + "\n" + match.group(2),
+            stale,
+            count=1,
+            flags=re.S,
+        )
+        original_data_block = re.search(
+            r'<script type="application/json" id="report-data">.*?</script>',
+            stale,
+            flags=re.S,
+        ).group(0)
+
+        with tempfile.TemporaryDirectory(prefix="architecture-map-refresh-") as tmp:
+            report = Path(tmp) / "report.html"
+            report.write_text(stale, encoding="utf-8")
+
+            check_stale = subprocess.run(
+                ["node", str(refresh_script), "--check", str(report)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(check_stale.returncode, 1, check_stale.stdout + check_stale.stderr)
+            self.assertIn("stale", check_stale.stdout)
+
+            refreshed = subprocess.run(
+                ["node", str(refresh_script), str(report)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
+            rendered = report.read_text(encoding="utf-8")
+            self.assertIn(
+                '<meta name="architecture-map-template-version" content="3">',
+                rendered,
+            )
+            self.assertNotIn("old-shell-sentinel", rendered)
+            block = re.search(
+                r'<script type="application/json" id="report-data">(.*?)</script>',
+                rendered,
+                flags=re.S,
+            )
+            self.assertEqual(json.loads(block.group(1)), custom_data)
+            refreshed_data_block = re.search(
+                r'<script type="application/json" id="report-data">.*?</script>',
+                rendered,
+                flags=re.S,
+            ).group(0)
+            self.assertEqual(refreshed_data_block, original_data_block)
+
+            check_current = subprocess.run(
+                ["node", str(refresh_script), "--check", str(report)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(check_current.returncode, 0, check_current.stdout + check_current.stderr)
+            self.assertIn("current", check_current.stdout)
+
+            future_report = Path(tmp) / "future-report.html"
+            future = stale.replace(
+                '<meta name="architecture-map-template-version" content="1">',
+                '<meta name="architecture-map-template-version" content="4">',
+                1,
+            )
+            future_report.write_text(future, encoding="utf-8")
+            for args in (
+                ["node", str(refresh_script), "--check", str(future_report)],
+                ["node", str(refresh_script), str(future_report)],
+            ):
+                rejected = subprocess.run(
+                    args,
+                    cwd=self.repo_root,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(rejected.returncode, 2, rejected.stdout + rejected.stderr)
+                self.assertIn("refusing to downgrade", rejected.stderr)
+                self.assertEqual(future_report.read_text(encoding="utf-8"), future)
 
     def test_template_behavior_smoke_suite(self):
         script = self.repo_root / "tests" / "test_architecture_map_template.mjs"
@@ -360,6 +576,18 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 "prompt.md",
                 "case.json",
             },
+            "multi-host-reader-model": {
+                "app_core.py",
+                "plugin_host.py",
+                "node_adapters.py",
+                "cli_host.py",
+                "companion.py",
+                "relay.py",
+                "product-units.json",
+                "release.json",
+                "prompt.md",
+                "case.json",
+            },
         }
 
         for case_name, files in expected_files.items():
@@ -415,6 +643,20 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("allow_abbrev=False", callee)
         self.assertIn('"--output-format"', callee)
         self.assertNotIn('add_argument("--format"', callee)
+
+        reader_case = self.eval_dir / "multi-host-reader-model"
+        core = (reader_case / "app_core.py").read_text(encoding="utf-8")
+        plugin_host = (reader_case / "plugin_host.py").read_text(encoding="utf-8")
+        cli_host = (reader_case / "cli_host.py").read_text(encoding="utf-8")
+        adapters = (reader_case / "node_adapters.py").read_text(encoding="utf-8")
+        companion = (reader_case / "companion.py").read_text(encoding="utf-8")
+        self.assertIn("self.state.set(date, \"completed\")", core)
+        self.assertLess(core.index("self.state.set(date, \"completed\")"), core.index("self.on_completed(digest)"))
+        self.assertIn("DailyPipeline", plugin_host)
+        self.assertIn("DailyPipeline", cli_host)
+        self.assertIn("this module has no executable entry", adapters)
+        self.assertIn("subprocess.run", companion)
+        self.assertIn('index[paper_id]["status"]', companion)
 
         cli_result = subprocess.run(
             [sys.executable, "-B", "main.py"],
@@ -473,6 +715,22 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
 
         for source_path in self.eval_dir.glob("*/*.py"):
             ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+
+    def test_seed_reports_use_the_current_template_shell(self):
+        refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
+        for seed_report in self.eval_dir.glob("*/seed-report.html"):
+            result = subprocess.run(
+                ["node", str(refresh_script), "--check", str(seed_report)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(
+                result.returncode,
+                0,
+                msg=f"stale seed report {seed_report}: {result.stdout}{result.stderr}",
+            )
 
     def test_helm_uses_specialized_handoff_after_acceptance(self):
         required_phrases = (

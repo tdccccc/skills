@@ -1,0 +1,32 @@
+{
+  "mode": "init",
+  "expected_status": "updated",
+  "expected_facts": [
+    "plugin_host and cli_host are two composition hosts that invoke one shared Core",
+    "node_adapters is loaded by the CLI host and is not an independent process",
+    "DailyPipeline returns a Digest; Scheduler commits completed state and history before the completion hook invokes delivery",
+    "vault/papers.json mixes user-owned status and priority with generated dailyReports and summary fields, so the whole file is not a rebuildable projection",
+    "companion is an independent integration that starts the CLI and edits the index directly instead of using Core",
+    "relay is an independent service that validates hosted delivery before calling Resend",
+    "the overview uses reader-facing runtime, Core, data, integration, and external boundaries rather than one top-level node per source file",
+    "execution order is presented as steps and repeated runtime/data/build/failure facts are presented as tables",
+    "each Host is traceable to the Core use cases it triggers without drawing one edge per command or screen",
+    "the diagram keeps the primary control/data spine and moves secondary helper or sequencing facts into details, steps, or tables"
+  ],
+  "forbidden_claims": [
+    "DailyPipeline sends email directly",
+    "node_adapters is a daemon or standalone runtime",
+    "papers.json is entirely rebuildable",
+    "companion is a Core host",
+    "release.json is part of the runtime call graph"
+  ],
+  "hard_failures": [
+    "uses the package or file tree as the top-level architecture",
+    "flattens hosts, adapters, Core use cases, data files, and providers into peer nodes",
+    "places delivery inside DailyPipeline",
+    "describes mixed user and generated index fields as one rebuildable projection",
+    "writes the cross-cutting sections as abstract noun stacks or one flat bullet dump",
+    "leaves the Host-to-Core relationship as an unexplained uses-Core edge",
+    "keeps every verified helper or ordering relationship as a diagram edge until the primary flow is obscured"
+  ]
+}

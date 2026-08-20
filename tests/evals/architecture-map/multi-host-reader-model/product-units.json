@@ -1,0 +1,7 @@
+{
+  "units": [
+    { "id": "root", "members": ["plugin_host.py", "app_core.py", "node_adapters.py", "cli_host.py"] },
+    { "id": "companion", "members": ["companion.py"] },
+    { "id": "relay", "members": ["relay.py"] }
+  ]
+}
