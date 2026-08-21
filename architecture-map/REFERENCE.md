@@ -205,7 +205,7 @@ Use the brief to derive the module tree:
 - Do not promote a library to a runtime node merely because it has its own package. State explicitly which process or host loads it.
 - Group external providers under an “external systems” concept when their individual identity is secondary at overview level; keep an intermediary service separate when it is independently deployed or changes trust/failure behavior.
 - Group persistent artifacts under the component that owns their consistency semantics. Distinguish an authoritative commit from a projection that can be repaired or rebuilt.
-- A node owns behavior or a durable artifact with a named writer. A value object or DTO passed between modules is a note on its owning module plus at most one producer-to-consumer edge, never a node of its own.
+- A node owns behavior or a durable artifact with a named writer. Three shapes are not nodes: a value object or DTO passed between modules (a note on its owning module plus at most one producer-to-consumer edge); a shared service hosted inside a process it does not own (the service is a node under its owner; which process hosts it is a runtime fact in the host's notes and the runtime section); and a subcommand or installer that produces an operational artifact such as a cron entry (an operational fact, not a component).
 - When one persisted document mixes user-owned fields and generated fields, describe the ownership and repairability per field group. Never call the whole document rebuildable unless every material field can be reconstructed without losing user decisions.
 - Keep build, test, packaging, release, and deployment governance out of the runtime overview. Explain those relationships in their section or in a separate drill-down only when they form a real deployable-unit boundary.
 
@@ -228,7 +228,7 @@ Synthesis can connect verified facts but cannot create a relationship that no ru
 
 Use diagram edges for actual invocation, ownership, or deployment hand-offs. Put cleanup order, event-append order, retry timing, and other temporal sequencing in `steps` or failure tables unless the implementation has a concrete data/control hand-off. Do not draw a checkpoint-to-report or state-to-history arrow merely because one happens before or after the other.
 
-Data nodes are passive endpoints. An edge that reads or writes a persisted artifact starts from the module that performs the access; two data nodes are never connected directly. When one artifact's content changes another — index repair from an existing report, path reconciliation from verified files, claim finalization into delivery state — name the module that performs the read and write and draw the edge from it. Inside the data module's drill-down that module renders as a dashed external context node, which is exactly the information the reader needs: who touches the data, and with what effect.
+Data nodes are passive endpoints. An edge that reads or writes a persisted artifact starts from the module that performs the access; two data nodes are never connected directly. When one artifact's content changes another — index repair from an existing report, path reconciliation from verified files, claim finalization into delivery state — name the module that performs the read and write and draw the edge from it. Inside the data module's drill-down that module renders as a dashed external context node, which is exactly the information the reader needs: who touches the data, and with what effect. Target the data module's root rather than individual files unless the file-level target is itself reader-relevant (a fixed-path access, a bypass, or an artifact only one actor writes); several per-file edges otherwise multiply dashed context nodes in every other module's drill-down.
 
 Use five information levels so the reader can stop when they have enough detail:
 
@@ -412,6 +412,8 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - every edge references existing module ids and has `kind` `flow` or `dep`;
 - every module owns behavior or a durable artifact with a named writer; no module exists solely to carry a value between two other modules;
 - no edge connects two data nodes, and every edge that reads or writes a data node starts from the module that performs the access;
+- no node is a value object, a hosted instance of a service owned elsewhere, or a subcommand/installer feature; each such fact has a canonical home in a host's `detail`/`notes` or in a section;
+- data edges target the data module's root unless the file-level target is itself reader-relevant;
 - every module is reachable from the top level through `parent` links (no orphan subtrees);
 - summaries are one line; anchors use project-relative paths and support the nearby statement;
 - the report contains no empty `sections` entries and no unused schema fields.
