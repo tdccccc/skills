@@ -607,6 +607,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "unknown module field": lambda d: d["modules"][0].update(color="red"),
             "unknown edge field": lambda d: d["edges"][0].update(color="red"),
             "unknown top-level field": lambda d: d.update(version=1),
+            "edges not an array": lambda d: d.update(edges="bogus"),
             "empty modules": lambda d: d.update(modules=[]),
             "multiline summary": lambda d: d["modules"][0].update(summary="a\nb"),
             "empty table rows": lambda d: d["sections"][0]["blocks"].append(

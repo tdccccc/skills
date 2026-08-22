@@ -130,6 +130,9 @@ function validateReportData(data, problems) {
     }
   }
 
+  if ("edges" in data && !Array.isArray(data.edges)) {
+    problems.push("edges must be an array when present");
+  }
   (Array.isArray(data.edges) ? data.edges : []).forEach((e, i) => {
     const label = `edges[${i}]`;
     if (!isPlainObject(e)) {
