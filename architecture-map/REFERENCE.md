@@ -386,11 +386,13 @@ The whole report content is one JSON object inside the `<script type="applicatio
 ### Renderer shell and interaction contract
 
 - The shell carries `<meta name="architecture-map-template-version" ...>` and works offline without external assets.
+- The shell's UI strings (breadcrumb, layer legend, detail panel headings, toolbar, hints) are fixed Chinese and part of the versioned template. Their language is not a `report-data` field and is not edited per project; `report-data` follows the project's working language, so a Chinese project yields a uniformly Chinese report.
 - Users can drag nodes, drag empty canvas to pan, zoom with the wheel/buttons, fit the current diagram, and reset node positions. Dragged positions are view-local and last for the current open-file session.
 - Opening the detail drawer reserves diagram space and triggers a re-fit; on narrow viewports it becomes a bottom sheet. Section tabs remain horizontally reachable instead of being clipped.
 - The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.
 - Edge labels are assigned non-overlapping positions when possible. A label with no clear slot stays available through the edge title/hover state instead of covering another label or node.
-- Run `node scripts/refresh-template.mjs --check <report>` from the skill directory to compare the complete shell. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh validates and preserves the existing `report-data` block exactly, uses an atomic same-directory replacement, rejects concurrent edits, and refuses to downgrade a report whose template version is newer than the installed shell.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh validates and preserves the existing `report-data` block exactly, uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, layer and edge-kind enums, self-edges, data-to-data edges, and empty or ragged section blocks. Exit `0` / `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
 
 ### Schema semantics
 
@@ -409,7 +411,7 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - the block is valid JSON: no comments, no trailing commas, `"` and `\` escaped, any literal `</script>` written as `<\/script>`;
 - module ids are unique; every `parent` references an existing module; no module is deeper than three levels;
 - every `layer` is one of the six defined values;
-- every edge references existing module ids and has `kind` `flow` or `dep`;
+- every edge references existing module ids, has `kind` `flow` or `dep`, and never starts and ends at the same module;
 - every module owns behavior or a durable artifact with a named writer; no module exists solely to carry a value between two other modules;
 - no edge connects two data nodes, and every edge that reads or writes a data node starts from the module that performs the access;
 - no node is a value object, a hosted instance of a service owned elsewhere, or a subcommand/installer feature; each such fact has a canonical home in a host's `detail`/`notes` or in a section;
@@ -434,9 +436,10 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
 - every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional;
-- the current shell check passes after the data edit.
+- the current shell check passes after the data edit;
+- `node scripts/refresh-template.mjs --validate <report>` exits `valid` after the data edit.
 
-The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The checklist is authoring discipline, not a runtime guarantee.
+The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The `--validate` mode covers the mechanically decidable structural items; everything else in the checklist is authoring discipline, not a runtime guarantee.
 
 ## Mode mechanics
 
