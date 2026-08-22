@@ -661,6 +661,14 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
             self.assertIn("invalid JSON", result.stderr)
 
+    def test_shell_ui_language_is_documented(self):
+        self.assertIn('<html lang="zh-CN">', self.template)
+        for phrase in ("入口", "核心逻辑", "机制说明", "代码证据"):
+            self.assertIn(phrase, self.template)
+        self.assertIn("The shell's interface language is fixed Chinese", self.skill)
+        self.assertIn("never translated or hand-edited inside a project report", self.skill)
+        self.assertIn("fixed Chinese and part of the versioned template", self.reference)
+
     def test_template_behavior_smoke_suite(self):
         script = self.repo_root / "tests" / "test_architecture_map_template.mjs"
         try:

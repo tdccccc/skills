@@ -386,6 +386,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 ### Renderer shell and interaction contract
 
 - The shell carries `<meta name="architecture-map-template-version" ...>` and works offline without external assets.
+- The shell's UI strings (breadcrumb, layer legend, detail panel headings, toolbar, hints) are fixed Chinese and part of the versioned template. Their language is not a `report-data` field and is not edited per project; `report-data` follows the project's working language, so a Chinese project yields a uniformly Chinese report.
 - Users can drag nodes, drag empty canvas to pan, zoom with the wheel/buttons, fit the current diagram, and reset node positions. Dragged positions are view-local and last for the current open-file session.
 - Opening the detail drawer reserves diagram space and triggers a re-fit; on narrow viewports it becomes a bottom sheet. Section tabs remain horizontally reachable instead of being clipped.
 - The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.

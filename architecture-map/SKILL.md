@@ -34,6 +34,8 @@ The report is one self-contained HTML file with no external dependencies; open i
 
 The file separates data from presentation. The `<script type="application/json" id="report-data">` block holds the entire report content as one JSON object; everything else is the versioned shell from `templates/architecture-map.html`, identified by the `architecture-map-template-version` meta tag. Content authoring edits only `report-data`; template fixes are made in the shared template and propagated with `scripts/refresh-template.mjs`, which preserves the report data block exactly and refuses to replace a report created by a newer template version.
 
+The shell's interface language is fixed Chinese (breadcrumb, layer legend, detail panel headings, toolbar, and hints); it is template code, not `report-data`, and is never translated or hand-edited inside a project report. Report content is written in the project's working language — for a Chinese repository the whole report, shell included, reads as Chinese.
+
 ### Data schema
 
 ```json
