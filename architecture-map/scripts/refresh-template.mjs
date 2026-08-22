@@ -130,6 +130,9 @@ function validateReportData(data, problems) {
     }
   }
 
+  if ("edges" in data && !Array.isArray(data.edges)) {
+    problems.push("edges must be an array when present");
+  }
   (Array.isArray(data.edges) ? data.edges : []).forEach((e, i) => {
     const label = `edges[${i}]`;
     if (!isPlainObject(e)) {
@@ -146,8 +149,8 @@ function validateReportData(data, problems) {
     if (isNonEmptyString(e.from) && e.from === e.to) {
       problems.push(`${label}: edge from a module to itself`);
     }
-    if ("kind" in e && !EDGE_KINDS.has(e.kind)) {
-      problems.push(`${label}: kind must be flow or dep`);
+    if (!EDGE_KINDS.has(e.kind)) {
+      problems.push(`${label}: kind is required and must be flow or dep`);
     }
     if ("label" in e && !isNonEmptyString(e.label)) {
       problems.push(`${label}: label must be a non-empty string when present`);
@@ -198,12 +201,13 @@ function validateReportData(data, problems) {
           problems.push(`${blockLabel}: items must be a non-empty array of strings`);
         }
         if (allowed.has("columns")) {
-          if (!isNonEmptyStringArray(b.columns)) {
+          const columnsOk = isNonEmptyStringArray(b.columns);
+          if (!columnsOk) {
             problems.push(`${blockLabel}: columns must be a non-empty array of strings`);
           }
           if (!Array.isArray(b.rows) || b.rows.length === 0) {
             problems.push(`${blockLabel}: rows must be a non-empty array`);
-          } else {
+          } else if (columnsOk) {
             b.rows.forEach((row, k) => {
               if (!Array.isArray(row) || row.length !== b.columns.length) {
                 problems.push(

@@ -391,8 +391,8 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - Opening the detail drawer reserves diagram space and triggers a re-fit; on narrow viewports it becomes a bottom sheet. Section tabs remain horizontally reachable instead of being clipped.
 - The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.
 - Edge labels are assigned non-overlapping positions when possible. A label with no clear slot stays available through the edge title/hover state instead of covering another label or node.
-- Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh validates and preserves the existing `report-data` block exactly, uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
-- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, layer and edge-kind enums, self-edges, data-to-data edges, and empty or ragged section blocks. Exit `0` / `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh parses (JSON-validates) and preserves the existing `report-data` block exactly — structural validation is the separate `--validate` mode — uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, and empty or ragged section blocks. Exit `0` prints `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
 
 ### Schema semantics
 
@@ -437,7 +437,7 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
 - every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional;
 - the current shell check passes after the data edit;
-- `node scripts/refresh-template.mjs --validate <report>` exits `valid` after the data edit.
+- `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` prints `valid` (exit `0`) after the data edit.
 
 The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The `--validate` mode covers the mechanically decidable structural items; everything else in the checklist is authoring discipline, not a runtime guarantee.
 
@@ -451,7 +451,7 @@ The renderer does not enforce this checklist. Violations are silently contained:
 4. Build the private system brief and derive reader-facing concepts before naming modules or sections.
 5. Copy the current `templates/architecture-map.html` to the report path and replace only the content of the `report-data` block with the generated JSON.
 6. Write only verified, applicable modules, edges, and sections; do not hand-edit anything outside the data block.
-7. Run the package-name removal, golden-path narration, section-question, and writing checks before accepting the report.
+7. Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>`, then the package-name removal, golden-path narration, section-question, and writing checks, before accepting the report.
 
 If a report already exists, follow `audit` instead.
 
@@ -462,7 +462,7 @@ If a report already exists, follow `audit` instead.
 3. Trace each affected implementation to its current boundaries.
 4. Determine impact by comparing verified current implementation to the report's `report-data` block — do not accept another agent's impact guess.
 5. Prepare a coherent data-block edit: rewrite, add, move, or delete only the affected module entries, edges, and section blocks, including deletion of stale statements.
-6. Check the renderer shell with `scripts/refresh-template.mjs --check`; refresh it when stale, after preserving/validating the edited data block.
+6. Validate the edited data block with `<skill-dir>/scripts/refresh-template.mjs --validate`; then check the renderer shell with `<skill-dir>/scripts/refresh-template.mjs --check` and refresh it when stale, after preserving the validated data block.
 7. If no report statement needs to change within the implementation scope examined and the shell is already current, return scoped `no-impact`; do not imply that unrelated report sections were audited. A shell-only refresh is `updated` and its summary must say that report claims were unchanged.
 
 ### `audit`
@@ -473,7 +473,7 @@ If a report already exists, follow `audit` instead.
 4. Verify every material claim and useful implementation anchor in the `report-data` block.
 5. Check important current implementation areas for omissions.
 6. Reconcile factual drift, misleading grouping, package-inventory structure, and abstract prose in place, editing only the `report-data` block.
-7. Check and refresh the renderer shell with `scripts/refresh-template.mjs` when stale.
+7. Validate the reconciled data block with `<skill-dir>/scripts/refresh-template.mjs --validate`; check and refresh the renderer shell with `<skill-dir>/scripts/refresh-template.mjs` when stale.
 8. Run the content-boundary checklist below.
 
 ## Content-boundary checklist
@@ -502,7 +502,7 @@ Before finishing, confirm that:
 - changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
 - no empty modules or sections remain;
-- the `report-data` block is valid JSON and, after substituting that block into the current template, the complete report matches the generated result (`scripts/refresh-template.mjs --check` returns `current`);
+- the `report-data` block passes `<skill-dir>/scripts/refresh-template.mjs --validate`, and after substituting that block into the current template, the complete report matches the generated result (`<skill-dir>/scripts/refresh-template.mjs --check` returns `current`);
 - the rendered overview has no route-failure marker and remains compact enough for selective intake; density thresholds never caused evidence or material flows to be omitted;
 - module ids are unique, every `parent` exists, no module is deeper than three levels, and every `layer` value is one of the six defined layers;
 - every edge references existing module ids with a valid `kind`;
