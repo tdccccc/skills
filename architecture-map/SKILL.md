@@ -73,18 +73,16 @@ The shell's interface language is fixed Chinese (breadcrumb, layer legend, detai
 
 Authoring rules:
 
-- The `modules` array forms a tree through `parent`. Top-level modules omit `parent`. Maximum depth is three levels: system → module → component. Deeper detail belongs in `detail` / `notes` text.
+- The `modules` array forms a tree through `parent`; top-level modules omit it. Maximum depth is three levels: system → module → component. Deeper detail belongs in `detail` / `notes` text.
 - `id` values are unique, short, lowercase; dots may mirror the hierarchy but `parent` defines it.
 - `layer` takes one of the six values above; the template defines node colors and a legend for them. Assign the layer that best describes the module's role in this project.
-- A node owns behavior or a durable artifact with a named writer: a runtime unit, composition root, boundary, use case with a distinct entry, or persisted data. Three shapes are not nodes: a value object, DTO, or configuration shape that travels between two modules (state it in the producing module's `detail`/`notes` and connect producer to consumer with at most one edge); a shared service hosted inside a process it does not own — the service is a node under its owning module, and which process hosts it is a runtime fact for the host's `notes` and the runtime section; a subcommand or installer that produces an operational artifact such as a cron entry — an operational fact for the host's `notes` and the runtime or delivery section, not a component.
-- `summary` is one short line shown under the node label; keep it under roughly thirty characters. It states the node's responsibility in this system; it must not merely enumerate the node's children or list technologies.
-- `detail` holds the canonical detailed explanation of the module; `notes` holds non-obvious mechanisms as short bullets. One fact has one canonical home: explain a mechanism in the owning module's `detail`/`notes`, or in a section when it crosses modules; elsewhere reference it briefly or not at all.
-- Every material claim carries evidence anchors in `evidence` or in an `anchors` block: project-relative `path/to/file.ext (StableSymbol)` form, pointing at content that supports the nearby statement. The anchor symbol must be the exact symbol the nearby statement names or directly invokes, not a wrapper or callee one level deeper than that. No machine-specific absolute paths.
-- Edges may connect modules at any depth. The template lifts them automatically: an edge between two deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. Multiple relationships lifted onto the same visible endpoints are explicitly aggregated with a count and preserved distinct labels rather than silently reduced to the first edge. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` for invocation or data flow (solid line) and `dep` for dependency or deployment relation (dashed line). `label` is optional and short.
-- Data and state nodes (`layer: data`) are passive: an edge that reads or writes one starts from the module that performs the access. Never connect two data nodes directly; when one artifact's content feeds another (index repair from an existing report, reconciliation from verified files, claim finalization into delivery state), identify the module that performs the read and write and draw the edge from it, so the drill-down names the actor instead of showing files pointing at files. Prefer an edge to the data module's root over its individual files; target a specific file only when the file-level target is itself the reader-relevant fact, such as a fixed-path access, a bypass, or an artifact only one actor writes.
+- A node owns behavior or a durable artifact with a named writer; REFERENCE.md (Architecture synthesis mechanics) defines the three shapes that are not nodes — value objects/DTOs, services hosted in a process they do not own, and operational subcommands — and where each of those facts has its canonical home.
+- `detail` holds the canonical explanation, `notes` the non-obvious mechanisms; one fact has one canonical home (REFERENCE.md, "Reconcile in place").
+- Every material claim carries evidence anchors in `evidence` or an `anchors` block, project-relative `path/to/file.ext (StableSymbol)` form. The anchor symbol must be the exact symbol the nearby statement names or directly invokes — not a wrapper or callee one level deeper — and anchors never use machine-specific absolute paths.
+- Edges may connect modules at any depth; the template lifts, aggregates, and renders them (dashed external context, boundary entry node). See REFERENCE.md (Schema semantics) for the full lifting rules.
+- Data and state nodes are passive: the actor performs the access, and two data nodes are never connected directly. See REFERENCE.md (Schema semantics) for the root-versus-file targeting rule.
 - Treat roughly 5–8 top-level nodes and at most about 12 lifted overview edges as a readability review threshold, not a schema limit. When the rendered overview exceeds it, group modules only along verified runtime, product, deployable-unit, host/core, data-ownership, or external-system boundaries and push detail into drill-down. Never invent a boundary, omit a material flow, or weaken evidence merely to hit the threshold.
-- Preview the rendered overview after edge lifting. A route-failure marker, many labels hidden until hover, or a dense external-context fan-out is a signal to improve the module tree or shorten labels; it is not permission to delete accurate relationships.
-- `sections` holds only applicable topics with substantive current-state content; omit empty sections. Section titles are the reader questions themselves, localized (Runtime and Technologies, Data and State, Key Execution Flows, Build, Test, and Delivery, Security and Failure Behavior); project terms may adapt the wording, but do not invent parallel categories — ordered execution paths belong under Key Execution Flows, not a "key mechanisms" section. Use `heading` to separate questions, `steps` for an ordered execution path, and `table` for repeated fields such as runtime units, data ownership, build artifacts, or failure handling. Use `p` for a short explanation, not a dense inventory paragraph.
+- `sections` holds only applicable topics with substantive current-state content; omit empty sections. Section titles are the reader questions themselves, localized; do not invent parallel categories — ordered execution paths belong under Key Execution Flows, not a "key mechanisms" section. Use `heading` to separate questions, `steps` for ordered execution paths, and `table` for repeated fields such as runtime units, data ownership, build artifacts, or failure handling.
 - The `report-data` block must be valid JSON: no comments, no trailing commas, `"` and `\` escaped, and any literal `</script>` inside a string written as `<\/script>`.
 
 ## Architecture synthesis
@@ -101,17 +99,13 @@ First write a private **system thesis** in this shape: **trigger → runtime uni
 6. Trace one to three **golden paths** from a real entry point to a durable result or external effect, including the ownership hand-off between components.
 7. Write a one-sentence system story, then choose top-level concepts that let a new maintainer tell that story without package names. Put implementation components underneath those concepts.
 
-Keep caches, checkpoints, authoritative state, claims, history, and export/import archives as separate data categories. For archives and recovery files, record whether they can contain sensitive prompts, content, or model output and which path/permission checks actually apply.
-
-Trace export and import as separate command paths. Do not attribute import-only ZIP central-directory validation, CRC/size/compression limits, symlink checks, staging, promotion, or rollback to export; describe only the checks that the active export implementation performs, and state the stronger archive checks under import.
+Keep caches, checkpoints, authoritative state, claims, history, and export/import archives as separate data categories, and trace export and import as separate command paths (REFERENCE.md, Architecture synthesis mechanics, for the per-field and per-check rules).
 
 Do not use the package tree as the overview architecture. A package, directory, class, or service becomes a top-level node only when it is itself a reader-relevant runtime, ownership, product, or trust boundary. The overview is the system map; drill-downs hold implementation structure.
 
 Keep runtime architecture separate from engineering governance. Build workflows, release groups, registries, and test commands belong in the build/test/delivery section unless they are themselves invoked by the runtime path. A shared library is not a process, and an independently built package is not automatically a peer runtime node.
 
-Synthesis may connect only relationships whose endpoints and hand-off were separately verified. Do not invent an architectural edge to make the story cleaner.
-
-Use edges for real invocation, ownership, or deployment hand-offs. Put cleanup order, history append order, retry timing, and other temporal facts in `steps` or failure tables unless a concrete data or control hand-off crosses the edge; an arrow must not imply a dependency that the implementation does not use.
+Synthesis may connect only relationships whose endpoints and hand-off were separately verified. Do not invent an architectural edge to make the story cleaner; temporal facts belong in `steps` or failure tables unless a concrete data or control hand-off crosses the edge (REFERENCE.md, Architecture synthesis mechanics).
 
 Run a **main-spine pass** on the overview and every drill-down before accepting the graph:
 
@@ -130,13 +124,12 @@ Use direct subject–verb–object sentences: name the caller or owner, the acti
 
 - Lead visible labels and headings with the reader-facing concept; put package names, class names, and exact implementation terms in `detail` or evidence after the responsibility is clear. Prefer “插件组装入口” over an unexplained “Composition root”.
 - Introduce a technical term only when it distinguishes real behavior, then explain what it means here. For example, explain that a “projection” is a file that can be rebuilt from the authoritative report rather than assuming the reader knows the term.
-- When an exact state or mechanism name matters, pair it with its consequence: “结果未知（`ambiguous`），因此自动重发会被阻止”, not a row made only of status names.
+- When an exact state or mechanism name matters, pair it with its consequence (see REFERENCE.md, “Write for comprehension”, for the `ambiguous` example), not a row made only of status names.
 - Prefer “The scheduler writes run-state after the pipeline finishes” over “run-state lifecycle management”.
 - Prefer one idea per sentence and one question per paragraph. Split repeated comparisons into a table and execution order into steps.
 - Open each section with the direct answer to its reader question, then use `table` or `steps` for the detail. Do not make a flat bullet inventory the primary explanation.
 - Make table columns answer concrete questions such as “谁启动 / 做什么 / 写到哪里 / 失败后怎样”. A row that only names abstractions, technologies, or mechanisms must be rewritten until a reader can predict the observable result.
-- Avoid vague verbs and adjectives such as “supports”, “provides capability”, “unified”, “complete”, “robust”, or “flexible” unless the sentence immediately states the concrete mechanism and scope.
-- Rewrite template-like openings such as “This module is mainly responsible for…” or “The system implements this through…” when they do not immediately name the actor, action, object, and outcome.
+- Avoid vague verbs and adjectives such as “supports”, “provides capability”, “unified”, “complete”, “robust”, or “flexible” unless the sentence immediately states the concrete mechanism and scope; treat template-like openings (REFERENCE.md, “Write for comprehension”) the same way.
 - Keep exact identifiers, filenames, commands, and limits where they help the reader trace the implementation; do not turn them into an unstructured inventory.
 - Keep audit narration out of reader-facing sections. Do not say that a README is stale, a claim was corrected, or an agent checked a contract; state the current executable boundary and any uncovered compatibility risk directly.
 
@@ -174,16 +167,7 @@ When implementation changes, replace or remove stale statements in place. Never 
 
 ## Implementation-proof gate
 
-A capability is not current behavior until the selected production path actually reaches and uses it. Before writing a material active-behavior claim, close this evidence loop:
-
-```text
-executable entry
-→ registration / composition
-→ baseline-selected configuration or provider
-→ concrete caller with actual arguments
-→ concrete callee or host adapter
-→ resulting state, output, or external effect
-```
+A capability is not current behavior until the selected production path actually reaches and uses it. Before writing a material active-behavior claim, close the full evidence loop: executable entry → registration / composition → selected configuration or provider → concrete caller with actual arguments → concrete callee / host adapter → state, output, or external effect (REFERENCE.md, "Production source and runtime wiring", gates every hop).
 
 A dependency, symbol, interface, helper, flag, environment-variable resolver, provider, test, or request option proves only that a capability exists. It does not prove that a current production path selects or invokes it. Ordinary declared/configurable capabilities that are not selected should stay out of the report. Mention one in operation evidence only when it directly explains a corrected claim, scoped `no-impact`, or blocker; otherwise omit it there too. Include non-use in the report only when it creates a material current behavior or user-facing limitation.
 
