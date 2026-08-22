@@ -505,6 +505,162 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 self.assertIn("refusing to downgrade", rejected.stderr)
                 self.assertEqual(future_report.read_text(encoding="utf-8"), future)
 
+    def _write_report(self, tmp, data, name="report.html"):
+        report = Path(tmp) / name
+        block = re.search(
+            r"(<script type=\"application/json\" id=\"report-data\">).*?(</script>)",
+            self.template,
+            flags=re.S,
+        )
+        html = self.template[: block.start(1)] + block.group(1) + "\n" + json.dumps(
+            data, ensure_ascii=False, indent=2
+        ) + "\n" + block.group(2) + self.template[block.end(2) :]
+        report.write_text(html, encoding="utf-8")
+        return report
+
+    def _run_validate(self, report):
+        refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
+        return subprocess.run(
+            ["node", str(refresh_script), "--validate", str(report)],
+            cwd=self.repo_root,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def _base_data(self):
+        return {
+            "title": "validate fixture",
+            "summary": "one sentence",
+            "modules": [
+                {
+                    "id": "a",
+                    "label": "A",
+                    "layer": "entry",
+                    "summary": "entry node",
+                    "detail": "detail",
+                    "evidence": ["src/a.ts (A)"],
+                },
+                {
+                    "id": "a.child",
+                    "label": "Child",
+                    "parent": "a",
+                    "layer": "core",
+                    "summary": "child node",
+                },
+                {
+                    "id": "db",
+                    "label": "DB",
+                    "layer": "data",
+                    "summary": "storage",
+                },
+            ],
+            "edges": [
+                { "from": "a.child", "to": "db", "kind": "flow" },
+            ],
+            "sections": [
+                {
+                    "title": "Runtime",
+                    "blocks": [
+                        { "type": "p", "text": "takeaway" },
+                        { "type": "table", "columns": ["k", "v"], "rows": [["1", "2"]] },
+                    ],
+                }
+            ],
+        }
+
+    def test_validate_accepts_well_formed_report(self):
+        with tempfile.TemporaryDirectory(prefix="architecture-map-validate-") as tmp:
+            report = self._write_report(tmp, self._base_data())
+            result = self._run_validate(report)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("valid", result.stdout)
+
+    def test_validate_rejects_structural_violations(self):
+        violations = {
+            "duplicate id": lambda d: d["modules"].append(
+                { "id": "a", "label": "dup", "layer": "core", "summary": "s" }
+            ),
+            "unknown layer": lambda d: d["modules"][0].update(layer="kernel"),
+            "missing parent": lambda d: d["modules"][1].update(parent="ghost"),
+            "deeper than three levels": lambda d: (
+                d["modules"].append(
+                    { "id": "a.c2", "parent": "a.child", "label": "c2", "layer": "core", "summary": "s" }
+                ),
+                d["modules"].append(
+                    { "id": "a.c2.c3", "parent": "a.c2", "label": "c3", "layer": "core", "summary": "s" }
+                ),
+            ),
+            "self edge": lambda d: d["edges"].append(
+                { "from": "a", "to": "a", "kind": "flow" }
+            ),
+            "data to data edge": lambda d: (
+                d["modules"].append(
+                    { "id": "cache", "label": "Cache", "layer": "data", "summary": "c" }
+                ),
+                d["edges"].append({ "from": "db", "to": "cache", "kind": "flow" }),
+            ),
+            "unknown edge kind": lambda d: d["edges"][0].update(kind="magic"),
+            "edge to missing module": lambda d: d["edges"].append(
+                { "from": "a", "to": "nope", "kind": "flow" }
+            ),
+            "unknown module field": lambda d: d["modules"][0].update(color="red"),
+            "unknown edge field": lambda d: d["edges"][0].update(color="red"),
+            "unknown top-level field": lambda d: d.update(version=1),
+            "empty modules": lambda d: d.update(modules=[]),
+            "multiline summary": lambda d: d["modules"][0].update(summary="a\nb"),
+            "empty table rows": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "table", "columns": ["a"], "rows": [] }
+            ),
+            "ragged table row": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "table", "columns": ["a", "b"], "rows": [["x"]] }
+            ),
+            "empty paragraph": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "p", "text": "   " }
+            ),
+            "unknown block type": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "diagram", "text": "x" }
+            ),
+            "empty section blocks": lambda d: d["sections"].append(
+                { "title": "Empty", "blocks": [] }
+            ),
+        }
+        for name, mutate in violations.items():
+            with self.subTest(violation=name):
+                data = self._base_data()
+                mutate(data)
+                with tempfile.TemporaryDirectory(
+                    prefix="architecture-map-validate-"
+                ) as tmp:
+                    report = self._write_report(tmp, data)
+                    result = self._run_validate(report)
+                    self.assertEqual(
+                        result.returncode,
+                        2,
+                        f"{name}: {result.stdout}{result.stderr}",
+                    )
+                    self.assertIn("invalid", result.stderr)
+
+    def test_validate_rejects_invalid_json(self):
+        with tempfile.TemporaryDirectory(prefix="architecture-map-validate-") as tmp:
+            block = re.search(
+                r"(<script type=\"application/json\" id=\"report-data\">).*?(</script>)",
+                self.template,
+                flags=re.S,
+            )
+            report = Path(tmp) / "report.html"
+            report.write_text(
+                self.template[: block.start(1)]
+                + block.group(1)
+                + "\n{\"title\": oops}\n"
+                + block.group(2)
+                + self.template[block.end(2) :],
+                encoding="utf-8",
+            )
+            result = self._run_validate(report)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("invalid JSON", result.stderr)
+
     def test_template_behavior_smoke_suite(self):
         script = self.repo_root / "tests" / "test_architecture_map_template.mjs"
         try:

@@ -207,7 +207,7 @@ Supporting files live next to this `SKILL.md`:
 
 - `REFERENCE.md` — evidence, investigation, update, and audit mechanics;
 - `templates/architecture-map.html` — the fixed HTML template whose `report-data` block is filled per report.
-- `scripts/refresh-template.mjs` — checks or refreshes an existing report shell while preserving its validated `report-data` block.
+- `scripts/refresh-template.mjs` — checks the shell (`--check`), machine-validates the `report-data` block (`--validate`), or refreshes an existing report shell while preserving that block exactly.
 
 ## Modes
 
@@ -242,7 +242,7 @@ Use after an accepted implementation change or when the user gives a reliable ch
 4. Search for rejection, alternate-provider, fallback, bypass, buffering, and degraded paths that narrow the resulting claim.
 5. Compare the verified current implementation with the existing report's `report-data` block.
 6. Rewrite, add, move, or delete only the affected module entries, edges, and section blocks; write the edited JSON back into the `report-data` block without hand-editing the report shell.
-7. Run `node scripts/refresh-template.mjs --check <report>` from the installed skill directory. When stale, run the same command without `--check` to replace the shell with the current template while preserving the just-verified data block.
+7. Run `node scripts/refresh-template.mjs --validate <report>` and fix every reported structural problem in the data block. Then run `node scripts/refresh-template.mjs --check <report>` from the installed skill directory. When stale, run the same command without `--check` to replace the shell with the current template while preserving the just-verified data block.
 8. Leave unrelated accurate entries untouched.
 
 If no report exists, return `blocked` and recommend `init`; do not silently create a partial report.
@@ -258,7 +258,7 @@ Use when the user asks whether the report is accurate, when the impact scope is 
 5. Find important implemented areas the report omits and architecture concepts it groups misleadingly.
 6. Remove stale, unsupported, over-broad, historical, rationale, prompt-derived, plan-derived, process-oriented, package-inventory, and noun-stack content.
 7. Reconcile the `report-data` block in place. Do not append an audit section or audit history.
-8. Check the shell with `node scripts/refresh-template.mjs --check <report>` and refresh it when stale; shell migration never substitutes for verifying report claims.
+8. Check the data block with `node scripts/refresh-template.mjs --validate <report>` and the shell with `node scripts/refresh-template.mjs --check <report>`; refresh the shell when stale. Shell migration never substitutes for verifying report claims.
 
 If no report exists, return `blocked` and recommend `init`.
 
@@ -273,7 +273,7 @@ If no report exists, return `blocked` and recommend `init`.
 7. Challenge strong semantics and broad quantifiers against fallback, bypass, rejection, buffering, and degraded paths. Narrow or omit claims whose semantics are not proved.
 8. Check exact key derivation, process/host lock scope, command-specific runtime construction, and the separation of caches/checkpoints/authoritative state/export archives before writing strong claims or edges.
 9. Draft the complete report edit, then run the package-name removal, golden-path narration, section-question, and subject–verb–object checks. If a central requested area cannot be verified, stop with `blocked` rather than leave speculative or half-reconciled content.
-10. Create the report by copying the current template and filling the `report-data` block, or edit the existing data block in place and refresh a stale shell with `scripts/refresh-template.mjs`. Preserve accurate unaffected entries and the project's useful terminology; never hand-merge renderer code into a project report.
+10. Create the report by copying the current template and filling the `report-data` block, or edit the existing data block in place and refresh a stale shell with `scripts/refresh-template.mjs`. Before finishing, run `node scripts/refresh-template.mjs --validate <report>` and fix every reported structural problem. Preserve accurate unaffected entries and the project's useful terminology; never hand-merge renderer code into a project report.
 11. Re-read the resulting claims against implementation evidence, claimed scope, reader contract, canonical module/section placement, and the prohibited-content list.
 12. Return exactly one result status.
 
