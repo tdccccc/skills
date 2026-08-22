@@ -201,12 +201,13 @@ function validateReportData(data, problems) {
           problems.push(`${blockLabel}: items must be a non-empty array of strings`);
         }
         if (allowed.has("columns")) {
-          if (!isNonEmptyStringArray(b.columns)) {
+          const columnsOk = isNonEmptyStringArray(b.columns);
+          if (!columnsOk) {
             problems.push(`${blockLabel}: columns must be a non-empty array of strings`);
           }
           if (!Array.isArray(b.rows) || b.rows.length === 0) {
             problems.push(`${blockLabel}: rows must be a non-empty array`);
-          } else {
+          } else if (columnsOk) {
             b.rows.forEach((row, k) => {
               if (!Array.isArray(row) || row.length !== b.columns.length) {
                 problems.push(

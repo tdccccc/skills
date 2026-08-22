@@ -617,6 +617,12 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "ragged table row": lambda d: d["sections"][0]["blocks"].append(
                 { "type": "table", "columns": ["a", "b"], "rows": [["x"]] }
             ),
+            "missing table columns": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "table", "rows": [["x"]] }
+            ),
+            "non-array table columns": lambda d: d["sections"][0]["blocks"].append(
+                { "type": "table", "columns": "bogus", "rows": [["x"]] }
+            ),
             "empty paragraph": lambda d: d["sections"][0]["blocks"].append(
                 { "type": "p", "text": "   " }
             ),
@@ -645,6 +651,8 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "multiline summary": "summary must be a non-empty single-line string",
             "empty table rows": "rows must be a non-empty array",
             "ragged table row": "must have 2 cells",
+            "missing table columns": "columns must be a non-empty array of strings",
+            "non-array table columns": "columns must be a non-empty array of strings",
             "empty paragraph": "text must be non-empty",
             "unknown block type": "type must be one of",
             "empty section blocks": "blocks must be a non-empty array",
