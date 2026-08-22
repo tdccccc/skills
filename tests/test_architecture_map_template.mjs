@@ -1,6 +1,7 @@
 // architecture-map 模板渲染器行为冒烟测试（jsdom）。
 // 运行：node tests/test_architecture_map_template.mjs
-// 依赖 jsdom（npm i jsdom）；未安装时退出码 2，python 包装测试会跳过。
+// 依赖 jsdom：在 tests/ 目录执行 npm install（见 tests/package.json）；
+// 未安装时退出码 2，python 包装测试会跳过。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
