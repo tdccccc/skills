@@ -133,7 +133,7 @@ Use direct subject–verb–object sentences: name the caller or owner, the acti
 - Keep exact identifiers, filenames, commands, and limits where they help the reader trace the implementation; do not turn them into an unstructured inventory.
 - Keep audit narration out of reader-facing sections. Do not say that a README is stale, a claim was corrected, or an agent checked a contract; state the current executable boundary and any uncovered compatibility risk directly.
 
-Structure the overview and sections around six reader questions:
+Structure the overview and sections around six reader questions. The first (Overview) is answered by the diagram itself; the remaining five become the section tabs:
 
 - **Overview — What is the system shape and primary path?** Separate runtime/host, shared core, data ownership, independent integration, and external trust boundaries, then make the main trigger-to-effect path narratable from the visible graph.
 - **Runtime and Technologies — What actually runs?** Name each runtime unit, how it starts, what technology owns its boundary, and what it calls. State explicitly when a shared core library is not a separate process.
@@ -228,7 +228,7 @@ Use after an accepted implementation change or when the user gives a reliable ch
 4. Search for rejection, alternate-provider, fallback, bypass, buffering, and degraded paths that narrow the resulting claim.
 5. Compare the verified current implementation with the existing report's `report-data` block.
 6. Rewrite, add, move, or delete only the affected module entries, edges, and section blocks; write the edited JSON back into the `report-data` block without hand-editing the report shell.
-7. Run `node scripts/refresh-template.mjs --validate <report>` and fix every reported structural problem in the data block. Then run `node scripts/refresh-template.mjs --check <report>` from the installed skill directory. When stale, run the same command without `--check` to replace the shell with the current template while preserving the just-verified data block.
+7. Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` and fix every reported structural problem in the data block. Then run the same script with `--check <report>`. When stale, run it without `--check` to replace the shell with the current template while preserving the just-verified data block. The script locates its template relative to its own path, so any working directory works; only `<report>` is resolved against the current directory.
 8. Leave unrelated accurate entries untouched.
 
 If no report exists, return `blocked` and recommend `init`; do not silently create a partial report.
