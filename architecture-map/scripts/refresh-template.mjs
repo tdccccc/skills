@@ -149,8 +149,8 @@ function validateReportData(data, problems) {
     if (isNonEmptyString(e.from) && e.from === e.to) {
       problems.push(`${label}: edge from a module to itself`);
     }
-    if ("kind" in e && !EDGE_KINDS.has(e.kind)) {
-      problems.push(`${label}: kind must be flow or dep`);
+    if (!EDGE_KINDS.has(e.kind)) {
+      problems.push(`${label}: kind is required and must be flow or dep`);
     }
     if ("label" in e && !isNonEmptyString(e.label)) {
       problems.push(`${label}: label must be a non-empty string when present`);

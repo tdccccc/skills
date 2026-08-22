@@ -601,6 +601,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 d["edges"].append({ "from": "db", "to": "cache", "kind": "flow" }),
             ),
             "unknown edge kind": lambda d: d["edges"][0].update(kind="magic"),
+            "missing edge kind": lambda d: d["edges"][0].pop("kind"),
             "edge to missing module": lambda d: d["edges"].append(
                 { "from": "a", "to": "nope", "kind": "flow" }
             ),
@@ -626,6 +627,28 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 { "title": "Empty", "blocks": [] }
             ),
         }
+        expected_message = {
+            "duplicate id": 'duplicate module id "a"',
+            "unknown layer": "layer must be one of",
+            "missing parent": "references a missing module",
+            "deeper than three levels": "deeper than three levels",
+            "self edge": "edge from a module to itself",
+            "data to data edge": "never connect two data nodes directly",
+            "unknown edge kind": "kind is required and must be flow or dep",
+            "missing edge kind": "kind is required and must be flow or dep",
+            "edge to missing module": "to must reference an existing module id",
+            "unknown module field": 'unknown field "color"',
+            "unknown edge field": 'unknown field "color"',
+            "unknown top-level field": 'unknown top-level field "version"',
+            "edges not an array": "edges must be an array when present",
+            "empty modules": "modules must be a non-empty array",
+            "multiline summary": "summary must be a non-empty single-line string",
+            "empty table rows": "rows must be a non-empty array",
+            "ragged table row": "must have 2 cells",
+            "empty paragraph": "text must be non-empty",
+            "unknown block type": "type must be one of",
+            "empty section blocks": "blocks must be a non-empty array",
+        }
         for name, mutate in violations.items():
             with self.subTest(violation=name):
                 data = self._base_data()
@@ -640,7 +663,8 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                         2,
                         f"{name}: {result.stdout}{result.stderr}",
                     )
-                    self.assertIn("invalid", result.stderr)
+                    # Assert the specific check fired, not just any failure.
+                    self.assertIn(expected_message[name], result.stderr)
 
     def test_validate_rejects_invalid_json(self):
         with tempfile.TemporaryDirectory(prefix="architecture-map-validate-") as tmp:
