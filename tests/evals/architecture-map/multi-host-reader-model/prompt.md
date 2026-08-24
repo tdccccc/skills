@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Initialize `docs/architecture-map.html` in place for an experienced maintainer who is new to the repository. Explain the runtime architecture, data ownership, main execution flow, engineering workflow, and failure behavior, then return the architecture-map operation result.

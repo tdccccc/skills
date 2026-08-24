@@ -1,0 +1,9 @@
+{
+  "name": "architecture-map-template-tests",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Dev dependency for the architecture-map renderer smoke suite (tests/test_architecture_map_template.mjs). Install with: npm install",
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}

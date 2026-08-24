@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. The accepted change replaced the handler `process` with `process_v2` in `app.py`; nothing else changed. Update `seed-report.html` in place (edit only the `report-data` block) for this accepted scope and return the architecture-map operation result. Describe only current behavior, not the change.

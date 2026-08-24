@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test suite (python + node + jsdom)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+
+      # The architecture-map contract tests drive node scripts, and the
+      # renderer smoke suite needs jsdom (resolved from tests/node_modules).
+      - name: Install test dependencies
+        working-directory: tests
+        run: npm ci
+
+      - name: Run all skill test suites
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v

@@ -24,7 +24,7 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 mkdir -p ~/.agents/skills
 ln -sfn /path/to/skills/code-change-discipline ~/.agents/skills/code-change-discipline
 ln -sfn /path/to/skills/helm ~/.agents/skills/helm
-ln -sfn /path/to/skills/technical-report ~/.agents/skills/technical-report
+ln -sfn /path/to/skills/architecture-map ~/.agents/skills/architecture-map
 ```
 
 也可以使用 `~/.zcode/skills/`。安装或更新后新开会话。
@@ -51,7 +51,7 @@ ln -sfn /path/to/skills/technical-report ~/.agents/skills/technical-report
 5. 发现路径或目标不合适时，立即调整并记录原因。
 6. 被接受的代码块和阶段转换会分别提交；你也可以明确要求不提交。
 
-如果项目维护技术报告，Helm 会在代码块通过验收后调用 `technical-report` 同步当前实现。失败测试和未验收代码不会进入报告或提交。
+如果项目维护架构地图报告，Helm 会在代码块通过验收后调用 `architecture-map` 同步当前实现。失败测试和未验收代码不会进入报告或提交。
 
 ## 逻辑改动怎么测试
 

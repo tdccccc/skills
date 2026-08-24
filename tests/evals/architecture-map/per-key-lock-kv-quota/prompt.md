@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Initialize `docs/architecture-map.html` in place. Focus on runtime topology, quota enforcement, shared state, concurrency, bypasses, and failure behavior, then return the architecture-map operation result.

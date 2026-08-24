@@ -41,7 +41,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 
 - [code-change-discipline](code-change-discipline/README.md)：修改代码前先选择测试策略；功能和 Bug 默认先测试后实现，小修也适用。
 - [helm](helm/README.md)：先定目标、一次规划一个阶段，并在执行中按证据调整方向。
-- [technical-report](technical-report/SKILL.md)：基于代码和可执行配置创建、更新或审计当前实现报告。
+- [architecture-map](architecture-map/SKILL.md)：基于代码和可执行配置创建、更新或审计当前实现的交互式架构地图报告。
 - [tocodex](tocodex/README.md)：把明确任务委托给 Codex CLI，并读取结果。
 - [grill-me](grill-me/SKILL.md)：通过持续追问帮助梳理和检验设计。
 - [grill-with-docs](grill-with-docs/SKILL.md)：在设计访谈过程中同步形成领域术语和 ADR。
@@ -55,7 +55,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 ```text
 修复空端口被解析成 0 的 Bug
 用 Helm 做这个支付回调重构
-更新当前项目的技术报告
+更新当前项目的架构地图报告
 把这个任务交给 Codex
 ```
 

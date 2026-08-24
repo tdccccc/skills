@@ -33,7 +33,7 @@ class InstallScriptTests(unittest.TestCase):
         for skill_name in [
             "code-change-discipline",
             "helm",
-            "technical-report",
+            "architecture-map",
             "tocodex",
             "grill-me",
             "grill-with-docs",
@@ -68,10 +68,10 @@ class InstallScriptTests(unittest.TestCase):
             (skills_dir / "code-change-discipline" / "README.md").is_file()
         )
 
-        technical_report = skills_dir / "technical-report"
+        technical_report = skills_dir / "architecture-map"
         self.assertTrue((technical_report / "REFERENCE.md").is_file())
         self.assertTrue(
-            (technical_report / "templates" / "technical-report.md").is_file()
+            (technical_report / "templates" / "architecture-map.html").is_file()
         )
         self.assertTrue((skills_dir / "tocodex" / "SKILL.md").is_file())
 

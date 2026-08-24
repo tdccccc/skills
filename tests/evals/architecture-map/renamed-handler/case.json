@@ -1,0 +1,18 @@
+{
+  "mode": "update",
+  "expected_status": "updated",
+  "expected_facts": [
+    "the report names process_v2 as the active production handler",
+    "the evidence anchor points at process_v2",
+    "the audit_log module entry is unchanged"
+  ],
+  "forbidden_claims": [
+    "a before/after or rename narrative",
+    "the accepted diff text as report content"
+  ],
+  "hard_failures": [
+    "keeps process as the active production path",
+    "rewrites unrelated module entries",
+    "adds change history or rationale to the report"
+  ]
+}

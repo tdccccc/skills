@@ -1,0 +1,5 @@
+{
+  "root": "publish plugin assets, then CLI package",
+  "companion": "build a temporary extension package",
+  "relay": "verify and dry-run the service bundle"
+}

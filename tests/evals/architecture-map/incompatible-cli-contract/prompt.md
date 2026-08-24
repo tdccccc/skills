@@ -1,0 +1,1 @@
+Treat this disposable fixture copy as the project root. Audit `seed-report.html` against the current caller and CLI parser, reconcile that file in place (edit only the `report-data` block), and return the architecture-map operation result. Describe only current behavior, not how the contract changed. Do not create a second report.
