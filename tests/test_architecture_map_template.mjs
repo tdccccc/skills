@@ -197,6 +197,11 @@ function runOverviewSuite() {
     "open panel reserves diagram space",
     document.getElementById("view-diagram").classList.contains("panel-open"),
   );
+  check(
+    "detail panel is anchored inside the diagram view",
+    !!document.querySelector("#view-diagram #panel"),
+    document.getElementById("panel")?.parentElement?.id,
+  );
   check("panel shows module title", document.querySelector("#panel h2").textContent === "HTTP API");
   const panelText = document.getElementById("panel").textContent;
   check("panel shows 机制说明", panelText.includes("机制说明"));

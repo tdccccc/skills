@@ -390,7 +390,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
 
     def test_template_version_and_refresh_script_preserve_report_data(self):
         self.assertIn(
-            '<meta name="architecture-map-template-version" content="3">',
+            '<meta name="architecture-map-template-version" content="4">',
             self.template,
         )
         refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
@@ -414,7 +414,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         }
         data_block = json.dumps(custom_data, ensure_ascii=False, indent=2)
         stale = self.template.replace(
-            '<meta name="architecture-map-template-version" content="3">',
+            '<meta name="architecture-map-template-version" content="4">',
             '<meta name="architecture-map-template-version" content="1">',
         ).replace(
             "</head>", '<style id="old-shell-sentinel"></style>\n</head>', 1
@@ -456,7 +456,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
             rendered = report.read_text(encoding="utf-8")
             self.assertIn(
-                '<meta name="architecture-map-template-version" content="3">',
+                '<meta name="architecture-map-template-version" content="4">',
                 rendered,
             )
             self.assertNotIn("old-shell-sentinel", rendered)
@@ -486,7 +486,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             future_report = Path(tmp) / "future-report.html"
             future = stale.replace(
                 '<meta name="architecture-map-template-version" content="1">',
-                '<meta name="architecture-map-template-version" content="4">',
+                '<meta name="architecture-map-template-version" content="5">',
                 1,
             )
             future_report.write_text(future, encoding="utf-8")
