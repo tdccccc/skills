@@ -62,6 +62,16 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("Never state or imply that the report is accurate as a whole", self.skill)
         self.assertIn("A `blocked` run must not leave", self.skill)
 
+        # The per-mode sections must state the same no-report resolution as the
+        # ## Modes decision rules: fall back to init, blocked only on insistence.
+        update_section = self.skill.split("### `update`", 1)[1].split("### `audit`", 1)[0]
+        self.assertIn("fall back to `init`", update_section)
+        self.assertIn("explicitly insists on `update` semantics", update_section)
+        audit_section = self.skill.split("### `audit`", 1)[1].split("## Workflow", 1)[0]
+        self.assertIn("fall back to `init`", audit_section)
+        self.assertIn("explicitly insists on `audit` semantics", audit_section)
+        self.assertIn("fall back to `init` unless the user explicitly insists", self.reference)
+
     def test_current_implementation_and_evidence_contract(self):
         combined = self.skill + self.reference
         required_phrases = (
