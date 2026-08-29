@@ -1,7 +1,7 @@
 # Architecture map review fixes
 
 status: active
-updated: 2026-08-29
+updated: 2026-08-30
 owner: session-2026-08-29-tiandc
 
 ## Intent
@@ -33,5 +33,5 @@ Resolve the confirmed bugs and agreed improvements from the 2026-08-29 review of
 
 <!-- Single source of truth for phase status. PN ↔ filename NN. Outcomes only — no steps. The active line is the current focus. -->
 1. P1 — Detail panel anchored to the diagram view; no topbar/search coverage on desktop, bottom sheet preserved — status: done
-2. P2 — One consistent no-report resolution for update/audit across SKILL.md and REFERENCE.md, pinned by tests — status: active
-3. P3 — Search covers notes/evidence, duplicate section title validation, Escape clears search, summary guidance and checklist dedupe — status: pending
+2. P2 — One consistent no-report resolution for update/audit across SKILL.md and REFERENCE.md, pinned by tests — status: done
+3. P3 — Search covers notes/evidence, duplicate section title validation, Escape clears search, summary guidance and checklist dedupe — status: active
