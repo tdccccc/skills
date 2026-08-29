@@ -33,13 +33,16 @@ Search matches `notes` and `evidence` in addition to label/summary/detail, Escap
 
 ## Tasks
 
-- [ ] Search haystack + Escape behavior with jsdom tests (Red → Green), version bump 4 → 5, seed refresh, python version assertions
-- [ ] `--validate` duplicate section title with python subtest (Red → Green)
-- [ ] REFERENCE summary-length guidance + "Content-boundary checklist" dedupe with contract assertions (proportional)
+- [x] Search haystack + Escape behavior with jsdom tests (Red → Green), version bump 4 → 5, seed refresh, python version assertions
+- [x] `--validate` duplicate section title with python subtest (Red → Green)
+- [x] REFERENCE summary-length guidance + "Content-boundary checklist" dedupe with contract assertions (proportional)
 
 ## Verification
 
-- (to fill) per-task Red/Green + final full-suite results
+- Red observed (single run, all four): jsdom 90/92 — `FAIL: search matches module notes and evidence [ 'a', 'b' ]` and `FAIL: escape clears the search filter`; python `SUBFAILED(violation='duplicate section title') ... AssertionError: 0 != 2 ... valid:`; phrase assertion in `test_reader_first...` failing
+- Green observed: jsdom 92/92; python 26 passed, 23 subtests passed (seed `--check` vs v5 included; no asserted phrase lost in the dedupe)
+- Final headless-Chrome smoke on the v5 shell @1400×900: 6 nodes, 6 edges, PANEL t=112 (below tab bar), SEARCH t=21,b=50 fully visible
+- Checks not run: no headless-browser step in CI (jsdom-only); Chrome probes are local compensating verification
 
 ## Abort / reshape triggers
 

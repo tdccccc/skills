@@ -1,6 +1,6 @@
 # Architecture map review fixes
 
-status: active
+status: done
 updated: 2026-08-30
 owner: session-2026-08-29-tiandc
 
@@ -10,11 +10,11 @@ Resolve the confirmed bugs and agreed improvements from the 2026-08-29 review of
 
 ## Success criteria
 
-- [ ] In a wide desktop viewport the detail panel no longer covers the topbar, tabs, or search box (headless-Chrome layout probe), while the ≤1100px bottom sheet still works.
-- [ ] SKILL.md and REFERENCE.md state one consistent no-report resolution for `update` / `audit`, pinned by the contract tests.
-- [ ] Search matches `notes` and `evidence` too; `--validate` rejects duplicate section titles; Escape also clears the search filter.
-- [ ] The module `summary` length guidance matches what node widths can display, and the duplicated REFERENCE checklist items have one canonical home.
-- [ ] Full test suite is green (python contract + jsdom template suite) and every eval seed report passes `--check` against the bumped template version.
+- [x] In a wide desktop viewport the detail panel no longer covers the topbar, tabs, or search box (headless-Chrome layout probe), while the ≤1100px bottom sheet still works.
+- [x] SKILL.md and REFERENCE.md state one consistent no-report resolution for `update` / `audit`, pinned by the contract tests.
+- [x] Search matches `notes` and `evidence` too; `--validate` rejects duplicate section titles; Escape also clears the search filter.
+- [x] The module `summary` length guidance matches what node widths can display, and the duplicated REFERENCE checklist items have one canonical home.
+- [x] Full test suite is green (python contract + jsdom template suite) and every eval seed report passes `--check` against the bumped template version.
 
 ## Non-goals
 
@@ -34,4 +34,4 @@ Resolve the confirmed bugs and agreed improvements from the 2026-08-29 review of
 <!-- Single source of truth for phase status. PN ↔ filename NN. Outcomes only — no steps. The active line is the current focus. -->
 1. P1 — Detail panel anchored to the diagram view; no topbar/search coverage on desktop, bottom sheet preserved — status: done
 2. P2 — One consistent no-report resolution for update/audit across SKILL.md and REFERENCE.md, pinned by tests — status: done
-3. P3 — Search covers notes/evidence, duplicate section title validation, Escape clears search, summary guidance and checklist dedupe — status: active
+3. P3 — Search covers notes/evidence, duplicate section title validation, Escape clears search, summary guidance and checklist dedupe — status: done
