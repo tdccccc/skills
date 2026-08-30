@@ -209,6 +209,27 @@ function runOverviewSuite() {
   check("panel evidence chips", document.querySelectorAll("#panel .chip").length === 2);
   check("panel hint mentions drill-down", panelText.includes("子模块"));
 
+  const boundaryEntry = document.querySelector('#canvas g.node.boundary-entry[data-id="__parent"]');
+  check(
+    "boundary entry node carries a distinct class",
+    !!boundaryEntry,
+    Array.from(document.querySelectorAll("#canvas g.node")).map((g) => g.getAttribute("class")),
+  );
+  check(
+    "boundary entry node shows an up glyph",
+    (boundaryEntry?.textContent || "").includes("↑"),
+    boundaryEntry?.textContent,
+  );
+  check(
+    "boundary entry border is stronger than plain dashed context",
+    boundaryEntry?.querySelector("rect")?.getAttribute("stroke-width") === "2.2",
+    boundaryEntry?.querySelector("rect")?.getAttribute("stroke-width"),
+  );
+  check(
+    "external context nodes stay plain dashed",
+    document.querySelectorAll('#canvas g.node:not([data-id="__parent"]).boundary-entry').length === 0,
+  );
+
   clickNode("api.auth");
   check("leaf breadcrumb unchanged", breadcrumb() === "系统 / HTTP API", breadcrumb());
   check("leaf panel title", document.querySelector("#panel h2").textContent === "鉴权中间件");

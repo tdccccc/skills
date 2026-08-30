@@ -332,7 +332,7 @@ svg{display:block;width:100%;height:100%;min-height:240px}
     var parentNode = null;
     if (parent && boundary > 0) {
       var p = byId[parent];
-      parentNode = { id: '__parent', label: (p.label || p.id) + '（模块入口）', layer: p.layer, summary: '', _children: [] };
+      parentNode = { id: '__parent', label: '↑ ' + (p.label || p.id) + '（模块入口）', layer: p.layer, summary: '', _children: [] };
     }
     return { nodes: nodes, ext: ext, parentNode: parentNode, edges: edges };
   }
@@ -1198,6 +1198,7 @@ svg{display:block;width:100%;height:100%;min-height:240px}
       if (!p) return;
       var layer = LAYERS[n.layer] || LAYERS.core;
       var nodeClass = 'node';
+      if (it.up) nodeClass += ' boundary-entry';
       if (dimmed[n.id]) nodeClass += ' dim';
       if (sel && n.id === sel) nodeClass += ' selected';
       if (sel && reachable[n.id] && n.id !== sel) nodeClass += ' on-path';
@@ -1210,6 +1211,7 @@ svg{display:block;width:100%;height:100%;min-height:240px}
         fill: layer.fill, stroke: layer.stroke, 'stroke-width': 1.5
       });
       if (it.ext) { rect.setAttribute('stroke-dasharray', '5 4'); rect.setAttribute('fill-opacity', '0.55'); }
+      if (it.up) { rect.setAttribute('stroke-width', 2.2); rect.setAttribute('stroke-dasharray', '7 4'); }
       g.appendChild(rect);
       var t1 = mk('text', { x: p.x + p.w / 2, y: p.y + 23, 'text-anchor': 'middle', fill: '#e6edf3', 'font-size': 12.5, 'font-weight': 600 });
       t1.textContent = trunc(n.label || n.id, 12.5, p.w - 18);
