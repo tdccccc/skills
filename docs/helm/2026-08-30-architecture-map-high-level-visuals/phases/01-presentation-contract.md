@@ -2,8 +2,8 @@
 
 goal_ref: ../goal.md
 created: 2026-08-30T15:56:18+08:00
-updated: 2026-08-30T15:56:18+08:00
-revision: 1
+updated: 2026-08-30T21:12:00+08:00
+revision: 2
 
 ## Outcome
 
@@ -28,7 +28,7 @@ Turn the agreed design direction into a small set of enforceable synthesis, rend
 - Red / baseline signal: focused architecture-map contract tests fail because they do not yet require an 8–15-node overview target, strict detail exclusion, primary-flow selection, or progressive disclosure placement.
 - Green check: `pytest -q tests/test_architecture_map_skill.py` passes with assertions covering the new high-level synthesis contract.
 - regression checks: run the full relevant architecture-map test set and confirm existing current-state, evidence, schema, and offline-output contracts remain Green.
-- [ ] implementation and tests accepted
+- [x] implementation and tests accepted
 
 ### Chunk 2 — Visual language, focus, and critical-path contract
 
@@ -37,7 +37,7 @@ Turn the agreed design direction into a small set of enforceable synthesis, rend
 - Red / baseline signal: focused template/skill tests fail because node-type encoding, boundary hierarchy, primary-versus-secondary edge emphasis, non-color cues, focus dimming, and critical-path isolation are not fully specified or asserted.
 - Green check: focused skill and template tests pass with the presentation rules expressed independently of any Archify implementation.
 - regression checks: existing interaction, keyboard, search, drill-down, and self-contained HTML tests remain Green.
-- [ ] implementation and tests accepted
+- [x] implementation and tests accepted
 
 ### Chunk 3 — Visual acceptance contract
 
@@ -46,7 +46,7 @@ Turn the agreed design direction into a small set of enforceable synthesis, rend
 - Red / baseline signal: validation guidance/tests fail because they do not yet distinguish structural validity, visual readability, and evidence validity or require overlap, clipping, route, viewport, and theme checks.
 - Green check: focused tests pass for explicit automated and human/browser visual acceptance gates.
 - regression checks: repository architecture-map tests pass without introducing Chrome or external assets as a generation-time hard dependency.
-- [ ] implementation and tests accepted
+- [x] implementation and tests accepted
 
 ## Phase verification
 
