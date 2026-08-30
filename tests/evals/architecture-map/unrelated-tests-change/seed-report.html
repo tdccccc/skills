@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="architecture-map-template-version" content="6">
+<meta name="architecture-map-template-version" content="7">
 <link rel="icon" href="data:,">
 <title>架构地图</title>
 <style>
@@ -50,6 +50,14 @@ svg{display:block;width:100%;height:100%;min-height:240px}
 .edge.dim .edge-line{opacity:.08}
 .edge.dim .edge-label,.edge.dim .edge-label-bg{opacity:.08}
 .edge.hi .edge-line{stroke:var(--hi);stroke-width:2.4;opacity:.95}
+/* Focus levels: the critical path (downstream flow chain) is the strongest
+   emphasis, directly connected edges keep the highlight, and upstream
+   (incoming) edges use a thinner, calmer emphasis — width and opacity carry
+   the distinction, not color alone. */
+.edge.up .edge-line{stroke-width:2;opacity:.75}
+.edge.path .edge-line{stroke:var(--hi);stroke-width:2.8;opacity:1}
+.node.on-path rect{stroke-width:2.4}
+.node.on-path:hover rect{stroke-width:2.5}
 .edge:hover .edge-line{stroke:var(--hi);opacity:.9}
 .edge .edge-hit{stroke:transparent;stroke-width:12;opacity:0;pointer-events:stroke}
 .edge-label{fill:var(--muted);font-size:10.5px;pointer-events:none;transition:opacity .12s ease}
@@ -1070,11 +1078,26 @@ svg{display:block;width:100%;height:100%;min-height:240px}
     var dimmed = {};
     items.forEach(function (it) { if (!matches(it.n)) dimmed[it.n.id] = true; });
     var connected = {};
+    var reachable = {}, pathEdge = {};
     if (sel) {
       view.edges.forEach(function (e) {
         if (e.from === sel || e.to === sel) { connected[e.from] = true; connected[e.to] = true; }
       });
       connected[sel] = true;
+      /* Critical path: continue the focus along directed flow edges toward
+         the durable result or external effect. Edges on that downstream
+         chain receive the strongest emphasis. */
+      var queue = [sel], queued = {}; queued[sel] = true;
+      while (queue.length) {
+        var cur = queue.shift();
+        reachable[cur] = true;
+        view.edges.forEach(function (e) {
+          if (e.kind === 'flow' && e.from === cur && !queued[e.to]) { queued[e.to] = true; queue.push(e.to); }
+        });
+      }
+      view.edges.forEach(function (e) {
+        if (e.kind === 'flow' && reachable[e.from] && reachable[e.to]) pathEdge[e.from + '\u2192' + e.to] = true;
+      });
     }
 
     var routingBoxes = [], routedSegments = [], occupiedLabels = [];
@@ -1110,9 +1133,13 @@ svg{display:block;width:100%;height:100%;min-height:240px}
       if (e.kind === 'mixed') cls += ' mixed';
       if (points.routeFailed) cls += ' route-failed';
       var hi = sel && (e.from === sel || e.to === sel);
+      var onPath = !!pathEdge[e.from + '\u2192' + e.to];
+      var up = hi && !onPath && e.to === sel;
       var searchDim = dimmed[e.from] || dimmed[e.to];
-      var selDim = sel && !(e.from === sel || e.to === sel);
-      if (hi) cls += ' hi';
+      var selDim = sel && !(e.from === sel || e.to === sel) && !onPath;
+      if (onPath) cls += ' path';
+      else if (up) cls += ' up';
+      else if (hi) cls += ' hi';
       else if (searchDim || selDim) cls += ' dim';
       var g = mk('g', {}, cls);
       g.setAttribute('data-from', e.from);
@@ -1128,7 +1155,7 @@ svg{display:block;width:100%;height:100%;min-height:240px}
       }
       var hitPath = mk('path', { d: d, fill: 'none' }, 'edge-hit');
       g.appendChild(hitPath);
-      var path = mk('path', { d: d, fill: 'none', 'marker-end': 'url(#' + (hi ? 'arr-hi' : 'arr') + ')' }, 'edge-line');
+      var path = mk('path', { d: d, fill: 'none', 'marker-end': 'url(#' + (onPath || hi ? 'arr-hi' : 'arr') + ')' }, 'edge-line');
       g.appendChild(path);
       if (e.label) {
         var lp = labelPosition(points, e.label, occupiedLabels);
@@ -1154,7 +1181,8 @@ svg{display:block;width:100%;height:100%;min-height:240px}
       var nodeClass = 'node';
       if (dimmed[n.id]) nodeClass += ' dim';
       if (sel && n.id === sel) nodeClass += ' selected';
-      if (sel && !connected[n.id]) nodeClass += ' dim';
+      if (sel && reachable[n.id] && n.id !== sel) nodeClass += ' on-path';
+      if (sel && !connected[n.id] && !reachable[n.id]) nodeClass += ' dim';
       var g = mk('g', {}, nodeClass);
       g.setAttribute('data-id', n.id);
       if (state.gesture && state.gesture.type === 'node' && state.gesture.id === n.id) g.classList.add('dragging');

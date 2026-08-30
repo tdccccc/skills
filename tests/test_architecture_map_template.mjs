@@ -217,8 +217,21 @@ function runOverviewSuite() {
     document.querySelectorAll("#canvas g.node.selected").length === 1,
   );
   check(
-    "leaf selection highlights connected edges",
-    document.querySelectorAll("#canvas g.edge.hi").length === 1,
+    "leaf selection emphasizes the outgoing flow chain as the critical path",
+    document.querySelectorAll("#canvas g.edge.path").length === 1,
+    Array.from(document.querySelectorAll("#canvas g.edge.path")).map((g) =>
+      g.getAttribute("data-route"),
+    ),
+  );
+  check(
+    "leaf selection keeps only the path edge emphasized in this view",
+    document.querySelectorAll("#canvas g.edge.hi, #canvas g.edge.up").length === 0,
+    Array.from(document.querySelectorAll("#canvas g.edge")).map((g) => g.getAttribute("class")),
+  );
+  check(
+    "leaf selection dims unrelated edges",
+    document.querySelectorAll("#canvas g.edge.dim").length === 4,
+    document.querySelectorAll("#canvas g.edge").length,
   );
 
   clickNode("__parent");
@@ -638,6 +651,78 @@ function runArxivRoutingSuite() {
   dom.window.close();
 }
 
+function runFocusPathSuite() {
+  const block = JSON.stringify({
+    title: "关键路径聚焦",
+    summary: "",
+    modules: [
+      { id: "a", label: "A", layer: "entry", summary: "" },
+      { id: "b", label: "B", layer: "core", summary: "" },
+      { id: "c", label: "C", layer: "core", summary: "" },
+      { id: "d", label: "D", layer: "data", summary: "" },
+      { id: "e", label: "E", layer: "entry", summary: "" },
+      { id: "f", label: "F", layer: "entry", summary: "" },
+      { id: "g", label: "G", layer: "core", summary: "" },
+      { id: "x", label: "X", layer: "data", summary: "" },
+    ],
+    edges: [
+      { from: "a", to: "b", kind: "flow" },
+      { from: "b", to: "c", kind: "flow" },
+      { from: "c", to: "d", kind: "flow" },
+      { from: "e", to: "b", kind: "dep" },
+      { from: "b", to: "x", kind: "dep" },
+      { from: "f", to: "g", kind: "flow" },
+    ],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const clickNode = (id) => {
+    document
+      .querySelector(`#canvas g.node[data-id="${id}"]`)
+      .dispatchEvent(new window.Event("click", { bubbles: true }));
+  };
+  const edgeClasses = (from, to) => {
+    const edge = document.querySelector(`#canvas g.edge[data-from="${from}"][data-to="${to}"]`);
+    return edge ? Array.from(edge.classList) : [];
+  };
+
+  clickNode("b");
+  check("chain head: incoming flow edge is upstream emphasis", edgeClasses("a", "b").includes("up") && !edgeClasses("a", "b").includes("path"), edgeClasses("a", "b"));
+  check("chain middle: outgoing flow edge is critical path", edgeClasses("b", "c").includes("path"), edgeClasses("b", "c"));
+  check("chain tail: continuation to the data node stays on the path", edgeClasses("c", "d").includes("path"), edgeClasses("c", "d"));
+  check("incoming dep edge is upstream emphasis", edgeClasses("e", "b").includes("up"), edgeClasses("e", "b"));
+  check("outgoing dep edge stays connected highlight", edgeClasses("b", "x").includes("hi"), edgeClasses("b", "x"));
+  check("unrelated edge dims", edgeClasses("f", "g").includes("dim"), edgeClasses("f", "g"));
+  check(
+    "path nodes carry on-path emphasis",
+    Array.from(document.querySelectorAll("#canvas g.node.on-path")).map((n) =>
+      n.getAttribute("data-id"),
+    ).join(",") === "c,d",
+    Array.from(document.querySelectorAll("#canvas g.node.on-path")).map((n) => n.getAttribute("data-id")),
+  );
+  check("unrelated nodes dim", document.querySelectorAll("#canvas g.node.dim").length === 2);
+  check("upstream and dep-connected nodes stay readable", document.querySelectorAll("#canvas g.node:not(.dim):not(.selected):not(.on-path)").length === 3);
+
+  clickNode("c");
+  check(
+    "mid-chain: only the remaining downstream link is the path",
+    edgeClasses("c", "d").includes("path") && !edgeClasses("b", "c").includes("path"),
+    edgeClasses("b", "c"),
+  );
+  check("mid-chain: the incoming feed becomes upstream emphasis", edgeClasses("b", "c").includes("up"), edgeClasses("b", "c"));
+  check(
+    "mid-chain: edges two hops away dim",
+    edgeClasses("a", "b").includes("dim") && edgeClasses("e", "b").includes("dim"),
+    [edgeClasses("a", "b"), edgeClasses("e", "b")],
+  );
+
+  document.getElementById("canvas").dispatchEvent(new window.Event("click", { bubbles: true }));
+  check("canvas click clears focus classes", document.querySelectorAll("#canvas g.edge.path, #canvas g.edge.up, #canvas g.edge.hi, #canvas g.edge.dim, #canvas g.node.dim, #canvas g.node.on-path").length === 0);
+  dom.window.close();
+}
+
 function runFatalSuites() {
   for (const [name, block] of [
     ["malformed JSON", '{ "title": '],
@@ -804,6 +889,7 @@ runMixedEdgeSuite();
 runRoutingSuite();
 runLongLabelSuite();
 runArxivRoutingSuite();
+runFocusPathSuite();
 runFatalSuites();
 runDuplicateIdSuite();
 runXssSuite();
