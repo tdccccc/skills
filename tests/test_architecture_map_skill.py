@@ -359,6 +359,53 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("generation", combined)
         self.assertIn("Chrome", combined)
 
+    def test_validate_density_advisory(self):
+        """P3: --validate prints an advisory when the overview would exceed
+        the roughly 15 core-node / 12 lifted-edge default; it stays advisory
+        (exit code unchanged) and is silent for sparse reports."""
+        with tempfile.TemporaryDirectory(prefix="architecture-map-density-") as tmp:
+            dense = self._base_data()
+            dense["modules"] = [
+                {
+                    "id": f"m{i}",
+                    "label": f"M{i}",
+                    "layer": "core",
+                    "summary": "s",
+                }
+                for i in range(20)
+            ]
+            dense["edges"] = [
+                {"from": f"m{i}", "to": f"m{(i + 1) % 20}", "kind": "flow"}
+                for i in range(18)
+            ]
+            dense_report = self._write_report(tmp, dense, "dense.html")
+            dense_result = self._run_validate(dense_report)
+            self.assertEqual(
+                dense_result.returncode, 0, dense_result.stdout + dense_result.stderr
+            )
+            self.assertIn("valid", dense_result.stdout)
+            self.assertIn("advisory", dense_result.stdout)
+            self.assertIn("20", dense_result.stdout)
+
+            sparse = self._base_data()
+            sparse_report = self._write_report(tmp, sparse, "sparse.html")
+            sparse_result = self._run_validate(sparse_report)
+            self.assertEqual(
+                sparse_result.returncode, 0, sparse_result.stdout + sparse_result.stderr
+            )
+            self.assertIn("valid", sparse_result.stdout)
+            self.assertNotIn("advisory", sparse_result.stdout)
+
+            # structural violations still fail independently of the advisory
+            bad = self._base_data()
+            bad["modules"].append(
+                {"id": "ghost.child", "parent": "ghost", "label": "deep", "layer": "core",
+                 "summary": "s"}
+            )
+            bad_report = self._write_report(tmp, bad, "bad.html")
+            bad_result = self._run_validate(bad_report)
+            self.assertEqual(bad_result.returncode, 2)
+
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
         self.assertIn("optionally add", self.skill)
