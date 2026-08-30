@@ -63,6 +63,7 @@ function loadDom(block, beforeParse) {
   return new JSDOM(buildHtml(block), {
     runScripts: "dangerously",
     pretendToBeVisual: true,
+    url: "https://localhost/",
     ...(beforeParse ? { beforeParse } : {}),
   });
 }
@@ -744,6 +745,43 @@ function runFocusPathSuite() {
   dom.window.close();
 }
 
+function runThemeSuite() {
+  const block = JSON.stringify({
+    title: "主题",
+    summary: "",
+    modules: [
+      { id: "a", label: "入口", layer: "entry", summary: "" },
+      { id: "b", label: "核心", layer: "core", summary: "" },
+    ],
+    edges: [{ from: "a", to: "b", kind: "flow" }],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const themeButton = () => document.querySelector('[data-canvas-action="theme"]');
+  const rectFill = () => document.querySelector('#canvas g.node[data-id="a"] rect').getAttribute("fill");
+  const swatch = () => document.querySelector("#legend .swatch").style.background;
+
+  check("default theme is dark", document.documentElement.getAttribute("data-theme") === "dark");
+  check("theme toolbar action exists", !!themeButton());
+  const darkFill = rectFill();
+  const darkSwatch = swatch();
+  themeButton().dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  check("theme toggle sets the light attribute", document.documentElement.getAttribute("data-theme") === "light");
+  check("theme toggle re-renders the node palette", rectFill() !== darkFill, { darkFill, lightFill: rectFill() });
+  check("legend swatches follow the theme", swatch() !== darkSwatch, { darkSwatch, lightSwatch: swatch() });
+  check("theme preference persists in localStorage", window.localStorage.getItem("arch-map-theme") === "light");
+  themeButton().dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  check("theme toggle returns to dark", document.documentElement.getAttribute("data-theme") === "dark");
+  check("theme returns to the dark palette", rectFill() === darkFill, { darkFill, rect: rectFill() });
+  check(
+    "light palette stylesheet is present",
+    /\[data-theme="light"\]/.test(templateHtml),
+  );
+  dom.window.close();
+}
+
 function runFatalSuites() {
   for (const [name, block] of [
     ["malformed JSON", '{ "title": '],
@@ -911,6 +949,7 @@ runRoutingSuite();
 runLongLabelSuite();
 runArxivRoutingSuite();
 runFocusPathSuite();
+runThemeSuite();
 runFatalSuites();
 runDuplicateIdSuite();
 runXssSuite();
