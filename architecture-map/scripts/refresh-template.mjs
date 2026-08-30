@@ -175,9 +175,11 @@ function validateReportData(data, problems) {
         return;
       }
       unknownFields(s, SECTION_FIELDS, label, problems);
-      const title = isNonEmptyString(s.title) ? s.title : "";
+      const title = isNonEmptyString(s.title) ? s.title.trim() : "";
       if (!title) {
         problems.push(`${label}: title must be a non-empty string`);
+      } else if (title === "架构") {
+        problems.push(`${label}: section title "架构" is reserved for the diagram tab`);
       } else if (seenTitles.has(title)) {
         problems.push(`${label}: duplicate section title "${title}"`);
       } else {

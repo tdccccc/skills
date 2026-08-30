@@ -713,6 +713,48 @@ function runXssSuite() {
   dom.window.close();
 }
 
+function runSearchContainmentSuite() {
+  const block = JSON.stringify({
+    title: "搜索容错",
+    summary: "",
+    modules: [
+      {
+        id: "a",
+        label: "Alpha",
+        layer: "entry",
+        summary: "entry point",
+        notes: "not-an-array",
+      },
+      {
+        id: "b",
+        label: "Beta",
+        layer: "core",
+        summary: "core logic",
+        evidence: { path: "src/beta.ts" },
+      },
+    ],
+    edges: [{ from: "a", to: "b", kind: "flow" }],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const search = document.getElementById("search");
+  search.value = "Alpha";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const nodes = Array.from(document.querySelectorAll("#canvas g.node"));
+  const dimmed = nodes.filter((node) => node.classList.contains("dim")).map((node) =>
+    node.getAttribute("data-id"),
+  );
+  check("search contains non-array notes and evidence", nodes.length === 2, nodes.length);
+  check(
+    "search still matches valid scalar fields after containing invalid arrays",
+    !dimmed.includes("a") && dimmed.includes("b"),
+    dimmed,
+  );
+  dom.window.close();
+}
+
 function runSearchEscapeSuite() {
   const block = JSON.stringify({
     title: "搜索范围",
@@ -765,6 +807,7 @@ runArxivRoutingSuite();
 runFatalSuites();
 runDuplicateIdSuite();
 runXssSuite();
+runSearchContainmentSuite();
 runSearchEscapeSuite();
 
 console.log(`${passed}/${passed + failed} checks passed`);
