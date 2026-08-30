@@ -204,33 +204,51 @@ function auditReport(reportPath) {
 
   // 递归下钻每一层并审计
   function walkDrillDowns() {
+    // 只下钻当前视图的“真子模块”：排除边界入口（__parent）和虚线边框的
+    // 外部上下文节点（ext 是完整模块对象，也会带 +N 徽标，点击会跳到它
+    // 自己的视图而不是进入当前父视图的下一层）。
+    const isRealDrillable = (g) => {
+      if (g.getAttribute("data-id") === "__parent") return false;
+      const rect = g.querySelector("rect");
+      if (rect && rect.hasAttribute("stroke-dasharray")) return false;
+      return Array.from(g.querySelectorAll("text")).some((t) => /^\+\d/.test(t.textContent || ""));
+    };
     const drillable = () =>
-      Array.from(document.querySelectorAll("#canvas g.node")).filter((g) => {
-        if (g.getAttribute("data-id") === "__parent") return false;
-        return Array.from(g.querySelectorAll("text")).some((t) => /^\+\d/.test(t.textContent || ""));
-      });
-    const enter = (g) => {
+      Array.from(document.querySelectorAll("#canvas g.node")).filter(isRealDrillable);
+    const enter = (g, depth) => {
+      if (depth > 10) throw new Error(`drill-down walk exceeded depth limit at ${g.getAttribute("data-id")}`);
       const id = g.getAttribute("data-id");
       const tag = (g.textContent || id).slice(0, 20);
       clickNode(id);
       auditGeometry(`drill ${tag}`);
       expect(`drill ${tag} no proper edge crossings`, properCrossings() === 0, properCrossings());
-      drillable().forEach((child) => enter(child));
+      drillable().forEach((child) => enter(child, depth + 1));
+      // 返回上一级：优先用边界入口节点；没有边界边时点面包屑的父级
+      // crumb（不能点根 crumb，否则兄弟节点会从总览视图被误点）。
       const back = document.querySelector('#canvas g.node[data-id="__parent"]');
-      if (back) clickNode("__parent");
-      else click(document.querySelector("#breadcrumb .crumb"));
+      if (back) {
+        clickNode("__parent");
+      } else {
+        const crumbs = Array.from(document.querySelectorAll("#breadcrumb .crumb"));
+        click(crumbs[Math.max(0, crumbs.length - 2)]);
+      }
     };
-    drillable().forEach((g) => enter(g));
+    drillable().forEach((g) => enter(g, 0));
   }
   walkDrillDowns();
 
-  // 选中一个叶子节点：关键路径强调
-  const leaf = document.querySelector('#canvas g.node:not([data-id="__parent"]) text')
-    ? Array.from(document.querySelectorAll("#canvas g.node")).find((g) => {
-        const text = g.textContent || "";
-        return !/^\+\d/.test(text.trim()) && g.getAttribute("data-id") !== "__parent";
-      })
-    : null;
+  // 下钻后选取一个叶子节点，验证聚焦关键路径分类
+  const drillTarget = Array.from(document.querySelectorAll("#canvas g.node")).find((g) => {
+    if (g.getAttribute("data-id") === "__parent") return false;
+    const rect = g.querySelector("rect");
+    if (rect && rect.hasAttribute("stroke-dasharray")) return false;
+    return Array.from(g.querySelectorAll("text")).some((t) => /^\+\d/.test(t.textContent || ""));
+  });
+  if (drillTarget) clickNode(drillTarget.getAttribute("data-id"));
+  const leaf = Array.from(document.querySelectorAll("#canvas g.node")).find((g) => {
+    if (g.getAttribute("data-id") === "__parent") return false;
+    return !Array.from(g.querySelectorAll("text")).some((t) => /^\+\d/.test(t.textContent || ""));
+  });
   if (leaf) {
     clickNode(leaf.getAttribute("data-id"));
     const focusLevels = edges().filter((e) => /(path|up|hi|dim)/.test(e.getAttribute("class") || "")).length;
