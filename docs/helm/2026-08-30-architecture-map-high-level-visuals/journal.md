@@ -20,3 +20,11 @@
 - change: template v7 — on selection, edges classify as path (downstream flow chain, strongest), up (incoming), hi (other connected), dim (unrelated); path nodes get `on-path`; boundary-entry node gets `↑` glyph + stronger dash; new 主题 toggle persists via localStorage; all renderer colors moved to theme-aware vars/palettes; seed shells refreshed.
 - disposition: no schema or report-data changes; dark stays default.
 - next: plan and start P3 (density advisory, jsdom visual audit, real-browser smoke); real Chrome at two viewports is the final human gate.
+
+## 2026-08-30 — note — P3 completed and initiative closed
+
+- evidence: 70/70 repo tests green (38 architecture-map incl. the density-advisory, jsdom visual audit over every seed, and Chrome smoke tests); audit 24 checks x 5 seeds ALL PASS; real-browser smoke 10/10 runs (5 seeds x 1600x1000 + 1024x768) all PASS, including theme toggle and zero console errors (commits `add36d0`, `4e2d965`, `c2270b3`).
+- change: `--validate` gains an overview-density advisory (15 core-node / 12 lifted-edge default, exit code unchanged); `tests/audit_architecture_map_visuals.mjs` gates overlap, clipping, routes, readability, interaction, themes per the P1 acceptance contract; `tests/smoke_architecture_map_browser.sh` runs real-Chrome probes at desktop and narrow widths with skip semantics.
+- assessment: every goal success criterion is satisfied — sparse 8–15-core-node overview contract (P1), progressive disclosure keeping the canvas L1 (P1/P2), focus + critical-path emphasis with noise suppression (P2 chunk 1), non-color visual language (P2 chunks 1–2), automated + browser gates for overlap/clipping/routes/readability/interaction/light-dark (P3), and unchanged current-state/evidence/init-update-audit/offline contracts (full regression, 70/70). Archify was used only as a design reference; no IR, renderer code, diagram modes, drill-down expansion, or dependencies were introduced. Visual gates and evidence audit remain separate axes per the P1 contract.
+- disposition: all accepted code/tests/docs committed; template v7 with dark default and optional light theme; seeds refreshed.
+- next: none — initiative closed.
