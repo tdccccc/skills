@@ -2,8 +2,8 @@
 
 status: active
 created: 2026-08-30T15:56:18+08:00
-updated: 2026-08-30T21:16:00+08:00
-revision: 3
+updated: 2026-08-30T21:28:00+08:00
+revision: 4
 owner: current-session
 
 ## Intent
@@ -39,5 +39,5 @@ Keep architecture-map focused on a high-level, evidence-backed understanding of 
 ## Phases
 
 1. P1 — A tested presentation contract defines the high-level information hierarchy, visual language, focus behavior, path behavior, and visual acceptance gates — status: done
-2. P2 — The shared renderer presents the high-level system map with consistent boundaries, hierarchy, focus, and critical-path emphasis — status: active
-3. P3 — Automated and real-browser visual checks demonstrate readable, stable reports without regressing evidence or offline behavior — status: pending
+2. P2 — The shared renderer presents the high-level system map with consistent boundaries, hierarchy, focus, and critical-path emphasis — status: done
+3. P3 — Automated and real-browser visual checks demonstrate readable, stable reports without regressing evidence or offline behavior — status: active
