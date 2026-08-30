@@ -214,7 +214,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "collision-managed labels",
             "architecture-map-template-version",
             "scripts/refresh-template.mjs",
-            "5–8 top-level nodes",
+            "8–15 core nodes",
             "12 lifted overview edges",
             "route-failure",
         ):
@@ -270,6 +270,33 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn('"type": "heading"', self.skill)
         self.assertIn('"type": "steps"', self.skill)
         self.assertIn('"type": "table"', self.skill)
+
+    def test_overview_default_density_contract(self):
+        """P1: the overview defaults to a sparse high-level map of roughly
+        8-15 core nodes; the upper edge is a review trigger, not a schema limit."""
+        combined = self.skill + self.reference
+        self.assertIn("8–15 core nodes", combined)
+        self.assertIn("sparse high-level map", combined)
+        self.assertIn("readability review trigger, not a schema limit", combined)
+        self.assertIn("default overview", combined)
+        self.assertIn("12 lifted overview edges", combined)
+
+    def test_detail_exclusion_and_progressive_disclosure_contract(self):
+        """P1: the main canvas carries only L1 shape; responsibilities,
+        failure behavior, and source evidence live behind progressive disclosure."""
+        combined = self.skill + self.reference
+        self.assertIn("strict detail exclusion", combined)
+        self.assertIn("progressive disclosure", combined)
+        self.assertIn("detail panel, drill-down, or sections", combined)
+        self.assertIn("node identity, role, boundary", combined)
+        self.assertIn("never required to read the map", combined)
+
+    def test_primary_flow_selection_contract(self):
+        """P1: overview edges are chosen by primary-flow selection — the
+        smallest edge set that narrates the main path."""
+        self.assertIn("primary-flow selection", self.skill)
+        self.assertIn("primary-flow selection", self.reference)
+        self.assertIn("smallest edge set", self.skill + self.reference)
 
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)

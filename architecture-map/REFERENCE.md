@@ -220,7 +220,7 @@ Run the same reader check on every drill-down. First state its **main spine** as
 
 For every Host, perform an **entry-to-use-case traceability** check: a reader must be able to identify which scheduled, manual, interactive/reading, and delivery paths that Host can trigger without opening source code. Prefer one aggregated use-case edge and a concrete mapping in the Host detail over separate arrows from every command, screen, or subcommand.
 
-Overview edges are selective. Include the primary invocation, data ownership, deployment, or trust-boundary relationships needed to narrate the system. Put secondary helper dependencies, repeated provider calls, and file-level relationships into drill-downs or sections. Every visible edge label should state what crosses the boundary, such as “starts daily run”, “writes report and index”, or “sends digest”; avoid labels such as “uses”, “integration”, or a bare method name unless that name is the project’s established vocabulary.
+Overview edges are selective. Apply primary-flow selection: include the smallest edge set that narrates the system's main path — the primary invocation, data ownership, deployment, or trust-boundary relationships — and put secondary helper dependencies, repeated provider calls, and file-level relationships into drill-downs or sections. Every visible edge label should state what crosses the boundary, such as “starts daily run”, “writes report and index”, or “sends digest”; avoid labels such as “uses”, “integration”, or a bare method name unless that name is the project’s established vocabulary.
 
 Control and payload may deserve separate edges only when the labels make their roles unmistakable. A completion callback that triggers delivery and a Digest carried by that callback are not two triggers. If the renderer cannot show that distinction clearly, keep the control edge and explain the payload in the ordered flow.
 
@@ -237,6 +237,8 @@ Use five information levels so the reader can stop when they have enough detail:
 - **L2:** drill-down components and their local hand-offs;
 - **L3:** cross-cutting tables and ordered scenarios;
 - **L4:** project-relative evidence anchors.
+
+The main canvas renders the L1 shape and edge labels only; L2–L4 (drill-down components, cross-cutting tables and scenarios, evidence anchors) are progressive disclosure — reached through the detail panel, drill-down, or sections — and are never required to read the map (strict detail exclusion).
 
 ## Writing current-state content
 
@@ -404,7 +406,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When several deep relationships lift to the same visible endpoints, the renderer aggregates their count and distinct labels so the overview does not misrepresent the first edge as the only relationship. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
 - `sections` — optional tabs for cross-cutting content. Blocks are `p` (paragraph), `heading` (`text`), `steps` (`items`, rendered as an ordered list), `table` (`columns` and `rows`), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
 
-After edge lifting, review the rendered overview rather than only the raw arrays. Roughly 5–8 top-level nodes and at most about 12 lifted edges are a soft selective-reading target. If the overview is denser, group only by verified architecture boundaries (runtime, product, deployable unit, host/core, data ownership, or external trust boundary) and move components into drill-down. Do not omit a material relationship or invent a container to satisfy the target.
+After edge lifting, review the rendered overview rather than only the raw arrays. The overview default is a sparse high-level map of roughly 8–15 core nodes with at most about 12 lifted overview edges; the upper edge of the range is a readability review trigger, not a schema limit. If the overview is denser, group only by verified architecture boundaries (runtime, product, deployable unit, host/core, data ownership, or external trust boundary) and move components into drill-down. Do not omit a material relationship or invent a container to satisfy the target.
 
 ### Validation before writing
 
@@ -433,6 +435,8 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - CLI edges and runtime claims are scoped to the subcommands that actually build or invoke the runtime;
 - caches, checkpoints, claims, authoritative state, and export/import archives are distinguished, including verified sensitivity and path/permission checks;
 - every section starts with a takeaway `p` block before tables, steps, bullets, code, or anchors;
+- the overview stays on the roughly 8–15 core-node default and reads without detail, notes, or evidence text (strict detail exclusion); facts past L1 are placed in the detail panel, drill-down, or sections (progressive disclosure placement);
+- overview edges were chosen by primary-flow selection so the main path is narratable from visible nodes and labels;
 - section prose uses named actors and concrete outcomes rather than package inventories or noun-stack summaries;
 - visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
