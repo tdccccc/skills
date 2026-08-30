@@ -298,6 +298,42 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("primary-flow selection", self.reference)
         self.assertIn("smallest edge set", self.skill + self.reference)
 
+    def test_visual_language_non_color_cues_contract(self):
+        """P1 visual language: node types, boundaries, and edge roles carry
+        line-style, badge, and label cues in addition to color."""
+        combined = self.skill + self.reference
+        self.assertIn("never relies on color alone", combined)
+        self.assertIn("+N", combined)
+        self.assertIn("drill-down badge", combined)
+        self.assertIn("dashed border", combined)
+        # the template already renders those non-color cues: dashed
+        # boundaries/dependency edges and the drill-down badge.
+        self.assertIn("stroke-dasharray", self.template)
+        self.assertIn("_children.length", self.template)
+
+    def test_boundary_hierarchy_and_edge_emphasis_contract(self):
+        """P1 visual language: boundary hierarchy and primary-versus-secondary
+        edge emphasis are documented rules with non-color encodings."""
+        combined = self.skill + self.reference
+        self.assertIsNotNone(re.search(r"boundary hierarchy", combined, flags=re.IGNORECASE))
+        self.assertIn("primary-versus-secondary", combined)
+        self.assertIn("boundary entry node", combined)
+        self.assertIn("external context node", combined)
+        self.assertIn("primary flows", combined)
+        self.assertIn("secondary dependencies", combined)
+
+    def test_focus_and_critical_path_contract(self):
+        """P1 focus contract: selection keeps upstream/downstream connectedness
+        emphasized, dims unrelated material, and defines the critical path."""
+        combined = self.skill + self.reference
+        self.assertIn("focus dimming", combined)
+        self.assertIn("critical path", combined)
+        self.assertIn("upstream", combined)
+        self.assertIn("downstream", combined)
+        self.assertRegex(self.template, r"\.node\.dim\{")
+        self.assertRegex(self.template, r"\.edge\.dim")
+        self.assertRegex(self.template, r"\.edge\.hi [^{]*\{[^}]*stroke-width")
+
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
         self.assertIn("optionally add", self.skill)

@@ -396,6 +396,16 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh parses (JSON-validates) and preserves the existing `report-data` block exactly — structural validation is the separate `--validate` mode — uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
 - Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, unique section titles that do not use the reserved `架构` diagram-tab title, and empty or ragged section blocks. Exit `0` prints `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
 
+### Visual language contract
+
+The rendered report distinguishes node types, boundaries, edge roles, and emphasis with cues that never rely on color alone:
+
+- **Node types** — layers differ by stroke color, legend label, and the detail-panel layer badge; a node that owns a drill-down also carries a `+N` drill-down badge and is reachable through the breadcrumb path.
+- **Boundary hierarchy** — top-level nodes are the system's boundaries; entering a drill-down renders the parent as a boundary entry node and cross-boundary endpoints as dashed external context nodes with reduced fill, so boundary membership is readable without decoding colors; the current view's place is always identifiable from the breadcrumb.
+- **Edge emphasis (primary-versus-secondary)** — primary flows render solid with a direction arrow; secondary dependencies render dashed; aggregated mixed relationships use a distinct dash pattern. Emphasis raises stroke width and opacity in addition to switching hue, so hover, focus, and critical-path emphasis stay visible without color.
+- **Focus and critical path** — selecting a node keeps the node, its directly connected upstream and downstream nodes, and their edges emphasized while unrelated nodes and edges dim (focus dimming); search filtering dims non-matching material the same way. The connected subgraph is the minimum focus scope; continuing that scope along flow edges toward the durable result or external effect defines the **critical path**, which receives the strongest emphasis and must end at a visible boundary, data, or external node.
+- **Legend** — the legend lists every layer actually used in the report, so the map is decodable without hovering or color memory.
+
 ### Schema semantics
 
 - `title` / `summary` — project name and a one-sentence system overview shown in the header.
