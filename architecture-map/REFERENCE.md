@@ -406,6 +406,27 @@ The rendered report distinguishes node types, boundaries, edge roles, and emphas
 - **Focus and critical path** — selecting a node keeps the node, its directly connected upstream and downstream nodes, and their edges emphasized while unrelated nodes and edges dim (focus dimming); search filtering dims non-matching material the same way. The connected subgraph is the minimum focus scope; continuing that scope along flow edges toward the durable result or external effect defines the **critical path**, which receives the strongest emphasis and must end at a visible boundary, data, or external node.
 - **Legend** — the legend lists every layer actually used in the report, so the map is decodable without hovering or color memory.
 
+### Visual acceptance checks
+
+Acceptance separates three validity axes; none substitutes for another:
+
+- **Structural validity** — the `--validate` machine checks of the data block;
+- **Visual readability** — the rendered views pass the overlap, clipping, route, readability, interaction, and theme gates below;
+- **Evidence validity** — every material claim passes the evidence gates. A readable diagram does not prove an architecture claim, and a verified claim does not excuse an unreadable view; a structural audit is not a visual review and vice versa.
+
+Automated review gates (run on a rendered report file; they never require Chrome or any external asset for generation):
+
+- **Overlap** — no node overlaps another node and visible edge labels do not overlap labels or nodes;
+- **Clipping** — node labels, summaries, and edge labels are not clipped out of the view at fit zoom, and truncated wording still exposes the full text on hover or in the detail panel;
+- **Routes** — every rendered view has no `route-failed` marker and no proper non-endpoint edge crossing;
+- **Readability** — labels hidden until hover are exceptional, the primary path is visually dominant at fit zoom, and the overview stays within its roughly 8–15 core-node default;
+- **Interaction** — node drag, canvas pan, wheel/zoom, fit/reset, search, drill-down, breadcrumb, and panel behavior work without console errors;
+- **Theme** — where the shell supports light/dark presentation, key views render readably in both themes.
+
+Browser review gates (human step for every report, at desktop and narrow widths): open the offline file directly in the browser, exercise the interaction list above, read the overview at fit zoom in each supported theme, and confirm no console errors or `route-failed` markers; on narrow viewports confirm the bottom-sheet panel and horizontally scrollable tabs remain usable.
+
+These gates run at review time, not at report generation.
+
 ### Schema semantics
 
 - `title` / `summary` — project name and a one-sentence system overview shown in the header.

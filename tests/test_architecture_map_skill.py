@@ -334,6 +334,31 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertRegex(self.template, r"\.edge\.dim")
         self.assertRegex(self.template, r"\.edge\.hi [^{]*\{[^}]*stroke-width")
 
+    def test_visual_acceptance_three_axes_contract(self):
+        """P1 acceptance contract: structural validity, visual readability,
+        and evidence validity are separate gates — readability never proves
+        an architecture claim."""
+        combined = self.skill + self.reference
+        for phrase in ("structural validity", "visual readability", "evidence validity"):
+            self.assertIn(phrase, combined)
+        self.assertIn("does not make an architecture claim correct", combined)
+
+    def test_visual_acceptance_gates_contract(self):
+        """P1 acceptance contract: automated and browser gates cover overlap,
+        clipping, broken routes, readability, interaction, and themes."""
+        combined = self.skill + self.reference
+        for phrase in ("overlap", "clipping", "route-failed", "interaction", "light/dark"):
+            self.assertIn(phrase, combined)
+        self.assertIn("console", combined)
+
+    def test_visual_checks_are_review_time_not_generation_dependency(self):
+        """P1 acceptance contract: visual checks are review-time gates; report
+        generation never requires Chrome or external assets."""
+        combined = self.skill + self.reference
+        self.assertIn("review time", combined)
+        self.assertIn("generation", combined)
+        self.assertIn("Chrome", combined)
+
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
         self.assertIn("optionally add", self.skill)

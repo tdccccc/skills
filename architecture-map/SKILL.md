@@ -118,7 +118,7 @@ Run a **main-spine pass** on the overview and every drill-down before accepting 
 - Treat roughly 8–16 visible nodes and about 15 rendered edges in a drill-down as a readability review trigger, not a schema limit. A reader-relevant node must not be isolated unless it is a structural container whose children carry all of its relationships, and a material hand-off must not be deleted merely to hit the number.
 - When a drill-down's external-context fan-out pushes it past that trigger, consolidate per-file or per-artifact edges onto the data or boundary root node and keep the file-level mapping in the root's detail; prefer fewer dashed context nodes over maximal endpoint precision.
 
-Accept a rendered view only when its primary path is visually dominant, it has no route-failure marker or proper non-endpoint edge crossing, and labels hidden until hover are exceptional rather than the normal way to read the graph. Fix the module tree, edge selection, labels, or ordering when these checks fail.
+Accept a rendered view only when its primary path is visually dominant, it has no route-failure marker or proper non-endpoint edge crossing, and labels hidden until hover are exceptional rather than the normal way to read the graph. Fix the module tree, edge selection, labels, or ordering when these checks fail. Keep the three acceptance axes separate — structural validity, visual readability, and evidence validity: a readable diagram does not make an architecture claim correct, and a verified claim does not excuse an unreadable view. REFERENCE.md (Visual acceptance checks) defines the automated and browser gates.
 
 ## Reader-facing writing
 
