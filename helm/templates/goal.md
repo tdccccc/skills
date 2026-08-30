@@ -1,7 +1,9 @@
 # {Title}
 
 status: proposed
-updated: {YYYY-MM-DD}
+created: {YYYY-MM-DDTHH:MM:SS±HH:MM}
+updated: {YYYY-MM-DDTHH:MM:SS±HH:MM}
+revision: 1
 owner: {who drives this — session/agent id}
 
 ## Intent
@@ -24,7 +26,7 @@ owner: {who drives this — session/agent id}
 
 ## Phases
 
-<!-- Single source of truth for phase status. PN ↔ filename NN. Outcomes only — no steps. The active line is the current focus. -->
+<!-- Single source of truth for phase status. PN ↔ filename NN. Integer IDs are permanent and never reused; replacement phases take the next unused number. Outcomes only — no steps. The active line is the current focus. -->
 1. P1 — {outcome only} — status: pending
 2. P2 — {outcome only} — status: pending
 3. P3 — {outcome only} — status: pending

@@ -28,15 +28,11 @@ Report back concisely (≤ ~20 lines), structured:
 3. **Doc format.** Note project-specific conventions, but treat the installed Helm `SKILL.md` and
    its `templates/goal.md` / `templates/phase.md` as the current schema authority; historical
    initiatives may use obsolete fields. Read only candidate artifacts needed to spot conventions.
-4. **Architecture-map orientation.** If an established architecture map report exists, first locate its
-   overview / headings, then read only the overview and sections relevant to this initiative. List
-   the sections actually read. Do not read the whole report by default, judge its update impact, or
-   edit it. Treat it as orientation; verify material claims in code and executable configuration.
-5. **Code anchors (scoped).** Only for the parts this initiative will plausibly touch: entry
+4. **Code anchors (scoped).** Only for the parts this initiative will plausibly touch: entry
    points, state/storage locations, existing tests/abstractions. Give `file:line` for a handful of
    anchor points; `file:section` is enough elsewhere. If the phase boundary is not settled yet,
    state what you verified and what you left unverified — do not sweep the whole repo.
-6. **Unknowns.** Anything you could not verify quickly, or that looks inconsistent with the user's
+5. **Unknowns.** Anything you could not verify quickly, or that looks inconsistent with the user's
    description.
 
 Rules: prefer `grep`/`ls`/status lines and heading searches over full-file reads; file:line only where

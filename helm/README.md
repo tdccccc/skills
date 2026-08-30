@@ -18,13 +18,20 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 ### ZCode
 
-把 Helm 及其配合使用的 skills 链到一个用户级目录：
+把 Helm 和必需的执行规则链到一个用户级目录：
 
 ```bash
 mkdir -p ~/.agents/skills
 ln -sfn /path/to/skills/code-change-discipline ~/.agents/skills/code-change-discipline
 ln -sfn /path/to/skills/helm ~/.agents/skills/helm
-ln -sfn /path/to/skills/architecture-map ~/.agents/skills/architecture-map
+```
+
+目标或设计尚未确定时，还可以安装可选的设计 skills：
+
+```bash
+ln -sfn /path/to/skills/grill-me ~/.agents/skills/grill-me
+ln -sfn /path/to/skills/grill-with-docs ~/.agents/skills/grill-with-docs
+ln -sfn /path/to/skills/domain-modeling ~/.agents/skills/domain-modeling
 ```
 
 也可以使用 `~/.zcode/skills/`。安装或更新后新开会话。
@@ -49,9 +56,7 @@ ln -sfn /path/to/skills/architecture-map ~/.agents/skills/architecture-map
 3. 只详细规划当前 phase，后续阶段暂时保留标题。
 4. 分块执行，每块完成验证后经过 Checkpoint 验收。
 5. 发现路径或目标不合适时，立即调整并记录原因。
-6. 被接受的代码块和阶段转换会分别提交；你也可以明确要求不提交。
-
-如果项目维护架构地图报告，Helm 会在代码块通过验收后调用 `architecture-map` 同步当前实现。失败测试和未验收代码不会进入报告或提交。
+6. 默认把被接受的代码块和阶段转换分别提交，避免改动长期堆积；你也可以明确要求不提交。
 
 ## 逻辑改动怎么测试
 
@@ -73,6 +78,8 @@ docs/helm/<initiative-id>/
   research.md    # 可选的调研草稿
 ```
 
+`initiative-id` 默认使用 `YYYY-MM-DD-语义化名称`，不会把小时分钟塞进目录名。若同名目录存在，Helm 会先判断是否应该继续已有工作；确实是不同任务时，优先细化名称，最后才使用 `-02`、`-03`。精确创建和更新时间记录在 `goal.md` 中。
+
 `goal.md` 保持精简；具体任务和验证放进当前 phase。
 
 ## 中途改方向
@@ -80,8 +87,11 @@ docs/helm/<initiative-id>/
 | 情况 | Helm 会怎么处理 |
 |------|-----------------|
 | 步骤、库或文件选错，目标仍正确 | 调整当前 plan |
-| 当前路径失败，大目标仍正确 | 重做当前 phase |
+| 当前路径失败，大目标仍正确 | 将旧 phase 标为 superseded，用下一个编号创建替代 phase |
+| 已完成的旧 phase 被新证据挑战 | 保留旧文件，用下一个编号创建复查或修正 phase，并检查后续 phase 是否仍可信 |
 | 成功标准或核心意图变了 | 停止实现，修改 goal 并重新分阶段 |
+
+例如 P1–P5 已完成后发现 P3 需要修正，Helm 会创建 P6，而不是重写 P3 或创建 P3b。P3 在原验收仍成立时保留 `done`；若新证据推翻了它，则改为 `superseded`，并只重新处理真正受到影响的后续阶段。
 
 下次直接说“继续 Helm”，它会优先恢复已有的 active initiative。
 
