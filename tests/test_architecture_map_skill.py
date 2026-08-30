@@ -961,35 +961,16 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                 msg=f"stale seed report {seed_report}: {result.stdout}{result.stderr}",
             )
 
-    def test_helm_uses_specialized_handoff_after_acceptance(self):
-        required_phrases = (
-            "After accepting each meaningful implementation chunk",
-            "invoke the independent **`architecture-map`** skill",
-            "If maintenance was explicitly enabled but no report exists yet",
-            "invoke its `init` mode for the first handoff",
-            "Helm must not pre-filter",
-            "edit the architecture map directly",
-            "`updated`",
-            "`no-impact`",
-            "`blocked`",
-            "a missing handoff and `blocked` both prevent Close",
-            "do not trigger a duplicate whole-report sweep",
-        )
-        for phrase in required_phrases:
-            self.assertIn(phrase, self.helm_skill)
-
-    def test_helm_intake_reads_report_selectively(self):
-        self.assertIn("Do not load a long report in full by default", self.helm_skill)
-        self.assertIn("read only the overview and sections relevant", self.intake_prompt)
-        self.assertIn("Do not read the whole report by default", self.intake_prompt)
-        self.assertIn("judge its update impact, or", self.intake_prompt)
-
-    def test_helm_zcode_install_includes_specialized_skill(self):
-        self.assertIn("skills/helm ~/.agents/skills/helm", self.helm_readme)
-        self.assertIn(
-            "skills/architecture-map ~/.agents/skills/architecture-map",
+    def test_helm_is_decoupled_from_architecture_map(self):
+        for text in (
+            self.helm_skill,
             self.helm_readme,
-        )
+            self.intake_prompt,
+        ):
+            self.assertNotIn("architecture-map", text)
+
+    def test_helm_zcode_install_remains_available_independently(self):
+        self.assertIn("skills/helm ~/.agents/skills/helm", self.helm_readme)
 
 
 if __name__ == "__main__":

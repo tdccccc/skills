@@ -154,43 +154,43 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, delegation)
 
-    def test_red_is_not_accepted_reported_checked_off_or_committed(self):
+    def test_red_is_not_accepted_checked_off_or_committed(self):
         execute = self.section(self.helm_skill, "### 3. Execute")
         self.assertIn(
-            "An expected Red is unaccepted work: do not accept it, invoke "
-            "`architecture-map`, check off its task, or commit it.",
+            "An expected Red is unaccepted work: do not accept it, check off "
+            "its task, or commit it.",
             execute,
         )
-        self.assertRegex(
-            self.helm_skill,
-            r"accepted[\s\S]*?architecture-map[\s\S]*?commit[\s\S]*?check (?:it )?off",
-        )
 
-    def test_phase_template_records_strategy_without_parallel_status(self):
+    def test_phase_template_records_strategy_per_chunk_without_parallel_status(self):
         self.assert_order(
             self.phase_template,
             "## Outcome",
-            "## Test strategy",
-            "## Tasks",
-            "## Verification",
+            "## Chunks",
+            "### Chunk 1",
+            "### Chunk 2",
+            "## Phase verification",
         )
+        chunk_one = self.section(self.phase_template, "### Chunk 1 — {one coherent, independently acceptable change}")
         for phrase in (
             "change kind",
             "strategy",
             "Red / baseline signal",
-            "Green / regression checks",
+            "Green check",
+            "regression checks",
             "exception",
+            "implementation and tests accepted",
         ):
-            self.assertIn(phrase, self.phase_template)
+            self.assertIn(phrase, chunk_one)
         for forbidden in ("status:", "tdd-status", "test-status", "report-status"):
             self.assertNotIn(forbidden, self.phase_template)
 
-    def test_helm_zcode_install_includes_both_independent_skills(self):
+    def test_helm_zcode_install_keeps_execution_dependency_only(self):
         self.assertIn(
             "skills/code-change-discipline ~/.agents/skills/code-change-discipline",
             self.helm_readme,
         )
-        self.assertIn(
+        self.assertNotIn(
             "skills/architecture-map ~/.agents/skills/architecture-map",
             self.helm_readme,
         )
