@@ -406,6 +406,31 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             bad_result = self._run_validate(bad_report)
             self.assertEqual(bad_result.returncode, 2)
 
+    def test_visual_audit_script_covers_seed_reports(self):
+        """P3: the jsdom visual audit (overlap, clipping, routes, readability,
+        interaction, theme) passes on every seed report; it skips cleanly when
+        node/jsdom are unavailable and never needs a browser."""
+        script = self.repo_root / "tests" / "audit_architecture_map_visuals.mjs"
+        self.assertTrue(script.is_file())
+        seeds = sorted(self.eval_dir.glob("*/seed-report.html"))
+        self.assertTrue(seeds)
+        try:
+            result = subprocess.run(
+                ["node", str(script)] + [str(s) for s in seeds],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            self.skipTest("node is not available")
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 2 and "SKIP" in output:
+            self.skipTest("jsdom is not available")
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("ALL PASS", result.stdout)
+        self.assertIn("PASS", result.stdout)
+
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
         self.assertIn("optionally add", self.skill)
