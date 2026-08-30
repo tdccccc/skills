@@ -431,6 +431,33 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("ALL PASS", result.stdout)
         self.assertIn("PASS", result.stdout)
 
+    def test_real_browser_smoke_script(self):
+        """P3: the headless-Chrome smoke runs at desktop and narrow widths on
+        a seed report, verifying rendering, interaction, theme, and console
+        silence; it skips cleanly without Chrome/node, so report generation
+        never depends on a browser."""
+        script = self.repo_root / "tests" / "smoke_architecture_map_browser.sh"
+        self.assertTrue(script.is_file())
+        seed = next(iter(sorted(self.eval_dir.glob("*/seed-report.html"))), None)
+        self.assertIsNotNone(seed)
+        try:
+            result = subprocess.run(
+                ["bash", str(script), str(seed)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            self.skipTest("bash is not available")
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 2 and "SKIP" in output:
+            self.skipTest(output.strip().splitlines()[0])
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("ALL PASS", result.stdout)
+        self.assertIn("1600px", result.stdout)
+        self.assertIn("1024px", result.stdout)
+
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
         self.assertIn("optionally add", self.skill)
