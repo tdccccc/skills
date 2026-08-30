@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="architecture-map-template-version" content="3">
+<meta name="architecture-map-template-version" content="5">
 <link rel="icon" href="data:,">
 <title>架构地图</title>
 <style>
@@ -128,12 +128,14 @@ svg{display:block;width:100%;height:100%;min-height:240px}
     <div id="canvas-hint">拖动节点调整布局 · 拖动画布平移 · 滚轮缩放</div>
     <svg id="canvas" role="application" aria-label="交互式架构图"></svg>
   </div>
+  <!-- 面板锚定在 #view-diagram（position:relative）内：宽屏下从 tab 栏下沿开始，
+       不会盖住顶栏与搜索框；≤1100px 时按媒体查询变为底部抽屉。 -->
+  <aside id="panel"></aside>
 </main>
 <main id="view-section">
   <article id="section-body"></article>
 </main>
 <div id="legend"></div>
-<aside id="panel"></aside>
 <div id="fatal" class="hidden"><div id="fatal-msg"></div></div>
 
 <!-- 报告内容位于下方 report-data JSON 块中；内容更新只编辑该块。
@@ -1074,7 +1076,10 @@ svg{display:block;width:100%;height:100%;min-height:240px}
     var q = state.query.trim().toLowerCase();
     function matches(n) {
       if (!q) return true;
-      return (n.label + ' ' + (n.summary || '') + ' ' + (n.detail || '')).toLowerCase().indexOf(q) >= 0;
+      return (
+        n.label + ' ' + (n.summary || '') + ' ' + (n.detail || '') +
+        ' ' + (n.notes || []).join(' ') + ' ' + (n.evidence || []).join(' ')
+      ).toLowerCase().indexOf(q) >= 0;
     }
     var dimmed = {};
     items.forEach(function (it) { if (!matches(it.n)) dimmed[it.n.id] = true; });
@@ -1380,7 +1385,7 @@ svg{display:block;width:100%;height:100%;min-height:240px}
   });
   window.addEventListener('keydown', function (e) {
     var tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '';
-    if (e.key === 'Escape') { state.selected = null; closePanel(); renderDiagram(); }
+    if (e.key === 'Escape') { state.selected = null; $('#search').value = ''; state.query = ''; closePanel(); renderDiagram(); }
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAt(1.18); }
     else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomAt(1 / 1.18); }

@@ -399,7 +399,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - `title` / `summary` — project name and a one-sentence system overview shown in the header.
 - `modules` — one entry per module. `parent` builds the tree; modules without `parent` (or with an unknown parent) render at the top level. Maximum depth is three levels (system → module → component); deeper content belongs in `detail` / `notes` text.
 - `layer` — one of `entry`, `core`, `data`, `infra`, `external`, `frontend`, chosen for the module's role in this project. The template colors nodes by layer and renders a legend.
-- `summary` — one short line rendered under the node label; keep it under roughly thirty characters; it states the node's responsibility in this system, not an enumeration of its children or a technology list.
+- `summary` — one short line rendered under the node label; keep it short enough to fit a narrow node (roughly ten to fourteen CJK characters) — longer wording is truncated with an ellipsis on the node, and the full line stays readable in the detail panel; it states the node's responsibility in this system, not an enumeration of its children or a technology list.
 - `detail` — the canonical 2-4 sentence explanation; `notes` — non-obvious mechanisms, one per bullet; `evidence` — project-relative anchors supporting the claims.
 - `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When several deep relationships lift to the same visible endpoints, the renderer aggregates their count and distinct labels so the overview does not misrepresent the first edge as the only relationship. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
 - `sections` — optional tabs for cross-cutting content. Blocks are `p` (paragraph), `heading` (`text`), `steps` (`items`, rendered as an ordered list), `table` (`columns` and `rows`), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
@@ -435,9 +435,7 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - section prose uses named actors and concrete outcomes rather than package inventories or noun-stack summaries;
 - visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
-- every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional;
-- the current shell check passes after the data edit;
-- `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` prints `valid` (exit `0`) after the data edit.
+- every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional.
 
 The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The `--validate` mode covers the mechanically decidable structural items; everything else in the checklist is authoring discipline, not a runtime guarantee.
 
@@ -496,18 +494,10 @@ Before finishing, confirm that:
 - a new maintainer can narrate each golden path using the visible overview nodes and edge labels;
 - section structure answers the five reader questions and uses tables or steps where they clarify repeated fields or sequence;
 - prose names actors, actions, objects, and outcomes; abstract noun stacks and vague capability claims are absent;
-- the report contains no before/after story or “this change” narrative;
-- rationale and decision trade-offs are absent;
-- prompts, requirements, phases, checkpoints, task progress, command output, and test-run results are absent;
-- changelogs, history, audit trails, roadmaps, TODOs, risks, and follow-ups are absent;
+- every prohibition in the SKILL.md Content contract is absent — no transition or “this change” narrative, no rationale or decision trade-offs, no prompt, plan, Helm process, command output, or test-run results, no changelogs, roadmaps, TODOs, risks, or follow-ups;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
-- no empty modules or sections remain;
-- the `report-data` block passes `<skill-dir>/scripts/refresh-template.mjs --validate`, and after substituting that block into the current template, the complete report matches the generated result (`<skill-dir>/scripts/refresh-template.mjs --check` returns `current`);
-- the rendered overview has no route-failure marker and remains compact enough for selective intake; density thresholds never caused evidence or material flows to be omitted;
-- module ids are unique, every `parent` exists, no module is deeper than three levels, and every `layer` value is one of the six defined layers;
-- every edge references existing module ids with a valid `kind`;
-- module summaries are one line and each material claim has supporting `evidence` anchors or section `anchors`;
-- any literal `</script>` inside the data block appears as `<\/script>`.
+- the structural and rendering gates from “Validation before writing” hold: unique ids, valid `parent` / `layer` / edge references, three-level depth, one-line summaries, no empty sections, project-relative anchors, `<\/script>` escaping, `--validate` printing `valid`, and `--check` returning `current` after substituting the data block into the current template;
+- the rendered overview has no route-failure marker and remains compact enough for selective intake; density thresholds never caused evidence or material flows to be omitted.
 
 ## Blocking rule
 

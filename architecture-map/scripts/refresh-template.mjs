@@ -167,6 +167,7 @@ function validateReportData(data, problems) {
       problems.push("sections must be an array when present");
       return;
     }
+    const seenTitles = new Set();
     data.sections.forEach((s, idx) => {
       const label = `sections[${idx}]`;
       if (!isPlainObject(s)) {
@@ -175,7 +176,13 @@ function validateReportData(data, problems) {
       }
       unknownFields(s, SECTION_FIELDS, label, problems);
       const title = isNonEmptyString(s.title) ? s.title : "";
-      if (!title) problems.push(`${label}: title must be a non-empty string`);
+      if (!title) {
+        problems.push(`${label}: title must be a non-empty string`);
+      } else if (seenTitles.has(title)) {
+        problems.push(`${label}: duplicate section title "${title}"`);
+      } else {
+        seenTitles.add(title);
+      }
       if (!Array.isArray(s.blocks) || s.blocks.length === 0) {
         problems.push(`${label}: blocks must be a non-empty array`);
         return;

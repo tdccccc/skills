@@ -62,6 +62,16 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn("Never state or imply that the report is accurate as a whole", self.skill)
         self.assertIn("A `blocked` run must not leave", self.skill)
 
+        # The per-mode sections must state the same no-report resolution as the
+        # ## Modes decision rules: fall back to init, blocked only on insistence.
+        update_section = self.skill.split("### `update`", 1)[1].split("### `audit`", 1)[0]
+        self.assertIn("fall back to `init`", update_section)
+        self.assertIn("explicitly insists on `update` semantics", update_section)
+        audit_section = self.skill.split("### `audit`", 1)[1].split("## Workflow", 1)[0]
+        self.assertIn("fall back to `init`", audit_section)
+        self.assertIn("explicitly insists on `audit` semantics", audit_section)
+        self.assertIn("fall back to `init` unless the user explicitly insists", self.reference)
+
     def test_current_implementation_and_evidence_contract(self):
         combined = self.skill + self.reference
         required_phrases = (
@@ -252,6 +262,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "no route-failure marker or proper non-endpoint edge crossing",
             "reader-facing concept",
             "结果未知（`ambiguous`）",
+            "truncated with an ellipsis on the node",
             "Keep audit narration out of reader-facing sections",
         ):
             self.assertIn(phrase, combined)
@@ -390,7 +401,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
 
     def test_template_version_and_refresh_script_preserve_report_data(self):
         self.assertIn(
-            '<meta name="architecture-map-template-version" content="3">',
+            '<meta name="architecture-map-template-version" content="5">',
             self.template,
         )
         refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
@@ -414,7 +425,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         }
         data_block = json.dumps(custom_data, ensure_ascii=False, indent=2)
         stale = self.template.replace(
-            '<meta name="architecture-map-template-version" content="3">',
+            '<meta name="architecture-map-template-version" content="5">',
             '<meta name="architecture-map-template-version" content="1">',
         ).replace(
             "</head>", '<style id="old-shell-sentinel"></style>\n</head>', 1
@@ -456,7 +467,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
             rendered = report.read_text(encoding="utf-8")
             self.assertIn(
-                '<meta name="architecture-map-template-version" content="3">',
+                '<meta name="architecture-map-template-version" content="5">',
                 rendered,
             )
             self.assertNotIn("old-shell-sentinel", rendered)
@@ -486,7 +497,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             future_report = Path(tmp) / "future-report.html"
             future = stale.replace(
                 '<meta name="architecture-map-template-version" content="1">',
-                '<meta name="architecture-map-template-version" content="4">',
+                '<meta name="architecture-map-template-version" content="6">',
                 1,
             )
             future_report.write_text(future, encoding="utf-8")
@@ -632,6 +643,9 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "empty section blocks": lambda d: d["sections"].append(
                 { "title": "Empty", "blocks": [] }
             ),
+            "duplicate section title": lambda d: d["sections"].append(
+                { "title": "Runtime", "blocks": [{ "type": "p", "text": "x" }] }
+            ),
         }
         expected_message = {
             "duplicate id": 'duplicate module id "a"',
@@ -656,6 +670,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "empty paragraph": "text must be non-empty",
             "unknown block type": "type must be one of",
             "empty section blocks": "blocks must be a non-empty array",
+            "duplicate section title": 'duplicate section title "Runtime"',
         }
         for name, mutate in violations.items():
             with self.subTest(violation=name):

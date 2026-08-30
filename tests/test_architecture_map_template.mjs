@@ -197,6 +197,11 @@ function runOverviewSuite() {
     "open panel reserves diagram space",
     document.getElementById("view-diagram").classList.contains("panel-open"),
   );
+  check(
+    "detail panel is anchored inside the diagram view",
+    !!document.querySelector("#view-diagram #panel"),
+    document.getElementById("panel")?.parentElement?.id,
+  );
   check("panel shows module title", document.querySelector("#panel h2").textContent === "HTTP API");
   const panelText = document.getElementById("panel").textContent;
   check("panel shows 机制说明", panelText.includes("机制说明"));
@@ -708,6 +713,48 @@ function runXssSuite() {
   dom.window.close();
 }
 
+function runSearchEscapeSuite() {
+  const block = JSON.stringify({
+    title: "搜索范围",
+    summary: "",
+    modules: [
+      {
+        id: "a",
+        label: "Alpha",
+        layer: "entry",
+        summary: "entry point",
+        detail: "does the thing",
+        notes: ["uses the vaultmarker mechanism"],
+        evidence: ["src/alpha.ts (Alpha)"],
+      },
+      { id: "b", label: "Beta", layer: "core", summary: "core logic", detail: "no match here" },
+    ],
+    edges: [{ from: "a", to: "b", kind: "flow" }],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const search = document.getElementById("search");
+  search.value = "vaultmarker";
+  search.dispatchEvent(new window.Event("input", { bubbles: true }));
+  const dimmed = Array.from(document.querySelectorAll("#canvas g.node.dim")).map((g) =>
+    g.getAttribute("data-id"),
+  );
+  check(
+    "search matches module notes and evidence",
+    !dimmed.includes("a") && dimmed.includes("b"),
+    dimmed,
+  );
+  window.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  check(
+    "escape clears the search filter",
+    document.querySelectorAll("#canvas g.node.dim").length === 0 && search.value === "",
+    [Array.from(document.querySelectorAll("#canvas g.node.dim")), search.value],
+  );
+  dom.window.close();
+}
+
 runOverviewSuite();
 runSectionBlocksSuite();
 await runInteractionSuite();
@@ -718,6 +765,7 @@ runArxivRoutingSuite();
 runFatalSuites();
 runDuplicateIdSuite();
 runXssSuite();
+runSearchEscapeSuite();
 
 console.log(`${passed}/${passed + failed} checks passed`);
 process.exit(failed ? 1 : 0);

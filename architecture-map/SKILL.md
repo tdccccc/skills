@@ -231,7 +231,7 @@ Use after an accepted implementation change or when the user gives a reliable ch
 7. Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` and fix every reported structural problem in the data block. Then run the same script with `--check <report>`. When stale, run it without `--check` to replace the shell with the current template while preserving the just-verified data block. The script locates its template relative to its own path, so any working directory works; only `<report>` is resolved against the current directory.
 8. Leave unrelated accurate entries untouched.
 
-If no report exists, return `blocked` and recommend `init`; do not silently create a partial report.
+If no report exists, fall back to `init` per the mode resolution above; return `blocked` and recommend `init` only when the user explicitly insists on `update` semantics for an established report.
 
 ### `audit`
 
@@ -246,7 +246,7 @@ Use when the user asks whether the report is accurate, when the impact scope is 
 7. Reconcile the `report-data` block in place. Do not append an audit section or audit history.
 8. Check the data block with `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` and the shell with `node <skill-dir>/scripts/refresh-template.mjs --check <report>`; refresh the shell when stale. Shell migration never substitutes for verifying report claims.
 
-If no report exists, return `blocked` and recommend `init`.
+If no report exists, fall back to `init` per the mode resolution above; return `blocked` and recommend `init` only when the user explicitly insists on `audit` semantics for an established report.
 
 ## Workflow
 
