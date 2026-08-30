@@ -392,7 +392,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.
 - Edge labels are assigned non-overlapping positions when possible. A label with no clear slot stays available through the edge title/hover state instead of covering another label or node.
 - Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh parses (JSON-validates) and preserves the existing `report-data` block exactly — structural validation is the separate `--validate` mode — uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
-- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, and empty or ragged section blocks. Exit `0` prints `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, unique section titles that do not use the reserved `架构` diagram-tab title, and empty or ragged section blocks. Exit `0` prints `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
 
 ### Schema semantics
 
@@ -419,6 +419,7 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - every module is reachable from the top level through `parent` links (no orphan subtrees);
 - summaries are one line; anchors use project-relative paths and support the nearby statement;
 - the report contains no empty `sections` entries and no unused schema fields.
+- section titles are unique after trimming surrounding whitespace and never use the reserved `架构` diagram-tab title;
 - every `heading` and `p` has non-empty `text`; every `steps` / `bullets` / `anchors` block has non-empty `items`; every `table` has non-empty `columns`, at least one row, and the same number of cells in each row;
 - the overview passes the package-name removal and golden-path narration checks;
 - the overview passes the runtime-unit and governance-separation checks;
@@ -436,6 +437,7 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;
 - every rendered drill-down has no route-failure marker or proper non-endpoint edge crossing; hidden labels remain exceptional.
+- after substituting the data block into the current template, `--validate` prints `valid` and `--check` returns `current`.
 
 The renderer does not enforce this checklist. Violations are silently contained: an unknown `layer` renders in the core color, an unknown edge `kind` renders as `flow`, duplicate module ids warn on the console with later entries ignored, and an unknown `parent` renders at the top level. The `--validate` mode covers the mechanically decidable structural items; everything else in the checklist is authoring discipline, not a runtime guarantee.
 
@@ -496,7 +498,7 @@ Before finishing, confirm that:
 - prose names actors, actions, objects, and outcomes; abstract noun stacks and vague capability claims are absent;
 - every prohibition in the SKILL.md Content contract is absent — no transition or “this change” narrative, no rationale or decision trade-offs, no prompt, plan, Helm process, command output, or test-run results, no changelogs, roadmaps, TODOs, risks, or follow-ups;
 - non-blocking uncertainty is excluded from report claims and appears only in the optional operation-result `unverified` field;
-- the structural and rendering gates from “Validation before writing” hold: unique ids, valid `parent` / `layer` / edge references, three-level depth, one-line summaries, no empty sections, project-relative anchors, `<\/script>` escaping, `--validate` printing `valid`, and `--check` returning `current` after substituting the data block into the current template;
+- every gate in “Validation before writing” holds, including `--validate` printing `valid` and `--check` returning `current` after substituting the data block into the current template;
 - the rendered overview has no route-failure marker and remains compact enough for selective intake; density thresholds never caused evidence or material flows to be omitted.
 
 ## Blocking rule

@@ -401,7 +401,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
 
     def test_template_version_and_refresh_script_preserve_report_data(self):
         self.assertIn(
-            '<meta name="architecture-map-template-version" content="5">',
+            '<meta name="architecture-map-template-version" content="6">',
             self.template,
         )
         refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
@@ -425,7 +425,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         }
         data_block = json.dumps(custom_data, ensure_ascii=False, indent=2)
         stale = self.template.replace(
-            '<meta name="architecture-map-template-version" content="5">',
+            '<meta name="architecture-map-template-version" content="6">',
             '<meta name="architecture-map-template-version" content="1">',
         ).replace(
             "</head>", '<style id="old-shell-sentinel"></style>\n</head>', 1
@@ -467,7 +467,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
             rendered = report.read_text(encoding="utf-8")
             self.assertIn(
-                '<meta name="architecture-map-template-version" content="5">',
+                '<meta name="architecture-map-template-version" content="6">',
                 rendered,
             )
             self.assertNotIn("old-shell-sentinel", rendered)
@@ -497,7 +497,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             future_report = Path(tmp) / "future-report.html"
             future = stale.replace(
                 '<meta name="architecture-map-template-version" content="1">',
-                '<meta name="architecture-map-template-version" content="6">',
+                '<meta name="architecture-map-template-version" content="7">',
                 1,
             )
             future_report.write_text(future, encoding="utf-8")
@@ -646,6 +646,12 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "duplicate section title": lambda d: d["sections"].append(
                 { "title": "Runtime", "blocks": [{ "type": "p", "text": "x" }] }
             ),
+            "whitespace-equivalent section title": lambda d: d["sections"].append(
+                { "title": " Runtime ", "blocks": [{ "type": "p", "text": "x" }] }
+            ),
+            "reserved architecture section title": lambda d: d["sections"].append(
+                { "title": "架构", "blocks": [{ "type": "p", "text": "x" }] }
+            ),
         }
         expected_message = {
             "duplicate id": 'duplicate module id "a"',
@@ -671,6 +677,8 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "unknown block type": "type must be one of",
             "empty section blocks": "blocks must be a non-empty array",
             "duplicate section title": 'duplicate section title "Runtime"',
+            "whitespace-equivalent section title": 'duplicate section title "Runtime"',
+            "reserved architecture section title": 'section title "架构" is reserved',
         }
         for name, mutate in violations.items():
             with self.subTest(violation=name):
@@ -688,6 +696,15 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
                     )
                     # Assert the specific check fired, not just any failure.
                     self.assertIn(expected_message[name], result.stderr)
+
+    def test_validator_documentation_matches_executable_rules(self):
+        self.assertIn("unique section titles", self.reference)
+        self.assertIn("reserved `架构` diagram-tab title", self.reference)
+        validation_section = self.reference.split("### Validation before writing", 1)[1].split(
+            "## Mode mechanics", 1
+        )[0]
+        self.assertIn("--validate", validation_section)
+        self.assertIn("--check", validation_section)
 
     def test_validate_rejects_invalid_json(self):
         with tempfile.TemporaryDirectory(prefix="architecture-map-validate-") as tmp:
