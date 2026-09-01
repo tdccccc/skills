@@ -220,7 +220,7 @@ Run the same reader check on every drill-down. First state its **main spine** as
 
 For every Host, perform an **entry-to-use-case traceability** check: a reader must be able to identify which scheduled, manual, interactive/reading, and delivery paths that Host can trigger without opening source code. Prefer one aggregated use-case edge and a concrete mapping in the Host detail over separate arrows from every command, screen, or subcommand.
 
-Overview edges are selective. Include the primary invocation, data ownership, deployment, or trust-boundary relationships needed to narrate the system. Put secondary helper dependencies, repeated provider calls, and file-level relationships into drill-downs or sections. Every visible edge label should state what crosses the boundary, such as “starts daily run”, “writes report and index”, or “sends digest”; avoid labels such as “uses”, “integration”, or a bare method name unless that name is the project’s established vocabulary.
+Overview edges are selective. Apply primary-flow selection: include the smallest edge set that narrates the system's main path — the primary invocation, data ownership, deployment, or trust-boundary relationships — and put secondary helper dependencies, repeated provider calls, and file-level relationships into drill-downs or sections. Every visible edge label should state what crosses the boundary, such as “starts daily run”, “writes report and index”, or “sends digest”; avoid labels such as “uses”, “integration”, or a bare method name unless that name is the project’s established vocabulary.
 
 Control and payload may deserve separate edges only when the labels make their roles unmistakable. A completion callback that triggers delivery and a Digest carried by that callback are not two triggers. If the renderer cannot show that distinction clearly, keep the control edge and explain the payload in the ordered flow.
 
@@ -237,6 +237,8 @@ Use five information levels so the reader can stop when they have enough detail:
 - **L2:** drill-down components and their local hand-offs;
 - **L3:** cross-cutting tables and ordered scenarios;
 - **L4:** project-relative evidence anchors.
+
+The main canvas renders the L1 shape and edge labels only; L2–L4 (drill-down components, cross-cutting tables and scenarios, evidence anchors) are progressive disclosure — reached through the detail panel, drill-down, or sections — and are never required to read the map (strict detail exclusion).
 
 ## Writing current-state content
 
@@ -392,7 +394,38 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - The renderer uses layered ordering plus obstacle-aware orthogonal routing. A route that cannot clear nodes is marked as failed rather than silently presented as a clean normal edge.
 - Edge labels are assigned non-overlapping positions when possible. A label with no clear slot stays available through the edge title/hover state instead of covering another label or node.
 - Run `node <skill-dir>/scripts/refresh-template.mjs --check <report>` to compare the complete shell; the script locates its template relative to its own path, so the working directory only affects how `<report>` is resolved. Exit `0` / `current` means no migration is needed; exit `1` / `stale` means rerun without `--check`. The refresh parses (JSON-validates) and preserves the existing `report-data` block exactly — structural validation is the separate `--validate` mode — uses an atomic same-directory replacement, detects concurrent edits best-effort (it re-reads and compares the report before the rename; a writer landing between that compare and the rename is not caught), and refuses to downgrade a report whose template version is newer than the installed shell.
-- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, unique section titles that do not use the reserved `架构` diagram-tab title, and empty or ragged section blocks. Exit `0` prints `valid`; exit `2` lists every problem found. Fix all of them before finishing a run.
+- Run `node <skill-dir>/scripts/refresh-template.mjs --validate <report>` to machine-check the structural invariants of the data block: field whitelists at every level, unique ids, `parent` references, three-level depth, required layer and edge-kind values, self-edges, data-to-data edges, unique section titles that do not use the reserved `架构` diagram-tab title, and empty or ragged section blocks. It also estimates the rendered overview density with the same lifting rule the renderer uses and prints an `advisory:` line when the top-level count exceeds the roughly 15 core-node default or the lifted-edge count exceeds about 12 — an advisory is not a failure and never changes the exit code. Exit `0` prints `valid`; exit `2` lists every structural problem found. Fix all of them before finishing a run.
+
+### Visual language contract
+
+The rendered report distinguishes node types, boundaries, edge roles, and emphasis with cues that never rely on color alone:
+
+- **Node types** — layers differ by stroke color, legend label, and the detail-panel layer badge; a node that owns a drill-down also carries a `+N` drill-down badge and is reachable through the breadcrumb path.
+- **Boundary hierarchy** — top-level nodes are the system's boundaries; entering a drill-down renders the parent as a boundary entry node and cross-boundary endpoints as dashed external context nodes with reduced fill, so boundary membership is readable without decoding colors; the current view's place is always identifiable from the breadcrumb.
+- **Edge emphasis (primary-versus-secondary)** — primary flows render solid with a direction arrow; secondary dependencies render dashed; aggregated mixed relationships use a distinct dash pattern. Emphasis raises stroke width and opacity in addition to switching hue, so hover, focus, and critical-path emphasis stay visible without color.
+- **Focus and critical path** — selecting a node keeps the node, its directly connected upstream and downstream nodes, and their edges emphasized while unrelated nodes and edges dim (focus dimming); search filtering dims non-matching material the same way. The connected subgraph is the minimum focus scope; continuing that scope along flow edges toward the durable result or external effect defines the **critical path**, which receives the strongest emphasis and must end at a visible boundary, data, or external node.
+- **Legend** — the legend lists every layer actually used in the report, so the map is decodable without hovering or color memory.
+
+### Visual acceptance checks
+
+Acceptance separates three validity axes; none substitutes for another:
+
+- **Structural validity** — the `--validate` machine checks of the data block;
+- **Visual readability** — the rendered views pass the overlap, clipping, route, readability, interaction, and theme gates below;
+- **Evidence validity** — every material claim passes the evidence gates. A readable diagram does not prove an architecture claim, and a verified claim does not excuse an unreadable view; a structural audit is not a visual review and vice versa.
+
+Automated review gates (run on a rendered report file; they never require Chrome or any external asset for generation):
+
+- **Overlap** — no node overlaps another node and visible edge labels do not overlap labels or nodes;
+- **Clipping** — node labels, summaries, and edge labels are not clipped out of the view at fit zoom, and truncated wording still exposes the full text on hover or in the detail panel;
+- **Routes** — every rendered view has no `route-failed` marker and no proper non-endpoint edge crossing;
+- **Readability** — labels hidden until hover are exceptional, the primary path is visually dominant at fit zoom, and the overview stays within its roughly 8–15 core-node default;
+- **Interaction** — node drag, canvas pan, wheel/zoom, fit/reset, search, drill-down, breadcrumb, and panel behavior work without console errors;
+- **Theme** — where the shell supports light/dark presentation, key views render readably in both themes.
+
+Browser review gates (human step for every report, at desktop and narrow widths): open the offline file directly in the browser, exercise the interaction list above, read the overview at fit zoom in each supported theme, and confirm no console errors or `route-failed` markers; on narrow viewports confirm the bottom-sheet panel and horizontally scrollable tabs remain usable.
+
+These gates run at review time, not at report generation.
 
 ### Schema semantics
 
@@ -404,7 +437,7 @@ The whole report content is one JSON object inside the `<script type="applicatio
 - `edges` — `from` / `to` reference module ids at any depth. The template lifts edges automatically: an edge between deep components renders at the overview as an edge between their top-level ancestors, and exactly inside the relevant sub-diagram. When several deep relationships lift to the same visible endpoints, the renderer aggregates their count and distinct labels so the overview does not misrepresent the first edge as the only relationship. When one endpoint lies outside the drilled-in module, it renders as a dashed external context node; the drilled-in module itself renders as a boundary entry node when edges touch it. `kind` is `flow` (invocation or data flow, solid) or `dep` (dependency or deployment relation, dashed); `label` is short and optional.
 - `sections` — optional tabs for cross-cutting content. Blocks are `p` (paragraph), `heading` (`text`), `steps` (`items`, rendered as an ordered list), `table` (`columns` and `rows`), `bullets` (`items`), `code` (`text`), or `anchors` (`items`). Omit empty sections.
 
-After edge lifting, review the rendered overview rather than only the raw arrays. Roughly 5–8 top-level nodes and at most about 12 lifted edges are a soft selective-reading target. If the overview is denser, group only by verified architecture boundaries (runtime, product, deployable unit, host/core, data ownership, or external trust boundary) and move components into drill-down. Do not omit a material relationship or invent a container to satisfy the target.
+After edge lifting, review the rendered overview rather than only the raw arrays. The overview default is a sparse high-level map of roughly 8–15 core nodes with at most about 12 lifted overview edges; the upper edge of the range is a readability review trigger, not a schema limit. If the overview is denser, group only by verified architecture boundaries (runtime, product, deployable unit, host/core, data ownership, or external trust boundary) and move components into drill-down. Do not omit a material relationship or invent a container to satisfy the target.
 
 ### Validation before writing
 
@@ -433,6 +466,8 @@ After edge lifting, review the rendered overview rather than only the raw arrays
 - CLI edges and runtime claims are scoped to the subcommands that actually build or invoke the runtime;
 - caches, checkpoints, claims, authoritative state, and export/import archives are distinguished, including verified sensitivity and path/permission checks;
 - every section starts with a takeaway `p` block before tables, steps, bullets, code, or anchors;
+- the overview stays on the roughly 8–15 core-node default and reads without detail, notes, or evidence text (strict detail exclusion); facts past L1 are placed in the detail panel, drill-down, or sections (progressive disclosure placement);
+- overview edges were chosen by primary-flow selection so the main path is narratable from visible nodes and labels;
 - section prose uses named actors and concrete outcomes rather than package inventories or noun-stack summaries;
 - visible labels lead with reader concepts, and exact states or jargon are immediately paired with their concrete consequence;
 - the rendered overview has no route-failure markers; any labels hidden until hover are understood and the module tree is reconsidered when hiding is widespread;

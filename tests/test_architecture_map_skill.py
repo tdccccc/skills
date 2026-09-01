@@ -214,7 +214,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             "collision-managed labels",
             "architecture-map-template-version",
             "scripts/refresh-template.mjs",
-            "5–8 top-level nodes",
+            "8–15 core nodes",
             "12 lifted overview edges",
             "route-failure",
         ):
@@ -270,6 +270,193 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         self.assertIn('"type": "heading"', self.skill)
         self.assertIn('"type": "steps"', self.skill)
         self.assertIn('"type": "table"', self.skill)
+
+    def test_overview_default_density_contract(self):
+        """P1: the overview defaults to a sparse high-level map of roughly
+        8-15 core nodes; the upper edge is a review trigger, not a schema limit."""
+        combined = self.skill + self.reference
+        self.assertIn("8–15 core nodes", combined)
+        self.assertIn("sparse high-level map", combined)
+        self.assertIn("readability review trigger, not a schema limit", combined)
+        self.assertIn("default overview", combined)
+        self.assertIn("12 lifted overview edges", combined)
+
+    def test_detail_exclusion_and_progressive_disclosure_contract(self):
+        """P1: the main canvas carries only L1 shape; responsibilities,
+        failure behavior, and source evidence live behind progressive disclosure."""
+        combined = self.skill + self.reference
+        self.assertIn("strict detail exclusion", combined)
+        self.assertIn("progressive disclosure", combined)
+        self.assertIn("detail panel, drill-down, or sections", combined)
+        self.assertIn("node identity, role, boundary", combined)
+        self.assertIn("never required to read the map", combined)
+
+    def test_primary_flow_selection_contract(self):
+        """P1: overview edges are chosen by primary-flow selection — the
+        smallest edge set that narrates the main path."""
+        self.assertIn("primary-flow selection", self.skill)
+        self.assertIn("primary-flow selection", self.reference)
+        self.assertIn("smallest edge set", self.skill + self.reference)
+
+    def test_visual_language_non_color_cues_contract(self):
+        """P1 visual language: node types, boundaries, and edge roles carry
+        line-style, badge, and label cues in addition to color."""
+        combined = self.skill + self.reference
+        self.assertIn("never relies on color alone", combined)
+        self.assertIn("+N", combined)
+        self.assertIn("drill-down badge", combined)
+        self.assertIn("dashed border", combined)
+        # the template already renders those non-color cues: dashed
+        # boundaries/dependency edges and the drill-down badge.
+        self.assertIn("stroke-dasharray", self.template)
+        self.assertIn("_children.length", self.template)
+
+    def test_boundary_hierarchy_and_edge_emphasis_contract(self):
+        """P1 visual language: boundary hierarchy and primary-versus-secondary
+        edge emphasis are documented rules with non-color encodings."""
+        combined = self.skill + self.reference
+        self.assertIsNotNone(re.search(r"boundary hierarchy", combined, flags=re.IGNORECASE))
+        self.assertIn("primary-versus-secondary", combined)
+        self.assertIn("boundary entry node", combined)
+        self.assertIn("external context node", combined)
+        self.assertIn("primary flows", combined)
+        self.assertIn("secondary dependencies", combined)
+
+    def test_focus_and_critical_path_contract(self):
+        """P1 focus contract: selection keeps upstream/downstream connectedness
+        emphasized, dims unrelated material, and defines the critical path."""
+        combined = self.skill + self.reference
+        self.assertIn("focus dimming", combined)
+        self.assertIn("critical path", combined)
+        self.assertIn("upstream", combined)
+        self.assertIn("downstream", combined)
+        self.assertRegex(self.template, r"\.node\.dim\{")
+        self.assertRegex(self.template, r"\.edge\.dim")
+        self.assertRegex(self.template, r"\.edge\.hi [^{]*\{[^}]*stroke-width")
+
+    def test_visual_acceptance_three_axes_contract(self):
+        """P1 acceptance contract: structural validity, visual readability,
+        and evidence validity are separate gates — readability never proves
+        an architecture claim."""
+        combined = self.skill + self.reference
+        for phrase in ("structural validity", "visual readability", "evidence validity"):
+            self.assertIn(phrase, combined)
+        self.assertIn("does not make an architecture claim correct", combined)
+
+    def test_visual_acceptance_gates_contract(self):
+        """P1 acceptance contract: automated and browser gates cover overlap,
+        clipping, broken routes, readability, interaction, and themes."""
+        combined = self.skill + self.reference
+        for phrase in ("overlap", "clipping", "route-failed", "interaction", "light/dark"):
+            self.assertIn(phrase, combined)
+        self.assertIn("console", combined)
+
+    def test_visual_checks_are_review_time_not_generation_dependency(self):
+        """P1 acceptance contract: visual checks are review-time gates; report
+        generation never requires Chrome or external assets."""
+        combined = self.skill + self.reference
+        self.assertIn("review time", combined)
+        self.assertIn("generation", combined)
+        self.assertIn("Chrome", combined)
+
+    def test_validate_density_advisory(self):
+        """P3: --validate prints an advisory when the overview would exceed
+        the roughly 15 core-node / 12 lifted-edge default; it stays advisory
+        (exit code unchanged) and is silent for sparse reports."""
+        with tempfile.TemporaryDirectory(prefix="architecture-map-density-") as tmp:
+            dense = self._base_data()
+            dense["modules"] = [
+                {
+                    "id": f"m{i}",
+                    "label": f"M{i}",
+                    "layer": "core",
+                    "summary": "s",
+                }
+                for i in range(20)
+            ]
+            dense["edges"] = [
+                {"from": f"m{i}", "to": f"m{(i + 1) % 20}", "kind": "flow"}
+                for i in range(18)
+            ]
+            dense_report = self._write_report(tmp, dense, "dense.html")
+            dense_result = self._run_validate(dense_report)
+            self.assertEqual(
+                dense_result.returncode, 0, dense_result.stdout + dense_result.stderr
+            )
+            self.assertIn("valid", dense_result.stdout)
+            self.assertIn("advisory", dense_result.stdout)
+            self.assertIn("20", dense_result.stdout)
+
+            sparse = self._base_data()
+            sparse_report = self._write_report(tmp, sparse, "sparse.html")
+            sparse_result = self._run_validate(sparse_report)
+            self.assertEqual(
+                sparse_result.returncode, 0, sparse_result.stdout + sparse_result.stderr
+            )
+            self.assertIn("valid", sparse_result.stdout)
+            self.assertNotIn("advisory", sparse_result.stdout)
+
+            # structural violations still fail independently of the advisory
+            bad = self._base_data()
+            bad["modules"].append(
+                {"id": "ghost.child", "parent": "ghost", "label": "deep", "layer": "core",
+                 "summary": "s"}
+            )
+            bad_report = self._write_report(tmp, bad, "bad.html")
+            bad_result = self._run_validate(bad_report)
+            self.assertEqual(bad_result.returncode, 2)
+
+    def test_visual_audit_script_covers_seed_reports(self):
+        """P3: the jsdom visual audit (overlap, clipping, routes, readability,
+        interaction, theme) passes on every seed report; it skips cleanly when
+        node/jsdom are unavailable and never needs a browser."""
+        script = self.repo_root / "tests" / "audit_architecture_map_visuals.mjs"
+        self.assertTrue(script.is_file())
+        seeds = sorted(self.eval_dir.glob("*/seed-report.html"))
+        self.assertTrue(seeds)
+        try:
+            result = subprocess.run(
+                ["node", str(script)] + [str(s) for s in seeds],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            self.skipTest("node is not available")
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 2 and "SKIP" in output:
+            self.skipTest("jsdom is not available")
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("ALL PASS", result.stdout)
+        self.assertIn("PASS", result.stdout)
+
+    def test_real_browser_smoke_script(self):
+        """P3: the headless-Chrome smoke runs at desktop and narrow widths on
+        a seed report, verifying rendering, interaction, theme, and console
+        silence; it skips cleanly without Chrome/node, so report generation
+        never depends on a browser."""
+        script = self.repo_root / "tests" / "smoke_architecture_map_browser.sh"
+        self.assertTrue(script.is_file())
+        seed = next(iter(sorted(self.eval_dir.glob("*/seed-report.html"))), None)
+        self.assertIsNotNone(seed)
+        try:
+            result = subprocess.run(
+                ["bash", str(script), str(seed)],
+                cwd=self.repo_root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        except FileNotFoundError:
+            self.skipTest("bash is not available")
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 2 and "SKIP" in output:
+            self.skipTest(output.strip().splitlines()[0])
+        self.assertEqual(result.returncode, 0, output)
+        self.assertIn("ALL PASS", result.stdout)
+        self.assertIn("1600px", result.stdout)
+        self.assertIn("1024px", result.stdout)
 
     def test_unverified_is_optional_and_not_a_status(self):
         self.assertIn("status: updated | no-impact | blocked", self.skill)
@@ -401,7 +588,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
 
     def test_template_version_and_refresh_script_preserve_report_data(self):
         self.assertIn(
-            '<meta name="architecture-map-template-version" content="6">',
+            '<meta name="architecture-map-template-version" content="7">',
             self.template,
         )
         refresh_script = self.skill_dir / "scripts" / "refresh-template.mjs"
@@ -425,7 +612,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
         }
         data_block = json.dumps(custom_data, ensure_ascii=False, indent=2)
         stale = self.template.replace(
-            '<meta name="architecture-map-template-version" content="6">',
+            '<meta name="architecture-map-template-version" content="7">',
             '<meta name="architecture-map-template-version" content="1">',
         ).replace(
             "</head>", '<style id="old-shell-sentinel"></style>\n</head>', 1
@@ -467,7 +654,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             self.assertEqual(refreshed.returncode, 0, refreshed.stdout + refreshed.stderr)
             rendered = report.read_text(encoding="utf-8")
             self.assertIn(
-                '<meta name="architecture-map-template-version" content="6">',
+                '<meta name="architecture-map-template-version" content="7">',
                 rendered,
             )
             self.assertNotIn("old-shell-sentinel", rendered)
@@ -497,7 +684,7 @@ class ArchitectureMapSkillContractTests(unittest.TestCase):
             future_report = Path(tmp) / "future-report.html"
             future = stale.replace(
                 '<meta name="architecture-map-template-version" content="1">',
-                '<meta name="architecture-map-template-version" content="7">',
+                '<meta name="architecture-map-template-version" content="8">',
                 1,
             )
             future_report.write_text(future, encoding="utf-8")

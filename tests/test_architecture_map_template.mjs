@@ -63,6 +63,7 @@ function loadDom(block, beforeParse) {
   return new JSDOM(buildHtml(block), {
     runScripts: "dangerously",
     pretendToBeVisual: true,
+    url: "https://localhost/",
     ...(beforeParse ? { beforeParse } : {}),
   });
 }
@@ -209,6 +210,27 @@ function runOverviewSuite() {
   check("panel evidence chips", document.querySelectorAll("#panel .chip").length === 2);
   check("panel hint mentions drill-down", panelText.includes("子模块"));
 
+  const boundaryEntry = document.querySelector('#canvas g.node.boundary-entry[data-id="__parent"]');
+  check(
+    "boundary entry node carries a distinct class",
+    !!boundaryEntry,
+    Array.from(document.querySelectorAll("#canvas g.node")).map((g) => g.getAttribute("class")),
+  );
+  check(
+    "boundary entry node shows an up glyph",
+    (boundaryEntry?.textContent || "").includes("↑"),
+    boundaryEntry?.textContent,
+  );
+  check(
+    "boundary entry border is stronger than plain dashed context",
+    boundaryEntry?.querySelector("rect")?.getAttribute("stroke-width") === "2.2",
+    boundaryEntry?.querySelector("rect")?.getAttribute("stroke-width"),
+  );
+  check(
+    "external context nodes stay plain dashed",
+    document.querySelectorAll('#canvas g.node:not([data-id="__parent"]).boundary-entry').length === 0,
+  );
+
   clickNode("api.auth");
   check("leaf breadcrumb unchanged", breadcrumb() === "系统 / HTTP API", breadcrumb());
   check("leaf panel title", document.querySelector("#panel h2").textContent === "鉴权中间件");
@@ -217,8 +239,21 @@ function runOverviewSuite() {
     document.querySelectorAll("#canvas g.node.selected").length === 1,
   );
   check(
-    "leaf selection highlights connected edges",
-    document.querySelectorAll("#canvas g.edge.hi").length === 1,
+    "leaf selection emphasizes the outgoing flow chain as the critical path",
+    document.querySelectorAll("#canvas g.edge.path").length === 1,
+    Array.from(document.querySelectorAll("#canvas g.edge.path")).map((g) =>
+      g.getAttribute("data-route"),
+    ),
+  );
+  check(
+    "leaf selection keeps only the path edge emphasized in this view",
+    document.querySelectorAll("#canvas g.edge.hi, #canvas g.edge.up").length === 0,
+    Array.from(document.querySelectorAll("#canvas g.edge")).map((g) => g.getAttribute("class")),
+  );
+  check(
+    "leaf selection dims unrelated edges",
+    document.querySelectorAll("#canvas g.edge.dim").length === 4,
+    document.querySelectorAll("#canvas g.edge").length,
   );
 
   clickNode("__parent");
@@ -638,6 +673,115 @@ function runArxivRoutingSuite() {
   dom.window.close();
 }
 
+function runFocusPathSuite() {
+  const block = JSON.stringify({
+    title: "关键路径聚焦",
+    summary: "",
+    modules: [
+      { id: "a", label: "A", layer: "entry", summary: "" },
+      { id: "b", label: "B", layer: "core", summary: "" },
+      { id: "c", label: "C", layer: "core", summary: "" },
+      { id: "d", label: "D", layer: "data", summary: "" },
+      { id: "e", label: "E", layer: "entry", summary: "" },
+      { id: "f", label: "F", layer: "entry", summary: "" },
+      { id: "g", label: "G", layer: "core", summary: "" },
+      { id: "x", label: "X", layer: "data", summary: "" },
+    ],
+    edges: [
+      { from: "a", to: "b", kind: "flow" },
+      { from: "b", to: "c", kind: "flow" },
+      { from: "c", to: "d", kind: "flow" },
+      { from: "e", to: "b", kind: "dep" },
+      { from: "b", to: "x", kind: "dep" },
+      { from: "f", to: "g", kind: "flow" },
+    ],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const clickNode = (id) => {
+    document
+      .querySelector(`#canvas g.node[data-id="${id}"]`)
+      .dispatchEvent(new window.Event("click", { bubbles: true }));
+  };
+  const edgeClasses = (from, to) => {
+    const edge = document.querySelector(`#canvas g.edge[data-from="${from}"][data-to="${to}"]`);
+    return edge ? Array.from(edge.classList) : [];
+  };
+
+  clickNode("b");
+  check("chain head: incoming flow edge is upstream emphasis", edgeClasses("a", "b").includes("up") && !edgeClasses("a", "b").includes("path"), edgeClasses("a", "b"));
+  check("chain middle: outgoing flow edge is critical path", edgeClasses("b", "c").includes("path"), edgeClasses("b", "c"));
+  check("chain tail: continuation to the data node stays on the path", edgeClasses("c", "d").includes("path"), edgeClasses("c", "d"));
+  check("incoming dep edge is upstream emphasis", edgeClasses("e", "b").includes("up"), edgeClasses("e", "b"));
+  check("outgoing dep edge stays connected highlight", edgeClasses("b", "x").includes("hi"), edgeClasses("b", "x"));
+  check("unrelated edge dims", edgeClasses("f", "g").includes("dim"), edgeClasses("f", "g"));
+  check(
+    "path nodes carry on-path emphasis",
+    Array.from(document.querySelectorAll("#canvas g.node.on-path")).map((n) =>
+      n.getAttribute("data-id"),
+    ).join(",") === "c,d",
+    Array.from(document.querySelectorAll("#canvas g.node.on-path")).map((n) => n.getAttribute("data-id")),
+  );
+  check("unrelated nodes dim", document.querySelectorAll("#canvas g.node.dim").length === 2);
+  check("upstream and dep-connected nodes stay readable", document.querySelectorAll("#canvas g.node:not(.dim):not(.selected):not(.on-path)").length === 3);
+
+  clickNode("c");
+  check(
+    "mid-chain: only the remaining downstream link is the path",
+    edgeClasses("c", "d").includes("path") && !edgeClasses("b", "c").includes("path"),
+    edgeClasses("b", "c"),
+  );
+  check("mid-chain: the incoming feed becomes upstream emphasis", edgeClasses("b", "c").includes("up"), edgeClasses("b", "c"));
+  check(
+    "mid-chain: edges two hops away dim",
+    edgeClasses("a", "b").includes("dim") && edgeClasses("e", "b").includes("dim"),
+    [edgeClasses("a", "b"), edgeClasses("e", "b")],
+  );
+
+  document.getElementById("canvas").dispatchEvent(new window.Event("click", { bubbles: true }));
+  check("canvas click clears focus classes", document.querySelectorAll("#canvas g.edge.path, #canvas g.edge.up, #canvas g.edge.hi, #canvas g.edge.dim, #canvas g.node.dim, #canvas g.node.on-path").length === 0);
+  dom.window.close();
+}
+
+function runThemeSuite() {
+  const block = JSON.stringify({
+    title: "主题",
+    summary: "",
+    modules: [
+      { id: "a", label: "入口", layer: "entry", summary: "" },
+      { id: "b", label: "核心", layer: "core", summary: "" },
+    ],
+    edges: [{ from: "a", to: "b", kind: "flow" }],
+    sections: [],
+  });
+  const dom = loadDom(block);
+  const { window } = dom;
+  const { document } = window;
+  const themeButton = () => document.querySelector('[data-canvas-action="theme"]');
+  const rectFill = () => document.querySelector('#canvas g.node[data-id="a"] rect').getAttribute("fill");
+  const swatch = () => document.querySelector("#legend .swatch").style.background;
+
+  check("default theme is dark", document.documentElement.getAttribute("data-theme") === "dark");
+  check("theme toolbar action exists", !!themeButton());
+  const darkFill = rectFill();
+  const darkSwatch = swatch();
+  themeButton().dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  check("theme toggle sets the light attribute", document.documentElement.getAttribute("data-theme") === "light");
+  check("theme toggle re-renders the node palette", rectFill() !== darkFill, { darkFill, lightFill: rectFill() });
+  check("legend swatches follow the theme", swatch() !== darkSwatch, { darkSwatch, lightSwatch: swatch() });
+  check("theme preference persists in localStorage", window.localStorage.getItem("arch-map-theme") === "light");
+  themeButton().dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+  check("theme toggle returns to dark", document.documentElement.getAttribute("data-theme") === "dark");
+  check("theme returns to the dark palette", rectFill() === darkFill, { darkFill, rect: rectFill() });
+  check(
+    "light palette stylesheet is present",
+    /\[data-theme="light"\]/.test(templateHtml),
+  );
+  dom.window.close();
+}
+
 function runFatalSuites() {
   for (const [name, block] of [
     ["malformed JSON", '{ "title": '],
@@ -804,6 +948,8 @@ runMixedEdgeSuite();
 runRoutingSuite();
 runLongLabelSuite();
 runArxivRoutingSuite();
+runFocusPathSuite();
+runThemeSuite();
 runFatalSuites();
 runDuplicateIdSuite();
 runXssSuite();

@@ -233,6 +233,44 @@ function validateReportData(data, problems) {
   }
 }
 
+// Overview density advisory (not a structural failure): mirrors the roughly
+// 15 core-node / 12 lifted-edge overview default in REFERENCE.md. The
+// top-level count and lifted pairs follow the renderer's lifting rule, so the
+// advisory speaks about the rendered overview, not the raw arrays.
+function densityAdvisory(data) {
+  const byId = new Map();
+  data.modules.forEach((m) => byId.set(m.id, m));
+  const topIds = [];
+  data.modules.forEach((m) => {
+    const p = m.parent || null;
+    if (!(p && byId.has(p))) topIds.push(m.id);
+  });
+  function visAnc(id) {
+    let cursor = byId.get(id);
+    while (cursor) {
+      const p = cursor.parent || null;
+      if (!(p && byId.has(p))) return cursor.id;
+      cursor = byId.get(p);
+    }
+    return null;
+  }
+  const lifted = new Set();
+  (Array.isArray(data.edges) ? data.edges : []).forEach((e) => {
+    if (!(isPlainObject(e) && isNonEmptyString(e.from) && isNonEmptyString(e.to))) return;
+    const fromAnc = visAnc(e.from);
+    const toAnc = visAnc(e.to);
+    if (fromAnc && toAnc && fromAnc !== toAnc) lifted.add(`${fromAnc}\u2192${toAnc}`);
+  });
+  const notes = [];
+  if (topIds.length > 15) {
+    notes.push(`${topIds.length} top-level modules exceed the ~15 core-node overview default`);
+  }
+  if (lifted.size > 12) {
+    notes.push(`~${lifted.size} lifted overview edges exceed the ~12-edge default`);
+  }
+  return notes;
+}
+
 function usage() {
   console.log("Usage: node refresh-template.mjs [mode] <report.html>");
   console.log("  (no mode)  refresh the shell, preserving the report-data block");
@@ -307,6 +345,12 @@ function main() {
       return;
     }
     console.log(`valid: ${reportPath}`);
+    const { data } = extractDataBlock(report, reportPath);
+    for (const note of densityAdvisory(data)) {
+      console.log(
+        `advisory: ${note}; consider grouping along verified boundaries and pushing detail into drill-down`,
+      );
+    }
     return;
   }
 
