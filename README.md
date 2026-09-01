@@ -41,6 +41,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 
 - [code-change-discipline](code-change-discipline/README.md)：修改代码前先选择测试策略；功能和 Bug 默认先测试后实现，小修也适用。
 - [helm](helm/README.md)：先定目标、一次规划一个阶段，并在执行中按证据调整方向。
+- [handoff](handoff/SKILL.md)：把当前工作整理成可核验的跨会话交接文档，或在新会话中核验并恢复任务锚点。
 - [architecture-map](architecture-map/SKILL.md)：基于代码和可执行配置创建、更新或审计当前实现的交互式架构地图报告。
 - [tocodex](tocodex/README.md)：把明确任务委托给 Codex CLI，并读取结果。
 - [grill-me](grill-me/SKILL.md)：通过持续追问帮助梳理和检验设计。
