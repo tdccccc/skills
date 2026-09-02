@@ -48,6 +48,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 - [grill-with-docs](grill-with-docs/SKILL.md)：在设计访谈过程中同步形成领域术语和 ADR。
 - [domain-modeling](domain-modeling/SKILL.md)：维护领域语言、术语和架构决策。
 - [security-audit](security-audit/README.md)：检查 Claude Code 配置中的可疑 hooks、MCP servers 和命令。
+- [unjargon](unjargon/SKILL.md)：把上一条回答重写成不看代码、不查资料也能读懂的说法。
 
 ## 怎么用
 
