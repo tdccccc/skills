@@ -221,6 +221,8 @@ Do not treat the handoff as authoritative when the repository disagrees with it.
 
 ### 2. Report the resume result
 
+Write the resume report in Chinese by default, regardless of the language used in the handoff file. Use another language only when the user explicitly requests it.
+
 Return a concise resume report containing:
 
 - the goal;
