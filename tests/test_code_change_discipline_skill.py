@@ -14,6 +14,9 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
         cls.helm_skill = (cls.repo_root / "helm" / "SKILL.md").read_text(
             encoding="utf-8"
         )
+        cls.helm_reference = (cls.repo_root / "helm" / "REFERENCE.md").read_text(
+            encoding="utf-8"
+        )
         cls.phase_template = (
             cls.repo_root / "helm" / "templates" / "phase.md"
         ).read_text(encoding="utf-8")
@@ -115,32 +118,27 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
         plan = self.section(self.helm_skill, "### 2. Plan — write only the current phase")
         execute = self.section(self.helm_skill, "### 3. Execute")
         checkpoint = self.section(self.helm_skill, "### 4. Checkpoint")
-        delegation = self.section(self.helm_skill, "## Delegation (subagents)")
+        delegation = self.section(self.helm_reference, "## Delegation contract")
 
         for phrase in (
-            "change kind",
-            "test strategy",
-            "expected Red or Green baseline",
-            "Green and regression checks",
-            "horizontal testing task at the end",
+            "`code-change-discipline`",
+            "expected Red",
+            "Green or performance baseline",
+            "never in a trailing testing chunk",
+            "Phase verification",
         ):
             self.assertIn(phrase, plan)
 
-        self.assertIn("`code-change-discipline`", execute)
-        self.assert_order(
+        self.assertIn(
+            "`code-change-discipline` owns how executable changes are tested",
             execute,
-            "expected Red",
-            "minimum production change",
-            "Green",
-            "refactor",
-            "regression",
-            "Checkpoint",
         )
+        self.assert_order(execute, "expected Red", "Checkpoint")
 
         for phrase in (
-            "Red and Green evidence",
+            "Red-to-Green evidence",
             "before-and-after Green evidence",
-            "correctness and baseline/result evidence",
+            "correctness and measurement evidence",
             "checks not run",
         ):
             self.assertIn(phrase, checkpoint)
@@ -157,8 +155,8 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
     def test_red_is_not_accepted_checked_off_or_committed(self):
         execute = self.section(self.helm_skill, "### 3. Execute")
         self.assertIn(
-            "An expected Red is unaccepted work: do not accept it, check off "
-            "its task, or commit it.",
+            "An expected Red is unaccepted work: never accept it, check off "
+            "its chunk, or commit it.",
             execute,
         )
 
@@ -173,15 +171,13 @@ class CodeChangeDisciplineSkillContractTests(unittest.TestCase):
         )
         chunk_one = self.section(self.phase_template, "### Chunk 1 — {one coherent, independently acceptable change}")
         for phrase in (
-            "change kind",
-            "strategy",
-            "Red / baseline signal",
-            "Green check",
-            "regression checks",
-            "exception",
-            "implementation and tests accepted",
+            "kind:",
+            "first signal:",
+            "checks:",
+            "accepted on observed evidence",
         ):
             self.assertIn(phrase, chunk_one)
+        self.assertIn("exception:", self.phase_template)
         for forbidden in ("status:", "tdd-status", "test-status", "report-status"):
             self.assertNotIn(forbidden, self.phase_template)
 

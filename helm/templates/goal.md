@@ -18,18 +18,16 @@ owner: {who drives this — session/agent id}
 ## Non-goals
 
 - {Explicitly out of scope}
-- {Explicitly out of scope}
 
 ## Constraints
 
 - {Time, tech, compatibility, safety, or process limits}
+- Commits: {checkpoint commits authorized | none}
 
 ## Phases
 
-<!-- Single source of truth for phase status. PN ↔ filename NN. Integer IDs are permanent and never reused; replacement phases take the next unused number. Outcomes only — no steps. The active line is the current focus. -->
+<!-- Single source of truth for phase status. PN ↔ filename NN. Integer IDs are permanent and never reused; replacement phases take the next unused number. Outcomes only — no steps. List only phases the evidence already justifies; one is normal. The active line is the current focus. -->
 1. P1 — {outcome only} — status: pending
-2. P2 — {outcome only} — status: pending
-3. P3 — {outcome only} — status: pending
 
 ## Open questions
 
