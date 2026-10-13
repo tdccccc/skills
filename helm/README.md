@@ -18,11 +18,10 @@ curl -fsSL https://raw.githubusercontent.com/tdccccc/skills/main/bootstrap.sh | 
 
 ### ZCode
 
-把 Helm 和必需的执行规则链到一个用户级目录：
+把 Helm 链到一个用户级目录：
 
 ```bash
 mkdir -p ~/.agents/skills
-ln -sfn /path/to/skills/code-change-discipline ~/.agents/skills/code-change-discipline
 ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 ```
 
@@ -60,11 +59,12 @@ ln -sfn /path/to/skills/domain-modeling ~/.agents/skills/domain-modeling
 
 ## 逻辑改动怎么测试
 
-Helm 会遵守 `code-change-discipline`：
+Helm 按改动类型选择验证方式：
 
 - **功能和 Bug**：先看到测试按预期失败，再做最小实现，测试通过后跑相关回归。
 - **纯重构和优化**：先建立基线并保持结果正确，不强造失败测试。
-- **无法先测**：说明原因，并使用可行的替代验证。
+- **纯文档和格式**：只做能发现可能错误的最低成本检查。
+- **无法先测**：说明原因，使用可行的替代验证，并交代是否还欠回归测试。
 
 ## 会生成什么
 
@@ -102,6 +102,6 @@ docs/helm/<initiative-id>/
 - 只想讨论，暂时不准备执行
 - 紧急修复，Helm 的流程成本高于当前风险
 
-这些场景不需要启用 Helm。只要涉及可执行逻辑，仍然遵守 `code-change-discipline`。
+这些场景不需要启用 Helm。
 
 具体代理协议、状态规则和模板说明见 `SKILL.md` 与 `REFERENCE.md`。

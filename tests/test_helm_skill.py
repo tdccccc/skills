@@ -65,7 +65,7 @@ class HelmSkillContractTests(unittest.TestCase):
             self.assertIn(phrase, description)
 
     def test_instructions_stay_lean(self):
-        self.assertLessEqual(len(self.skill.split()), 2300)
+        self.assertLessEqual(len(self.skill.split()), 2400)
         self.assertLessEqual(len(self.skill.split()) + len(self.reference.split()), 3700)
 
     def test_phase_ids_are_monotonic_integers(self):
@@ -199,7 +199,7 @@ class HelmSkillContractTests(unittest.TestCase):
         grill_with_docs = read(REPO_ROOT / "grill-with-docs" / "SKILL.md")
         references = set(re.findall(r"`([a-z]+(?:-[a-z]+)+)`", self.skill))
         references |= set(re.findall(r"`/([a-z]+(?:-[a-z]+)*)`", grill_with_docs))
-        self.assertIn("code-change-discipline", references)
+        self.assertIn("domain-modeling", references)
         self.assertLessEqual(references, self.skill_names)
 
     def test_completed_work_is_revisited_with_new_phase_ids(self):

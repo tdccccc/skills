@@ -20,7 +20,7 @@ Use Helm when at least one holds:
 - the path or the goal is genuinely uncertain and may change;
 - a wrong turn is expensive (migration, broad refactor, multi-component feature).
 
-Do the work directly, without Helm artifacts, for well-scoped changes that fit one session with obvious success, few-line fixes, pure brainstorming, and emergency hotfixes where process costs more than the risk (if an initiative already exists, journal the exception). Executable changes follow `code-change-discipline` either way.
+Do the work directly, without Helm artifacts, for well-scoped changes that fit one session with obvious success, few-line fixes, pure brainstorming, and emergency hotfixes where process costs more than the risk (if an initiative already exists, journal the exception).
 
 ## Artifacts
 
@@ -72,13 +72,13 @@ Set the goal `status: active` and start P1. For large or hard-to-reverse initiat
 Create the phase file from `templates/phase.md`; later phases stay as index lines until activated.
 
 - One phase = one checkable outcome, small enough to discard or rework without grief (hours, not weeks). Split it if it grows past about seven chunks.
-- A chunk is one coherent change the owner can verify and accept on its own. For executable chunks, record the kind and expected first signal per `code-change-discipline` — an expected Red for behavior changes and bug fixes, a Green or performance baseline for refactors and optimizations — plus the checks that will prove it. Tests live inside each chunk, never in a trailing testing chunk.
+- A chunk is one coherent change the owner can verify and accept on its own. For executable chunks, record the kind and expected first signal from Testing executable changes, plus the checks that will prove it. Tests live inside each chunk, never in a trailing testing chunk.
 - **Phase verification** lists the cross-chunk or end-to-end checks the outcome needs beyond the chunk checks.
 - Include **Assumptions** and **Abort / reshape triggers**.
 
 ### 3. Execute
 
-Work the chunks in this session. `code-change-discipline` owns how executable changes are tested; Helm owns acceptance, phase state, and commits. An expected Red is unaccepted work: never accept it, check off its chunk, or commit it. Run a Checkpoint after each chunk reaches Green (or each delegated report returns), and earlier if something smells wrong.
+Work the chunks in this session, testing each executable chunk per Testing executable changes. An expected Red is unaccepted work: never accept it, check off its chunk, or commit it. Run a Checkpoint after each chunk reaches Green (or each delegated report returns), and earlier if something smells wrong.
 
 When the user says to plan only or not to touch code, Helm artifact edits stay in scope (status, phase plans, journal); stop before implementation.
 
@@ -96,7 +96,7 @@ Silently ask:
 | Path wrong, goal still right | **L1** or **L2** (see Steer) |
 | Goal / success criteria wrong | **L3** — stop implementation first |
 
-**Acceptance** needs observed results that match the chunk's plan: Red-to-Green evidence plus relevant regressions for behavior changes and bug fixes, before-and-after Green evidence for refactors, correctness and measurement evidence for optimizations. State checks not run and any test-first exception with its compensating verification; missing required evidence blocks acceptance. A delegate's "done" is a report, not acceptance.
+**Acceptance** needs observed results that match the chunk's plan and the acceptance evidence for its kind (see Testing executable changes). State checks not run and any test-first exception with its compensating verification; missing required evidence blocks acceptance. A delegate's "done" is a report, not acceptance.
 
 **Commits** happen only when goal.md Constraints authorize them. Then commit each accepted chunk as an isolated change — its implementation, tests, and the phase-file tick, never unrelated working-tree edits — and commit Helm artifacts once per phase transition, L2/L3 steer, revisit, handoff, or Close; L1 plan edits ride along with the next commit. Messages name the chunk or transition, e.g. `feat(login): password strength meter` or `docs(helm): P2 done`. Without authorization, keep the same acceptance boundaries, avoid mixing in unrelated changes, and report which accepted chunks remain uncommitted.
 
@@ -109,6 +109,19 @@ Before rewriting files on L2 or L3 (or when unsure), tell the user the one-line 
 - **Abandon:** set `status: abandoned` and journal why. Do not fake completion.
 
 Transition mechanics live in `REFERENCE.md`.
+
+## Testing executable changes
+
+Choose by behavior and risk, not file type or size; config, schema, migration, build, CI, and deploy files count when they can change an outcome.
+
+| Kind | First signal | Acceptance evidence |
+|------|--------------|---------------------|
+| Behavior change / bug fix | Red: a focused test fails because the behavior is missing or wrong | Same test Green + relevant regressions |
+| Refactor | Green baseline | Baseline stays Green |
+| Optimization | Correctness checks + repeatable measurement | Still correct; same measurement before and after |
+| Prose, formatting, regeneration | — | Cheapest check that catches the likely mistake |
+
+Test through stable boundaries, not private internals. A Red counts only when it fails for the expected reason, not from syntax, fixture, environment, flaky, or pre-existing failures; if a new test already passes, investigate — never weaken it. When test-first is infeasible, record why, the compensating verification and its observed result, and any test still owed.
 
 ## Status
 
