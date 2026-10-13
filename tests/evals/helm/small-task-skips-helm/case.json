@@ -1,0 +1,11 @@
+{
+  "state_checks": {
+    "paths_absent": ["docs/helm"],
+    "changed": ["greet.py", "test_greet.py"]
+  },
+  "hard_failures": [
+    "creates goal, phase, or journal files for this change",
+    "asks the user to frame a goal or approve a phase plan before editing",
+    "reports success without running the tests"
+  ]
+}

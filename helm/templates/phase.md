@@ -15,7 +15,6 @@ revision: 1
 ## Assumptions
 
 - {Assumption that might be wrong}
-- {Assumption that might be wrong}
 
 ## Approach
 
@@ -23,32 +22,32 @@ revision: 1
 
 ## Chunks
 
+<!-- kind: behavior | bug fix | refactor | optimization | non-behavioral.
+     first signal: the expected Red for behavior changes and bug fixes, the Green or performance
+     baseline to preserve for refactors and optimizations, or "n/a" for non-behavioral edits.
+     Add `- exception:` only when test-first is infeasible: reason, compensating verification, follow-up. -->
+
 ### Chunk 1 — {one coherent, independently acceptable change}
 
-- change kind: {behavior change | bug fix | behavior-preserving refactor | optimization | non-behavioral}
-- strategy: {strict Red-Green-Refactor | Green characterization baseline | correctness + performance baseline | proportionate check}
-- Red / baseline signal: {focused command and expected failure reason, or the Green baseline to preserve}
-- Green check: {focused command and expected success signal}
-- regression checks: {relevant commands and expected signals}
-- exception: {why test-first is infeasible and the compensating verification; omit when none}
-- [ ] implementation and tests accepted
+- change: {what becomes true}
+- kind: {kind}
+- first signal: {expected Red or baseline, with the command}
+- checks: {focused Green check and relevant regression checks, with expected signals}
+- [ ] accepted on observed evidence
 
 ### Chunk 2 — {one coherent, independently acceptable change}
 
-- change kind: {kind}
-- strategy: {strategy}
-- Red / baseline signal: {signal}
-- Green check: {check}
-- regression checks: {checks}
-- exception: {omit when none}
-- [ ] implementation and tests accepted
+- change: {what becomes true}
+- kind: {kind}
+- first signal: {signal}
+- checks: {checks}
+- [ ] accepted on observed evidence
 
 ## Phase verification
 
-- {End-to-end or cross-chunk check and observed success signal}
-- {Relevant phase-level regression check and observed success signal}
+<!-- Cross-chunk or end-to-end checks; an observed pass is required before the phase is done. -->
+- {Check and expected signal}
 
 ## Abort / reshape triggers
 
 - If {signal}, stop and reshape (L2) or steer (L3) instead of pushing.
-- If {signal}, ...

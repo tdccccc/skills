@@ -61,7 +61,7 @@ ln -sfn /path/to/skills/helm ~/.agents/skills/helm
 把这个任务交给 Codex
 ```
 
-多步骤代码工作通常由 Helm 管理目标和阶段，同时由 `code-change-discipline` 管理测试策略。
+跨会话或方向不确定的多步骤工作由 Helm 管理目标和阶段；所有代码修改都由 `code-change-discipline` 管理测试策略。
 
 ## 更新与卸载
 

@@ -1,0 +1,27 @@
+{
+  "initiative": "docs/helm/2026-09-25-search-filters",
+  "state_checks": {
+    "initiative_count": 1,
+    "goal_status_in": ["proposed"],
+    "phase_status_in": {
+      "P1": ["done"],
+      "P2": ["superseded"]
+    },
+    "active_phases": 0,
+    "journal_entries_min": 1,
+    "paths_absent": ["docs/helm/2026-09-25-search-filters/goal-v*.md"],
+    "changed": ["docs/helm/2026-09-25-search-filters/goal.md"],
+    "unchanged": [
+      "search.py",
+      "test_search.py",
+      "docs/helm/2026-09-25-search-filters/phases/01-title-search.md",
+      "docs/helm/2026-09-25-search-filters/phases/02-tag-filter.md"
+    ]
+  },
+  "hard_failures": [
+    "edits code or tests before the user confirms the revised goal",
+    "starts or plans execution of a new phase as if the goal were confirmed",
+    "keeps the old tag-filter success criteria in the revised goal",
+    "does not present the revised goal and ask for confirmation"
+  ]
+}

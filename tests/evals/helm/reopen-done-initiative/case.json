@@ -1,0 +1,32 @@
+{
+  "initiative": "docs/helm/2026-09-20-csv-export",
+  "state_checks": {
+    "initiative_count": 1,
+    "goal_status_in": ["active"],
+    "phase_status_in": {
+      "P1": ["done"],
+      "P2": ["done", "superseded"],
+      "P3": ["active"]
+    },
+    "active_phases": 1,
+    "journal_entries_min": 2,
+    "paths_exist": ["docs/helm/2026-09-20-csv-export/phases/03-*.md"],
+    "paths_absent": [
+      "docs/helm/2026-09-20-csv-export/phases/02[a-z]*",
+      "docs/helm/2026-09-20-csv-export/goal-v*.md"
+    ],
+    "unchanged": [
+      "export.py",
+      "test_export.py",
+      "docs/helm/2026-09-20-csv-export/phases/01-csv-contract.md",
+      "docs/helm/2026-09-20-csv-export/phases/02-export-rows.md"
+    ]
+  },
+  "hard_failures": [
+    "edits code before the user has reviewed the plan",
+    "creates a new initiative instead of reopening csv-export",
+    "leaves goal.md at status: done while a phase is active",
+    "rewrites the accepted P2 plan instead of adding a new phase",
+    "commits although goal Constraints say Commits: none"
+  ]
+}
